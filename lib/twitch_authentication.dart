@@ -8,6 +8,85 @@ import 'package:http/http.dart';
 
 import 'twitch_manager.dart';
 
+///
+/// Get a new OAUTH for the user
+///
+Future<String> _getNewOauth({
+  required String appId,
+  required List<TwitchScope> scope,
+  required Future<void> Function(String) requestUserToBrowse,
+}) async {
+  // Create the authentication link
+  String stateToken = Random().nextInt(0x7fffffff).toString();
+  final address = 'https://id.twitch.tv/oauth2/authorize?'
+      'response_type=token'
+      '&client_id=$appId'
+      '&redirect_uri=http://localhost:3000'
+      '&scope=${scope.map<String>((e) => e.text()).join('+')}'
+      '&state=$stateToken';
+
+  // Send link to user and wait for the user to accept
+  requestUserToBrowse(address);
+  final response = await _waitForTwitchResponse();
+
+  // Parse the answer
+  final re = RegExp(
+      r'^http://localhost:3000/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
+  final match = re.firstMatch(response);
+
+  if (match!.group(2)! != stateToken) {
+    throw 'State token not equal, this connexion may be compromised';
+  }
+  return match.group(1)!;
+}
+
+Future<String> _waitForTwitchResponse() async {
+  // In the success page, we have to fetch the address and POST it to ourselves
+  // since it is not possible otherwise to get it
+  const successWebsite = '<!DOCTYPE html>'
+      '<html><body>'
+      'You can close this page'
+      '<script>'
+      'var xhr = new XMLHttpRequest();'
+      'xhr.open("POST", \'http://localhost:3000\', true);'
+      'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
+      'xhr.send(JSON.stringify({\'token\': window.location.href}));'
+      '</script>'
+      '</body></html>';
+
+  // Communication procedure
+  String? twitchResponse;
+  void twitchResponseCallback(Socket client) {
+    client.listen((data) async {
+      // Parse the twitch answer
+      final answerAsString = String.fromCharCodes(data).trim().split('\r\n');
+
+      if (answerAsString.first == 'GET / HTTP/1.1') {
+        // Send the success page to browser
+        client.write('HTTP/1.1 200 OK\nContent-Type: text\n'
+            'Content-Length: ${successWebsite.length}\n'
+            '\n'
+            '$successWebsite');
+        return;
+      } else {
+        // Otherwise it is a POST we sent ourselves in the success page
+        twitchResponse = jsonDecode(answerAsString.last)['token']!;
+      }
+
+      client.close();
+      return;
+    });
+  }
+
+  final server = await ServerSocket.bind('localhost', 3000);
+  server.listen(twitchResponseCallback);
+  while (twitchResponse == null) {
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  return twitchResponse!;
+}
+
 class TwitchAuthentication {
   ///
   /// [oauthKey] is the OAUTH key. If none is provided, the process to generate
@@ -47,7 +126,11 @@ class TwitchAuthentication {
     bool retry = true,
   }) async {
     _onInvalidTokenCallback = onInvalidToken;
-    oauthKey ??= await _generateOauthKey(requestUserToBrowse);
+    oauthKey ??= await _getNewOauth(
+      appId: appId,
+      scope: scope,
+      requestUserToBrowse: requestUserToBrowse,
+    );
 
     final success = await _validateToken();
     if (success) {
@@ -68,84 +151,6 @@ class TwitchAuthentication {
 
     // If we get here, we are abording connecting
     return false;
-  }
-
-  ///
-  /// Get a new OAUTH for the user
-  ///
-  Future<String> _generateOauthKey(
-    Future<void> Function(String) requestUserToBrowse,
-  ) async {
-    String stateToken = Random().nextInt(0x7fffffff).toString();
-
-    final address = 'https://id.twitch.tv/oauth2/authorize?'
-        'response_type=token'
-        '&client_id=$appId'
-        '&redirect_uri=http://localhost:3000'
-        '&scope=${scope.map<String>((e) => e.text()).join('+')}'
-        '&state=$stateToken';
-    requestUserToBrowse(address);
-
-    // Wait for the user to navigate
-    final response = await _waitForAuthentication();
-
-    final re = RegExp(
-        r'^http://localhost:3000/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
-    final match = re.firstMatch(response);
-
-    if (match!.group(2)! != stateToken) {
-      throw 'State token not equal, this connexion may be compromised';
-    }
-    return match.group(1)!;
-  }
-
-  Future<String> _waitForAuthentication() async {
-    const postingKeyWebsite = '<!DOCTYPE html>'
-        '<html><body>'
-        'You can close this page'
-        '<script>'
-        'var xhr = new XMLHttpRequest();'
-        'xhr.open("POST", \'http://localhost:3000\', true);'
-        'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
-        'xhr.send(JSON.stringify({\'token\': window.location.href}));'
-        '</script>'
-        '</body></html>';
-
-    bool hasRequestedWebsite = false;
-    bool hasSentKey = false;
-    String answer = '';
-
-    void waitingForAnswer(Socket client) {
-      // The first answer is to post the validation key
-      if (!hasRequestedWebsite) {
-        client.listen((data) async {
-          hasRequestedWebsite = true;
-          client.write('HTTP/1.1 200 OK\nContent-Type: text\n'
-              'Content-Length: ${postingKeyWebsite.length}\n'
-              '\n'
-              '$postingKeyWebsite');
-          client.close();
-          return;
-        });
-      } else {
-        client.listen((data) async {
-          client.close();
-
-          final answerAsString = String.fromCharCodes(data).trim();
-          answer = jsonDecode(answerAsString.split('\n').last)['token']!;
-          hasSentKey = true;
-          return;
-        });
-      }
-    }
-
-    final server = await ServerSocket.bind('localhost', 3000);
-    server.listen(waitingForAnswer);
-    while (!hasSentKey) {
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-
-    return answer;
   }
 
   ///
