@@ -8,6 +8,8 @@ import 'package:http/http.dart';
 
 import 'twitch_manager.dart';
 
+const String _redirectAddress = 'http://localhost:3000';
+
 ///
 /// Get a new OAUTH for the user
 ///
@@ -21,7 +23,7 @@ Future<String> _getNewOauth({
   final address = 'https://id.twitch.tv/oauth2/authorize?'
       'response_type=token'
       '&client_id=$appId'
-      '&redirect_uri=http://localhost:3000'
+      '&redirect_uri=$_redirectAddress'
       '&scope=${scope.map<String>((e) => e.text()).join('+')}'
       '&state=$stateToken';
 
@@ -30,8 +32,9 @@ Future<String> _getNewOauth({
   final response = await _waitForTwitchResponse();
 
   // Parse the answer
-  final re = RegExp(
-      r'^http://localhost:3000/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
+  final re = RegExp(r'^' +
+      _redirectAddress +
+      r'/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
   final match = re.firstMatch(response);
 
   if (match!.group(2)! != stateToken) {
@@ -48,7 +51,7 @@ Future<String> _waitForTwitchResponse() async {
       'You can close this page'
       '<script>'
       'var xhr = new XMLHttpRequest();'
-      'xhr.open("POST", \'http://localhost:3000\', true);'
+      'xhr.open("POST", \'$_redirectAddress\', true);'
       'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
       'xhr.send(JSON.stringify({\'token\': window.location.href}));'
       '</script>'
