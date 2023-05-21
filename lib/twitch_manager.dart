@@ -7,6 +7,7 @@ export 'twitch_authentication.dart';
 export 'twitch_irc.dart';
 export 'twitch_manager.dart';
 export 'twitch_scope.dart';
+export 'twitch_authentication_screen.dart';
 
 class TwitchManager {
   late final TwitchIrc? irc;
@@ -28,15 +29,17 @@ class TwitchManager {
   static Future<TwitchManager> factory({
     required TwitchAuthentication authentication,
     required Future<void> Function(String address) onAuthenticationRequest,
-    required Future<void> Function(String key) onAuthenticationSuccess,
-    required Future<void> Function() onInvalidToken,
+    required Future<void> Function(
+            String oauth, String streamerUsername, String moderatorUsername)
+        onSuccess,
+    Future<void> Function()? onInvalidToken,
   }) async {
     final success = await authentication.connect(
-        requestUserToBrowse: onAuthenticationRequest,
-        onInvalidToken: onInvalidToken);
+      requestUserToBrowse: onAuthenticationRequest,
+      onInvalidToken: onInvalidToken,
+      onSuccess: onSuccess,
+    );
     if (!success) throw 'Failed to connect';
-
-    onAuthenticationSuccess(authentication.oauthKey!);
 
     final api = await TwitchApi.factory(authentication);
     final irc = await TwitchIrc.factory(authentication);

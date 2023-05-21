@@ -38,7 +38,7 @@ class TwitchIrc {
   /// Send a [message] to the chat of the channel
   ///
   void send(String message) {
-    _send('PRIVMSG #${_authentication.streamerName} :$message');
+    _send('PRIVMSG #${_authentication.streamerUsername} :$message');
   }
 
   ///
@@ -55,14 +55,14 @@ class TwitchIrc {
     isConnected = true;
 
     _send('PASS oauth:${authenticator.oauthKey}');
-    _send('NICK ${_authentication.moderatorName}');
-    _send('JOIN #${_authentication.streamerName}');
+    _send('NICK ${_authentication.moderatorUsername}');
+    _send('JOIN #${_authentication.streamerUsername}');
   }
 
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
-    _send('PART ${_authentication.streamerName}');
+    _send('PART ${_authentication.streamerUsername}');
 
     await _socket.close();
     isConnected = false;

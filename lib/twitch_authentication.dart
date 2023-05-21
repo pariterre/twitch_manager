@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:developer' as devel;
 import 'dart:convert';
+import 'dart:developer' as devel;
 import 'dart:io';
 import 'dart:math';
 
@@ -94,25 +94,40 @@ class TwitchAuthentication {
   ///
   /// [oauthKey] is the OAUTH key. If none is provided, the process to generate
   /// one is launched.
-  /// [streamerName] is the name of the channel to connect
+  /// [streamerUsername] is the name of the channel to connect
   /// [moderatorName] is the name of the current logged in moderator. If it is
-  /// left empty [streamerName] is used.
+  /// left empty [streamerUsername] is used.
   /// [scope] is the required scope of the current app. Comes into play if
   /// generate OAUTH is launched.
   ///
-  TwitchAuthentication({
-    this.oauthKey,
+  TwitchAuthentication._({
+    required this.oauthKey,
     required this.appId,
     required this.scope,
-    required this.streamerName,
+    required this.streamerUsername,
     String? moderatorName,
-  }) : moderatorName = moderatorName ?? streamerName;
+  }) : moderatorUsername = moderatorName ?? streamerUsername;
+
+  static Future<TwitchAuthentication> factory({
+    required String appId,
+    required List<TwitchScope> scope,
+    required String? oauthKey,
+    required String streamerName,
+    String? moderatorName,
+  }) async {
+    return TwitchAuthentication._(
+        oauthKey: oauthKey,
+        appId: appId,
+        scope: scope,
+        streamerUsername: streamerName,
+        moderatorName: moderatorName);
+  }
 
   String? oauthKey;
   final String appId;
   final List<TwitchScope> scope;
-  final String streamerName;
-  final String moderatorName;
+  final String streamerUsername;
+  final String moderatorUsername;
 
   /// Provide a callback to react if at any point the token is found invalid.
   /// This is mandatory when connect is called
@@ -125,7 +140,10 @@ class TwitchAuthentication {
   ///
   Future<bool> connect({
     required Future<void> Function(String address) requestUserToBrowse,
-    required Future<void> Function() onInvalidToken,
+    Future<void> Function()? onInvalidToken,
+    required Future<void> Function(
+            String oauth, String streamerUsername, String moderatorUsername)
+        onSuccess,
     bool retry = true,
   }) async {
     _onInvalidTokenCallback = onInvalidToken;
@@ -137,6 +155,8 @@ class TwitchAuthentication {
 
     final success = await _validateToken();
     if (success) {
+      onSuccess(oauthKey!, streamerUsername, moderatorUsername);
+
       // If everything goes as planned, set a validation every hours and exit
       Timer.periodic(const Duration(hours: 1), (timer) => _validateToken());
       return true;
@@ -148,6 +168,7 @@ class TwitchAuthentication {
       return connect(
         requestUserToBrowse: requestUserToBrowse,
         onInvalidToken: onInvalidToken,
+        onSuccess: onSuccess,
         retry: false,
       );
     }

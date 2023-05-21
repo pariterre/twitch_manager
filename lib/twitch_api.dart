@@ -27,9 +27,10 @@ class TwitchApi {
     // Create a temporary TwitchApi with [streamerId] and [botId] empty so we
     // can fetch them
     final api = TwitchApi._(authenticator, -1, -1);
-    final streamerId = (await api.fetchStreamerId(authenticator.streamerName))!;
+    final streamerId =
+        (await api.fetchStreamerId(authenticator.streamerUsername))!;
     final moderatorId =
-        (await api.fetchStreamerId(authenticator.moderatorName))!;
+        (await api.fetchStreamerId(authenticator.moderatorUsername))!;
 
     return TwitchApi._(authenticator, streamerId, moderatorId);
   }
