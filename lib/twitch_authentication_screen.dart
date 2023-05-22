@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 enum _ConnexionStatus {
   waitToEstablishConnexion,
   waitForTwitchValidation,
+  wrongToken,
   connected,
 }
 
@@ -34,8 +35,8 @@ class TwitchAuthenticationScreen extends StatefulWidget {
 class _TwitchAuthenticationScreenState
     extends State<TwitchAuthenticationScreen> {
   _ConnexionStatus _status = _ConnexionStatus.waitToEstablishConnexion;
-  late Future<bool> isLoading;
-  String _textToShow = '';
+  late Future<bool> _isLoading;
+  String? _redirectAddress;
   TwitchManager? _manager;
   final _formKey = GlobalKey<FormState>();
 
@@ -47,7 +48,7 @@ class _TwitchAuthenticationScreenState
   void initState() {
     super.initState();
 
-    isLoading = _getAuthenticationFromSharedPreferences();
+    _isLoading = _getAuthenticationFromSharedPreferences();
   }
 
   Future<bool> _getAuthenticationFromSharedPreferences() async {
@@ -74,9 +75,6 @@ class _TwitchAuthenticationScreenState
 
     final navigator = Navigator.of(context);
     if (!mounted) return;
-    setState(() {
-      _status = _ConnexionStatus.waitForTwitchValidation;
-    });
 
     // Twitch app informations
     final authentication = await TwitchAuthentication.factory(
@@ -104,19 +102,24 @@ class _TwitchAuthenticationScreenState
   }
 
   Future<void> _manageRequestUserToBrowse(String address) async {
+    _redirectAddress = address;
+    setState(() {
+      _status = _ConnexionStatus.waitForTwitchValidation;
+    });
+
     await launchUrl(
-      Uri.parse(address),
-      mode: LaunchMode.externalApplication,
+      Uri.parse(_redirectAddress!),
+      mode: LaunchMode.inAppWebView,
     );
-    _textToShow = 'Please navigate to\n$address';
-    setState(() {});
   }
 
   Future<void> _manageInvalidToken() async {
+    setState(() {
+      _status = _ConnexionStatus.wrongToken;
+    });
+
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.remove('oauth_key');
-
-    _textToShow = 'Invalid token, please renew the OAUTH authentication';
   }
 
   Future<void> _saveAuthentication(
@@ -145,7 +148,51 @@ class _TwitchAuthenticationScreenState
   }
 
   Widget _buildNavigateTo() {
-    return Center(child: SelectableText(_textToShow));
+    return Center(
+      child: Padding(
+        padding:
+            const EdgeInsets.only(left: 18.0, right: 18.0, top: 12, bottom: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'You will be redirected to the Twitch logging page. '
+              'If it does not happen automatically, please navigate to:',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              _redirectAddress!,
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton(
+              onPressed: () async => await launchUrl(
+                Uri.parse(_redirectAddress!),
+                mode: LaunchMode.inAppWebView,
+              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+              child: const Text(
+                'Or click here',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWrongToken() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.only(left: 18.0, right: 18.0, top: 12, bottom: 20),
+        child: Text(
+          'Invalid token, please wait while we renew your OAUTH authentication',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
   }
 
   Widget _buildLogginForms() {
@@ -208,6 +255,7 @@ class _TwitchAuthenticationScreenState
           ),
         if (_status == _ConnexionStatus.waitForTwitchValidation)
           _buildNavigateTo(),
+        if (_status == _ConnexionStatus.wrongToken) _buildWrongToken(),
         if (_status == _ConnexionStatus.connected)
           _buildWaitingMessage('Please wait while we are logging you'),
         if (_status == _ConnexionStatus.waitToEstablishConnexion)
@@ -229,7 +277,7 @@ class _TwitchAuthenticationScreenState
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: isLoading,
+        future: _isLoading,
         builder: (context, snapshot) {
           return Form(
             key: _formKey,
