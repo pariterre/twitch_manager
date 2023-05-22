@@ -65,6 +65,9 @@ class _TwitchAuthenticationScreenState
         streamerUsername!.isNotEmpty &&
         moderatorUsername != null &&
         moderatorUsername!.isNotEmpty) {
+      setState(() {
+        _status = _ConnexionStatus.connected;
+      });
       _connectToTwitch();
     }
     return true;
