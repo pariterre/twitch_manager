@@ -127,16 +127,16 @@ class _TwitchAuthenticationScreenState
     prefs.setString('moderator_username', moderatorUsername);
   }
 
-  Widget _buildWaitWhileLogging() {
+  Widget _buildWaitingMessage(String message) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
+      children: [
         Center(
             child: Text(
-          'Please wait while we are logging you',
-          style: TextStyle(color: Colors.white),
+          message,
+          style: const TextStyle(color: Colors.white),
         )),
-        Padding(
+        const Padding(
           padding: EdgeInsets.all(8),
           child: CircularProgressIndicator(color: Colors.amber),
         ),
@@ -149,28 +149,78 @@ class _TwitchAuthenticationScreenState
   }
 
   Widget _buildLogginForms() {
+    return Theme(
+      data: ThemeData(
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Colors.black),
+          hintStyle: TextStyle(color: Colors.black),
+          border: OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
+          enabledBorder:
+              OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+          focusedBorder:
+              OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(5)),
+            child: TextFormField(
+              onChanged: (newName) => streamerUsername = newName,
+              decoration: const InputDecoration(labelText: 'Streamer username'),
+              style: const TextStyle(color: Colors.black),
+              validator: (value) => value == null || value.isEmpty
+                  ? 'Please write a username'
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (widget.withModerator)
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(5)),
+              child: TextFormField(
+                onChanged: (newName) => moderatorUsername = newName,
+                decoration:
+                    const InputDecoration(labelText: 'Moderator username'),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please write a moderator username'
+                    : null,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnexionGui() {
     return Column(
       children: [
-        TextFormField(
-          onChanged: (newName) => streamerUsername = newName,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            labelText: 'Streamer username',
+        if (_status == _ConnexionStatus.waitToEstablishConnexion)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: _buildLogginForms(),
           ),
-          validator: (value) =>
-              value == null || value.isEmpty ? 'Please write a username' : null,
-        ),
-        const SizedBox(height: 8),
-        if (widget.withModerator)
-          TextFormField(
-            onChanged: (newName) => moderatorUsername = newName,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Moderator username',
+        if (_status == _ConnexionStatus.waitForTwitchValidation)
+          _buildNavigateTo(),
+        if (_status == _ConnexionStatus.connected)
+          _buildWaitingMessage('Please wait while we are logging you'),
+        if (_status == _ConnexionStatus.waitToEstablishConnexion)
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
+            child: ElevatedButton(
+              onPressed: _connectToTwitch,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+              child: const Text(
+                'Connect',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
-            validator: (value) => value == null || value.isEmpty
-                ? 'Please write a moderator username'
-                : null,
           ),
       ],
     );
@@ -199,43 +249,8 @@ class _TwitchAuthenticationScreenState
                         ),
                       ),
                       if (!snapshot.hasData)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(8),
-                            child:
-                                CircularProgressIndicator(color: Colors.amber),
-                          ),
-                        ),
-                      if (snapshot.hasData)
-                        Column(
-                          children: [
-                            if (_status ==
-                                _ConnexionStatus.waitToEstablishConnexion)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20.0),
-                                child: _buildLogginForms(),
-                              ),
-                            if (_status ==
-                                _ConnexionStatus.waitForTwitchValidation)
-                              _buildNavigateTo(),
-                            if (_status == _ConnexionStatus.connected)
-                              _buildWaitWhileLogging(),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 12.0, bottom: 10.0),
-                              child: ElevatedButton(
-                                onPressed: _connectToTwitch,
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white),
-                                child: const Text(
-                                  'Connect',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        _buildWaitingMessage('Please wait'),
+                      if (snapshot.hasData) _buildConnexionGui(),
                     ],
                   )),
             )),
