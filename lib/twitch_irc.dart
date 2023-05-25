@@ -11,6 +11,7 @@ const _ircPort = 6667;
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
+  String get moderatorUsername => _authentication.moderatorUsername;
   final TwitchAuthentication _authentication;
 
   final Socket _socket;

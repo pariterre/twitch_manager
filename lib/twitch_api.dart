@@ -9,14 +9,20 @@ import 'twitch_manager.dart';
 const _twitchUri = 'https://api.twitch.tv/helix';
 
 class TwitchApi {
+  String get streamerUsername => _authentication.streamerUsername;
   final int streamerId;
+  String get moderatorUsername => _authentication.moderatorUsername;
   final int moderatorId;
   final TwitchAuthentication _authentication;
 
   ///
   /// Private constructor
   ///
-  TwitchApi._(this._authentication, this.streamerId, this.moderatorId);
+  TwitchApi._(
+    this._authentication, [
+    this.streamerId = -1,
+    this.moderatorId = -1,
+  ]);
 
   ///
   /// The constructor for the Twitch API, [streamerName] is the of the streamer,
@@ -26,7 +32,7 @@ class TwitchApi {
   static Future<TwitchApi> factory(TwitchAuthentication authenticator) async {
     // Create a temporary TwitchApi with [streamerId] and [botId] empty so we
     // can fetch them
-    final api = TwitchApi._(authenticator, -1, -1);
+    final api = TwitchApi._(authenticator);
     final streamerId =
         (await api.fetchStreamerId(authenticator.streamerUsername))!;
     final moderatorId =
