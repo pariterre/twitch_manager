@@ -14,7 +14,7 @@ class TwitchIrc {
   String get moderatorUsername => _authentication.moderatorUsername;
   final TwitchAuthentication _authentication;
 
-  final Socket _socket;
+  Socket _socket;
   bool isConnected = false;
 
   Function(String sender, String message)? messageCallback;
@@ -24,8 +24,26 @@ class TwitchIrc {
   /// Main constructor
   ///
   static Future<TwitchIrc> factory(TwitchAuthentication authentication) async {
-    return TwitchIrc._(
-        await Socket.connect(_ircServerAddress, _ircPort), authentication);
+    return TwitchIrc._(await _getConnectedSocket(), authentication);
+  }
+
+  static Future<Socket> _getConnectedSocket() async {
+    bool socketIsConnected = false;
+    late Socket socket;
+    int retryCounter = 0;
+    while (!socketIsConnected) {
+      try {
+        socket = await Socket.connect(_ircServerAddress, _ircPort);
+        socketIsConnected = true;
+      } on SocketException {
+        // Retry after some time
+        log('Connection reset by peer, retry attempt $retryCounter');
+        await Future.delayed(const Duration(seconds: 5));
+        if (retryCounter > 5) throw 'Cannot connect to socket';
+        retryCounter++;
+      }
+    }
+    return socket;
   }
 
   ///
@@ -43,16 +61,29 @@ class TwitchIrc {
   }
 
   ///
-  /// Send a message to Twitch IRC
+  /// Send a message to Twitch IRC. If connection failed it tries another time.
   ///
-  void _send(String command) {
-    _socket.write('$command\n');
+  void _send(String command) async {
+    try {
+      _socket.write('$command\n');
+    } on SocketException {
+      _socket = await _getConnectedSocket();
+      _send(command);
+      return;
+    }
   }
 
   ///
-  /// Connect to Twitch IRC
-  void _connect(TwitchAuthentication authenticator) {
-    _socket.listen(_messageReceived);
+  /// Connect to Twitch IRC. If a socket exception is raised try another time.
+  void _connect(TwitchAuthentication authenticator) async {
+    try {
+      _socket.listen(_messageReceived);
+    } on SocketException {
+      // Wait for some time and reconnect
+      _socket = await _getConnectedSocket();
+      _connect(authenticator);
+      return;
+    }
     isConnected = true;
 
     _send('PASS oauth:${authenticator.oauthKey}');
