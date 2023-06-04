@@ -12,6 +12,9 @@ const String _redirectAddress = 'http://localhost:3000';
 
 ///
 /// Get a new OAUTH for the user
+/// [appId] is the twitch app id; [scope] are the requested rights for the app;
+/// [requestUserToBrowse] is the callback to show which address the user must
+/// browse;
 ///
 Future<String> _getNewOauth({
   required String appId,
@@ -136,8 +139,9 @@ class TwitchAuthentication {
   ///
   /// Prepare everything which is required when connecting with Twitch API
   /// [requestUserToBrowse] provides a website that the user must navigate to in
-  /// order to authenticate.
-  ///
+  /// order to authenticate; [onInvalidToken] is the callback if token is found
+  /// to be invalid; [onSuccess] is the callback if everything went well; if
+  /// [retry] is set to true, the connexion will retry if it fails.
   Future<bool> connect({
     required Future<void> Function(String address) requestUserToBrowse,
     Future<void> Function()? onInvalidToken,
@@ -159,6 +163,7 @@ class TwitchAuthentication {
 
       // If everything goes as planned, set a validation every hours and exit
       Timer.periodic(const Duration(hours: 1), (timer) => _validateToken());
+
       return true;
     }
 

@@ -7,11 +7,11 @@ void main() async {
   runApp(MaterialApp(
     initialRoute: TwitchAuthenticationScreen.route,
     routes: {
-      TwitchAuthenticationScreen.route: (ctx) =>
-          const TwitchAuthenticationScreen(
-            nextRoute: TwitchChatBot.route,
+      TwitchAuthenticationScreen.route: (ctx) => TwitchAuthenticationScreen(
+            onFinishedConnexion: (manager) => Navigator.of(ctx)
+                .pushReplacementNamed(TwitchChatBot.route, arguments: manager),
             appId: 'YOUR_APP_ID',
-            scope: [
+            scope: const [
               TwitchScope.chatRead,
               TwitchScope.chatEdit,
               TwitchScope.chatters,

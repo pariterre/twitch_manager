@@ -10,17 +10,25 @@ enum _ConnexionStatus {
   connected,
 }
 
+///
+/// This is the main window to call to connect to twitch. [appId] is the id
+/// provided by twitch; [scope] is a requested rights for the app;
+/// [onFinishedConnexion] is the callback when connexion is done (typically, it
+/// is to pop the window or push another one); [withModerator] is typically
+/// to register a chatbot (the user the app will publish on the chat), if it is
+/// false, then streamer username is used; [forceNewAuthentication] is to forget
+/// previous connexion and request a new OAUTH key.
 class TwitchAuthenticationScreen extends StatefulWidget {
   const TwitchAuthenticationScreen({
     super.key,
-    required this.nextRoute,
     required this.appId,
     required this.scope,
+    required this.onFinishedConnexion,
     required this.withModerator,
     this.forceNewAuthentication = false,
   });
   static const route = '/twitch-authentication';
-  final String nextRoute;
+  final Function(TwitchManager) onFinishedConnexion;
 
   final String appId;
   final List<TwitchScope> scope;
@@ -76,9 +84,6 @@ class _TwitchAuthenticationScreenState
   Future<void> _connectToTwitch({bool skipFormValidation = false}) async {
     if (!skipFormValidation && !_formKey.currentState!.validate()) return;
 
-    final navigator = Navigator.of(context);
-    if (!mounted) return;
-
     // Twitch app informations
     final authentication = await TwitchAuthentication.factory(
       appId: widget.appId,
@@ -101,7 +106,7 @@ class _TwitchAuthenticationScreenState
       _status = _ConnexionStatus.connected;
     });
 
-    navigator.pushReplacementNamed(widget.nextRoute, arguments: _manager);
+    widget.onFinishedConnexion(_manager!);
   }
 
   Future<void> _manageRequestUserToBrowse(String address) async {
