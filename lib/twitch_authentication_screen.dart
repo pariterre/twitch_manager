@@ -14,7 +14,7 @@ enum _ConnexionStatus {
 /// This is the main window to call to connect to twitch. [appId] is the id
 /// provided by twitch; [scope] is a requested rights for the app;
 /// [onFinishedConnexion] is the callback when connexion is done (typically, it
-/// is to pop the window or push another one); [withModerator] is typically
+/// is to pop the window or push another one); [withChatbot] is typically
 /// to register a chatbot (the user the app will publish on the chat), if it is
 /// false, then streamer username is used; [forceNewAuthentication] is to forget
 /// previous connexion and request a new OAUTH key.
@@ -24,7 +24,7 @@ class TwitchAuthenticationScreen extends StatefulWidget {
     required this.appId,
     required this.scope,
     required this.onFinishedConnexion,
-    required this.withModerator,
+    required this.withChatbot,
     this.forceNewAuthentication = false,
   });
   static const route = '/twitch-authentication';
@@ -32,7 +32,7 @@ class TwitchAuthenticationScreen extends StatefulWidget {
 
   final String appId;
   final List<TwitchScope> scope;
-  final bool withModerator;
+  final bool withChatbot;
   final bool forceNewAuthentication;
 
   @override
@@ -50,7 +50,7 @@ class _TwitchAuthenticationScreenState
 
   String? oauthKey;
   String? streamerUsername;
-  String? moderatorUsername;
+  String? chatbotUsername;
 
   @override
   void initState() {
@@ -65,14 +65,14 @@ class _TwitchAuthenticationScreenState
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     oauthKey = prefs.getString('oauth_key');
     streamerUsername = prefs.getString('streamer_username');
-    moderatorUsername = prefs.getString('moderator_username');
+    chatbotUsername = prefs.getString('chatbot_username');
 
     if (oauthKey != null &&
         oauthKey!.isNotEmpty &&
         streamerUsername != null &&
         streamerUsername!.isNotEmpty &&
-        moderatorUsername != null &&
-        moderatorUsername!.isNotEmpty) {
+        chatbotUsername != null &&
+        chatbotUsername!.isNotEmpty) {
       setState(() {
         _status = _ConnexionStatus.connected;
       });
@@ -89,8 +89,8 @@ class _TwitchAuthenticationScreenState
       appId: widget.appId,
       scope: widget.scope,
       oauthKey: oauthKey,
-      streamerName: streamerUsername!,
-      moderatorName: moderatorUsername,
+      streamerUsername: streamerUsername!,
+      chatbotUsername: chatbotUsername,
     );
 
     _manager = await TwitchManager.factory(
@@ -122,20 +122,21 @@ class _TwitchAuthenticationScreenState
   }
 
   Future<void> _manageInvalidToken() async {
-    setState(() {
-      _status = _ConnexionStatus.wrongToken;
-    });
-
+    if (mounted) {
+      setState(() {
+        _status = _ConnexionStatus.wrongToken;
+      });
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.remove('oauth_key');
   }
 
   Future<void> _saveAuthentication(
-      String oauth, String streamerUsername, String moderatorUsername) async {
+      String oauth, String streamerUsername, String chatbotUsername) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('oauth_key', oauth);
     prefs.setString('streamer_username', streamerUsername);
-    prefs.setString('moderator_username', moderatorUsername);
+    prefs.setString('chatbot_username', chatbotUsername);
   }
 
   Widget _buildWaitingMessage(String message) {
@@ -204,6 +205,11 @@ class _TwitchAuthenticationScreenState
   }
 
   Widget _buildLogginForms() {
+    if (widget.withChatbot) {
+      throw 'withChatbot is now broken and cannot be used, if you don\'t use API, '
+          'you can log only with the bot if it was given moderator access';
+    }
+
     return Theme(
       data: ThemeData(
         inputDecorationTheme: const InputDecorationTheme(
@@ -220,33 +226,70 @@ class _TwitchAuthenticationScreenState
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(5)),
-            child: TextFormField(
-              onChanged: (newName) => streamerUsername = newName,
-              decoration: const InputDecoration(labelText: 'Streamer username'),
-              style: const TextStyle(color: Colors.black),
-              validator: (value) => value == null || value.isEmpty
-                  ? 'Please write a username'
-                  : null,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(5)),
+                  child: TextFormField(
+                    onChanged: (newName) => streamerUsername = newName,
+                    decoration:
+                        const InputDecoration(labelText: 'Streamer username'),
+                    style: const TextStyle(color: Colors.black),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please write a username'
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _connectToTwitch,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                child: const Text(
+                  'Connect',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          if (widget.withModerator)
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(5)),
-              child: TextFormField(
-                onChanged: (newName) => moderatorUsername = newName,
-                decoration:
-                    const InputDecoration(labelText: 'Moderator username'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please write a moderator username'
-                    : null,
-              ),
+          if (widget.withChatbot)
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(5)),
+                    child: TextFormField(
+                      onChanged: (newName) => chatbotUsername = newName,
+                      decoration:
+                          const InputDecoration(labelText: 'Chatbot username'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please write a chatbot username'
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
+                  child: ElevatedButton(
+                    onPressed: _connectToTwitch,
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                    child: const Text(
+                      'Connect',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
@@ -258,7 +301,7 @@ class _TwitchAuthenticationScreenState
       children: [
         if (_status == _ConnexionStatus.waitToEstablishConnexion)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 15),
             child: _buildLogginForms(),
           ),
         if (_status == _ConnexionStatus.waitForTwitchValidation)
@@ -266,18 +309,6 @@ class _TwitchAuthenticationScreenState
         if (_status == _ConnexionStatus.wrongToken) _buildWrongToken(),
         if (_status == _ConnexionStatus.connected)
           _buildWaitingMessage('Please wait while we are logging you'),
-        if (_status == _ConnexionStatus.waitToEstablishConnexion)
-          Padding(
-            padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
-            child: ElevatedButton(
-              onPressed: _connectToTwitch,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-              child: const Text(
-                'Connect',
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
-          ),
       ],
     );
   }

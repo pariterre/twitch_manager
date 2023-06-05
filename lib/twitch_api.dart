@@ -11,8 +11,6 @@ const _twitchUri = 'https://api.twitch.tv/helix';
 class TwitchApi {
   String get streamerUsername => _authentication.streamerUsername;
   final int streamerId;
-  String get moderatorUsername => _authentication.moderatorUsername;
-  final int moderatorId;
   final TwitchAuthentication _authentication;
 
   ///
@@ -21,13 +19,10 @@ class TwitchApi {
   TwitchApi._(
     this._authentication, [
     this.streamerId = -1,
-    this.moderatorId = -1,
   ]);
 
   ///
-  /// The constructor for the Twitch API, [streamerName] is the of the streamer,
-  /// [moderatorName] is the name of the current poster. If [moderatorName] is
-  /// left empty, then [streamerName] is used.
+  /// The constructor for the Twitch API, [streamerUsername] is the of the streamer
   ///
   static Future<TwitchApi> factory(TwitchAuthentication authenticator) async {
     // Create a temporary TwitchApi with [streamerId] and [botId] empty so we
@@ -35,10 +30,8 @@ class TwitchApi {
     final api = TwitchApi._(authenticator);
     final streamerId =
         (await api.fetchStreamerId(authenticator.streamerUsername))!;
-    final moderatorId =
-        (await api.fetchStreamerId(authenticator.moderatorUsername))!;
 
-    return TwitchApi._(authenticator, streamerId, moderatorId);
+    return TwitchApi._(authenticator, streamerId);
   }
 
   ///
@@ -61,7 +54,7 @@ class TwitchApi {
         requestType: 'chat/chatters',
         parameters: {
           'broadcaster_id': streamerId.toString(),
-          'moderator_id': moderatorId.toString()
+          'moderator_id': streamerId.toString()
         });
     if (response.isEmpty) return null; // username not found
 

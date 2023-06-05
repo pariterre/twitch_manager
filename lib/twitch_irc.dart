@@ -11,7 +11,7 @@ const _ircPort = 6667;
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
-  String get moderatorUsername => _authentication.moderatorUsername;
+  String get chatbotUsername => _authentication.chatbotUsername;
   final TwitchAuthentication _authentication;
 
   Socket _socket;
@@ -87,7 +87,7 @@ class TwitchIrc {
     isConnected = true;
 
     _send('PASS oauth:${authenticator.oauthKey}');
-    _send('NICK ${_authentication.moderatorUsername}');
+    _send('NICK ${_authentication.chatbotUsername}');
     _send('JOIN #${_authentication.streamerUsername}');
   }
 

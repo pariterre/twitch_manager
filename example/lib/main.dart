@@ -18,7 +18,7 @@ void main() async {
               TwitchScope.readFollowers,
               TwitchScope.readSubscribers,
             ],
-            withModerator: false,
+            withChatbot: false,
             forceNewAuthentication: true,
           ),
       TwitchChatBot.route: (ctx) => const TwitchChatBot(),

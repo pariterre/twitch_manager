@@ -76,7 +76,8 @@ Future<String> _waitForTwitchResponse() async {
         return;
       } else {
         // Otherwise it is a POST we sent ourselves in the success page
-        twitchResponse = jsonDecode(answerAsString.last)['token']!;
+        // For some reason, this function is call sometimes more than once
+        twitchResponse ??= jsonDecode(answerAsString.last)['token']!;
       }
 
       client.close();
@@ -93,12 +94,13 @@ Future<String> _waitForTwitchResponse() async {
   return twitchResponse!;
 }
 
+// TODO separate Authentication of chatbot (Now deactivated)
 class TwitchAuthentication {
   ///
   /// [oauthKey] is the OAUTH key. If none is provided, the process to generate
   /// one is launched.
   /// [streamerUsername] is the name of the channel to connect
-  /// [moderatorName] is the name of the current logged in moderator. If it is
+  /// [chatbotUsername] is the name of the current logged in chat bot. If it is
   /// left empty [streamerUsername] is used.
   /// [scope] is the required scope of the current app. Comes into play if
   /// generate OAUTH is launched.
@@ -108,29 +110,29 @@ class TwitchAuthentication {
     required this.appId,
     required this.scope,
     required this.streamerUsername,
-    String? moderatorName,
-  }) : moderatorUsername = moderatorName ?? streamerUsername;
+    String? chatbotUsername,
+  }) : chatbotUsername = chatbotUsername ?? streamerUsername;
 
   static Future<TwitchAuthentication> factory({
     required String appId,
     required List<TwitchScope> scope,
     required String? oauthKey,
-    required String streamerName,
-    String? moderatorName,
+    required String streamerUsername,
+    String? chatbotUsername,
   }) async {
     return TwitchAuthentication._(
         oauthKey: oauthKey,
         appId: appId,
         scope: scope,
-        streamerUsername: streamerName,
-        moderatorName: moderatorName);
+        streamerUsername: streamerUsername,
+        chatbotUsername: chatbotUsername);
   }
 
   String? oauthKey;
   final String appId;
   final List<TwitchScope> scope;
   final String streamerUsername;
-  final String moderatorUsername;
+  final String chatbotUsername;
 
   /// Provide a callback to react if at any point the token is found invalid.
   /// This is mandatory when connect is called
@@ -146,7 +148,7 @@ class TwitchAuthentication {
     required Future<void> Function(String address) requestUserToBrowse,
     Future<void> Function()? onInvalidToken,
     required Future<void> Function(
-            String oauth, String streamerUsername, String moderatorUsername)
+            String oauth, String streamerUsername, String chatbotUsername)
         onSuccess,
     bool retry = true,
   }) async {
@@ -159,7 +161,7 @@ class TwitchAuthentication {
 
     final success = await _validateToken();
     if (success) {
-      onSuccess(oauthKey!, streamerUsername, moderatorUsername);
+      onSuccess(oauthKey!, streamerUsername, chatbotUsername);
 
       // If everything goes as planned, set a validation every hours and exit
       Timer.periodic(const Duration(hours: 1), (timer) => _validateToken());
