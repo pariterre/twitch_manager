@@ -8,6 +8,12 @@ import 'twitch_manager.dart';
 
 const _twitchUri = 'https://api.twitch.tv/helix';
 
+class _TwitchResponse {
+  List<dynamic> data;
+  String? cursor;
+  _TwitchResponse({required this.data, required this.cursor});
+}
+
 class TwitchApi {
   String get streamerUsername => _authentication.streamerUsername;
   final int streamerId;
@@ -40,9 +46,9 @@ class TwitchApi {
   Future<int?> fetchStreamerId(String username) async {
     final response = await _sendGetRequest(
         requestType: 'users', parameters: {'login': username});
-    if (response.isEmpty) return null; // username not found
+    if (response == null) return null; // There was an error
 
-    return int.parse(response[0]['id']);
+    return int.parse(response.data[0]['id']);
   }
 
   ///
@@ -56,10 +62,10 @@ class TwitchApi {
           'broadcaster_id': streamerId.toString(),
           'moderator_id': streamerId.toString()
         });
-    if (response.isEmpty) return null; // username not found
+    if (response == null) return null; // There was an error
 
     // Extract the usernames and removed the blacklisted
-    return response
+    return response.data
         .map<String?>((e) {
           final username = e['user_name'];
           return blacklist != null && blacklist.contains(username)
@@ -72,9 +78,37 @@ class TwitchApi {
   }
 
   ///
+  /// Get the list of current followers of the channel.
+  ///
+  Future<List<String>?> fetchFollowers() async {
+    final List<String> users = [];
+    String? cursor;
+    do {
+      final parameters = {
+        'broadcaster_id': streamerId.toString(),
+        'first': '100',
+      };
+      if (cursor != null) parameters['after'] = cursor;
+
+      final response = await _sendGetRequest(
+          requestType: 'channels/followers', parameters: parameters);
+      if (response == null) return null; // There was an error
+
+      // Copy answer to the output variable
+      users.addAll(response.data.map<String>((e) => e['user_name']).toList());
+
+      if (response.cursor == null) break; // We are done
+      cursor = response.cursor;
+    } while (true);
+
+    // Extract the usernames and removed the blacklisted
+    return users;
+  }
+
+  ///
   /// Post an actual request to Twitch
   ///
-  Future<List> _sendGetRequest(
+  Future<_TwitchResponse?> _sendGetRequest(
       {required String requestType,
       required Map<String, String?> parameters}) async {
     var params = '';
@@ -91,14 +125,16 @@ class TwitchApi {
     );
 
     // Make sure the token is still valid before continuing
-    if (!await _authentication.checkIfTokenIsValid(response)) return [];
+    if (!await _authentication.checkIfTokenIsValid(response)) return null;
 
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.containsKey('data')) {
-      return responseDecoded['data'];
+      return _TwitchResponse(
+          data: responseDecoded['data'],
+          cursor: responseDecoded['pagination']?['cursor']);
     } else {
       log(responseDecoded.toString());
-      return [];
+      return null;
     }
   }
 }
