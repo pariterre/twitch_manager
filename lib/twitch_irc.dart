@@ -11,8 +11,9 @@ const _ircPort = 6667;
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
-  String get chatbotUsername => _authentication.chatbotUsername;
-  final TwitchAuthentication _authentication;
+  String get chatbotUsername => _chatbot?.username ?? _streamer.username;
+  final TwitchUser _streamer;
+  final TwitchUser? _chatbot;
 
   Socket _socket;
   bool isConnected = false;
@@ -23,8 +24,9 @@ class TwitchIrc {
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrc> factory(TwitchAuthentication authentication) async {
-    return TwitchIrc._(await _getConnectedSocket(), authentication);
+  static Future<TwitchIrc> factory(
+      {required TwitchUser streamer, TwitchUser? chatbot}) async {
+    return TwitchIrc._(await _getConnectedSocket(), streamer, chatbot);
   }
 
   static Future<Socket> _getConnectedSocket() async {
@@ -49,15 +51,15 @@ class TwitchIrc {
   ///
   /// Private constructor
   ///
-  TwitchIrc._(this._socket, this._authentication) {
-    _connect(_authentication);
+  TwitchIrc._(this._socket, this._streamer, this._chatbot) {
+    _connect(_chatbot ?? _streamer);
   }
 
   ///
   /// Send a [message] to the chat of the channel
   ///
   void send(String message) {
-    _send('PRIVMSG #${_authentication.streamerUsername} :$message');
+    _send('PRIVMSG #$chatbotUsername :$message');
   }
 
   ///
@@ -75,26 +77,26 @@ class TwitchIrc {
 
   ///
   /// Connect to Twitch IRC. If a socket exception is raised try another time.
-  void _connect(TwitchAuthentication authenticator) async {
+  void _connect(TwitchUser user) async {
     try {
       _socket.listen(_messageReceived);
     } on SocketException {
       // Wait for some time and reconnect
       _socket = await _getConnectedSocket();
-      _connect(authenticator);
+      _connect(user);
       return;
     }
     isConnected = true;
 
-    _send('PASS oauth:${authenticator.oauthKey}');
-    _send('NICK ${_authentication.chatbotUsername}');
-    _send('JOIN #${_authentication.streamerUsername}');
+    _send('PASS oauth:${user.oauthKey}');
+    _send('NICK $chatbotUsername');
+    _send('JOIN #${_streamer.username}');
   }
 
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
-    _send('PART ${_authentication.streamerUsername}');
+    _send('PART $chatbotUsername');
 
     await _socket.close();
     isConnected = false;

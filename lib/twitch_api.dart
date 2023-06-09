@@ -1,8 +1,10 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:http/http.dart';
+import 'package:twitch_manager/twitch_app_info.dart';
 
 import 'twitch_manager.dart';
 
@@ -15,29 +17,26 @@ class _TwitchResponse {
 }
 
 class TwitchApi {
-  String get streamerUsername => _authentication.streamerUsername;
-  final int streamerId;
-  final TwitchAuthentication _authentication;
+  String get streamerUsername => _streamer.username;
+  final TwitchAppInfo appInfo;
+  late final int streamerId; // It is set in the factory
+  final TwitchUser _streamer;
 
   ///
   /// Private constructor
   ///
-  TwitchApi._(
-    this._authentication, [
-    this.streamerId = -1,
-  ]);
+  TwitchApi._(this._streamer, {required this.appInfo});
 
   ///
   /// The constructor for the Twitch API, [streamerUsername] is the of the streamer
   ///
-  static Future<TwitchApi> factory(TwitchAuthentication authenticator) async {
-    // Create a temporary TwitchApi with [streamerId] and [botId] empty so we
-    // can fetch them
-    final api = TwitchApi._(authenticator);
-    final streamerId =
-        (await api.fetchStreamerId(authenticator.streamerUsername))!;
-
-    return TwitchApi._(authenticator, streamerId);
+  static Future<TwitchApi> factory(
+      TwitchUser streamer, TwitchAppInfo appInfo) async {
+    // Create a temporary TwitchApi with [streamerId] empty so we
+    // can fetch it
+    final api = TwitchApi._(streamer, appInfo: appInfo);
+    api.streamerId = (await api.fetchStreamerId(streamer.username))!;
+    return api;
   }
 
   ///
@@ -119,13 +118,13 @@ class TwitchApi {
     final response = await get(
       Uri.parse('$_twitchUri/$requestType?$params'),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_authentication.oauthKey}',
-        'Client-Id': _authentication.appId,
+        HttpHeaders.authorizationHeader: 'Bearer ${_streamer.oauthKey}',
+        'Client-Id': appInfo.twitchId,
       },
     );
 
     // Make sure the token is still valid before continuing
-    if (!await _authentication.checkIfTokenIsValid(response)) return null;
+    if (!await _streamer.checkIfTokenIsValid(response)) return null;
 
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.containsKey('data')) {
@@ -133,8 +132,91 @@ class TwitchApi {
           data: responseDecoded['data'],
           cursor: responseDecoded['pagination']?['cursor']);
     } else {
-      log(responseDecoded.toString());
+      dev.log(responseDecoded.toString());
       return null;
     }
+  }
+
+  ///
+  /// Get a new OAUTH for the user
+  /// [appId] is the twitch app id; [scope] are the requested rights for the app;
+  /// [requestUserToBrowse] is the callback to show which address the user must
+  /// browse;
+  ///
+  static Future<String> getNewOauth({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String) requestUserToBrowse,
+  }) async {
+    // Create the authentication link
+    String stateToken = Random().nextInt(0x7fffffff).toString();
+    final address = 'https://id.twitch.tv/oauth2/authorize?'
+        'response_type=token'
+        '&client_id=${appInfo.twitchId}'
+        '&redirect_uri=${appInfo.redirectAddress}'
+        '&scope=${appInfo.scope.map<String>((e) => e.text()).join('+')}'
+        '&state=$stateToken';
+
+    // Send link to user and wait for the user to accept
+    requestUserToBrowse(address);
+    final response = await _waitForTwitchResponse(appInfo.redirectAddress);
+
+    // Parse the answer
+    final re = RegExp(r'^' +
+        appInfo.redirectAddress +
+        r'/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
+    final match = re.firstMatch(response);
+
+    if (match!.group(2)! != stateToken) {
+      throw 'State token not equal, this connexion may be compromised';
+    }
+    return match.group(1)!;
+  }
+
+  static Future<String> _waitForTwitchResponse(String redirectAddress) async {
+    // In the success page, we have to fetch the address and POST it to ourselves
+    // since it is not possible otherwise to get it
+    final successWebsite = '<!DOCTYPE html>'
+        '<html><body>'
+        'You can close this page'
+        '<script>'
+        'var xhr = new XMLHttpRequest();'
+        'xhr.open("POST", \'$redirectAddress\', true);'
+        'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
+        'xhr.send(JSON.stringify({\'token\': window.location.href}));'
+        '</script>'
+        '</body></html>';
+
+    // Communication procedure
+    String? twitchResponse;
+    void twitchResponseCallback(Socket client) {
+      client.listen((data) async {
+        // Parse the twitch answer
+        final answerAsString = String.fromCharCodes(data).trim().split('\r\n');
+
+        if (answerAsString.first == 'GET / HTTP/1.1') {
+          // Send the success page to browser
+          client.write('HTTP/1.1 200 OK\nContent-Type: text\n'
+              'Content-Length: ${successWebsite.length}\n'
+              '\n'
+              '$successWebsite');
+          return;
+        } else {
+          // Otherwise it is a POST we sent ourselves in the success page
+          // For some reason, this function is call sometimes more than once
+          twitchResponse ??= jsonDecode(answerAsString.last)['token']!;
+        }
+
+        client.close();
+        return;
+      });
+    }
+
+    final server = await ServerSocket.bind('localhost', 3000);
+    server.listen(twitchResponseCallback);
+    while (twitchResponse == null) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    return twitchResponse!;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:twitch_manager/twitch_app_info.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,8 +22,7 @@ enum _ConnexionStatus {
 class TwitchAuthenticationScreen extends StatefulWidget {
   const TwitchAuthenticationScreen({
     super.key,
-    required this.appId,
-    required this.scope,
+    required this.appInfo,
     required this.onFinishedConnexion,
     required this.withChatbot,
     this.forceNewAuthentication = false,
@@ -30,8 +30,7 @@ class TwitchAuthenticationScreen extends StatefulWidget {
   static const route = '/twitch-authentication';
   final Function(TwitchManager) onFinishedConnexion;
 
-  final String appId;
-  final List<TwitchScope> scope;
+  final TwitchAppInfo appInfo;
   final bool withChatbot;
   final bool forceNewAuthentication;
 
@@ -43,7 +42,6 @@ class TwitchAuthenticationScreen extends StatefulWidget {
 class _TwitchAuthenticationScreenState
     extends State<TwitchAuthenticationScreen> {
   _ConnexionStatus _status = _ConnexionStatus.waitToEstablishConnexion;
-  late Future<bool> _isLoading;
   String? _redirectAddress;
   TwitchManager? _manager;
   final _formKey = GlobalKey<FormState>();
@@ -52,52 +50,18 @@ class _TwitchAuthenticationScreenState
   String? streamerUsername;
   String? chatbotUsername;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _isLoading = _getAuthenticationFromSharedPreferences();
-  }
-
-  Future<bool> _getAuthenticationFromSharedPreferences() async {
-    if (widget.forceNewAuthentication) return true;
-
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    oauthKey = prefs.getString('oauth_key');
-    streamerUsername = prefs.getString('streamer_username');
-    chatbotUsername = prefs.getString('chatbot_username');
-
-    if (oauthKey != null &&
-        oauthKey!.isNotEmpty &&
-        streamerUsername != null &&
-        streamerUsername!.isNotEmpty &&
-        chatbotUsername != null &&
-        chatbotUsername!.isNotEmpty) {
-      setState(() {
-        _status = _ConnexionStatus.connected;
-      });
-      _connectToTwitch();
-    }
-    return true;
-  }
-
   Future<void> _connectToTwitch({bool skipFormValidation = false}) async {
     if (!skipFormValidation && !_formKey.currentState!.validate()) return;
 
     // Twitch app informations
-    final authentication = await TwitchAuthentication.factory(
-      appId: widget.appId,
-      scope: widget.scope,
-      oauthKey: oauthKey,
-      streamerUsername: streamerUsername!,
-      chatbotUsername: chatbotUsername,
-    );
+    final streamer = await TwitchUser.factory(
+        username: streamerUsername!, appInfo: widget.appInfo);
 
     _manager = await TwitchManager.factory(
-      authentication: authentication,
+      user: streamer,
+      appInfo: widget.appInfo,
       onAuthenticationRequest: _manageRequestUserToBrowse,
       onInvalidToken: _manageInvalidToken,
-      onSuccess: _saveAuthentication,
     );
 
     if (!mounted) return;
@@ -129,14 +93,6 @@ class _TwitchAuthenticationScreenState
     }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.remove('oauth_key');
-  }
-
-  Future<void> _saveAuthentication(
-      String oauth, String streamerUsername, String chatbotUsername) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('oauth_key', oauth);
-    prefs.setString('streamer_username', streamerUsername);
-    prefs.setString('chatbot_username', chatbotUsername);
   }
 
   Widget _buildWaitingMessage(String message) {
@@ -315,33 +271,27 @@ class _TwitchAuthenticationScreenState
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: _isLoading,
-        builder: (context, snapshot) {
-          return Form(
-            key: _formKey,
-            child: Scaffold(
-                body: Center(
-              child: Container(
-                  color: const Color.fromARGB(255, 119, 35, 215),
-                  width: 400,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20.0),
-                        child: Text(
-                          'TWITCH AUTHENTICATION',
-                          style: TextStyle(fontSize: 20, color: Colors.white),
-                        ),
-                      ),
-                      if (!snapshot.hasData)
-                        _buildWaitingMessage('Please wait'),
-                      if (snapshot.hasData) _buildConnexionGui(),
-                    ],
-                  )),
+    return Form(
+      key: _formKey,
+      child: Scaffold(
+          body: Center(
+        child: Container(
+            color: const Color.fromARGB(255, 119, 35, 215),
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(
+                    'TWITCH AUTHENTICATION',
+                    style: TextStyle(fontSize: 20, color: Colors.white),
+                  ),
+                ),
+                _buildConnexionGui(),
+              ],
             )),
-          );
-        });
+      )),
+    );
   }
 }

@@ -1,13 +1,15 @@
+import 'package:twitch_manager/twitch_app_info.dart';
+
 import 'twitch_api.dart';
-import 'twitch_authentication.dart';
 import 'twitch_irc.dart';
+import 'twitch_user.dart';
 
 export 'twitch_api.dart';
-export 'twitch_authentication.dart';
+export 'twitch_authentication_screen.dart';
 export 'twitch_irc.dart';
 export 'twitch_manager.dart';
 export 'twitch_scope.dart';
-export 'twitch_authentication_screen.dart';
+export 'twitch_user.dart';
 
 class TwitchManager {
   late final TwitchIrc? irc;
@@ -24,22 +26,19 @@ class TwitchManager {
   /// [onInvalidToken] is called if the Token is found invalid.
   ///
   static Future<TwitchManager> factory({
-    required TwitchAuthentication authentication,
+    required TwitchUser user,
+    required TwitchAppInfo appInfo,
     required Future<void> Function(String address) onAuthenticationRequest,
-    required Future<void> Function(
-            String oauth, String streamerUsername, String chatbotUsername)
-        onSuccess,
     Future<void> Function()? onInvalidToken,
   }) async {
-    final success = await authentication.connect(
+    final success = await user.connect(
       requestUserToBrowse: onAuthenticationRequest,
       onInvalidToken: onInvalidToken,
-      onSuccess: onSuccess,
     );
     if (!success) throw 'Failed to connect';
 
-    final api = await TwitchApi.factory(authentication);
-    final irc = await TwitchIrc.factory(authentication);
+    final api = await TwitchApi.factory(user, appInfo);
+    final irc = await TwitchIrc.factory(streamer: user);
     _finalizerIrc.attach(irc, irc, detach: irc);
 
     return TwitchManager._(irc, api);
