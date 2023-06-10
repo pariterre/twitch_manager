@@ -5,6 +5,8 @@ enum TwitchScope {
   chatEdit,
   chatters,
 
+  readModerator,
+
   readFollowers,
   readSubscribers
 }
@@ -18,6 +20,8 @@ extension TwitchScopeStringify on TwitchScope {
         return 'chat:edit';
       case TwitchScope.chatters:
         return 'moderator:read:chatters';
+      case TwitchScope.readModerator:
+        return 'moderation:read';
       case TwitchScope.readFollowers:
         return 'moderator:read:followers';
       case TwitchScope.readSubscribers:

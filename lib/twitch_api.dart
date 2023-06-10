@@ -144,6 +144,33 @@ class TwitchApi {
   ////// CHANNEL RELATED API //////
 
   ///
+  /// Get the list of moderators of the channel.
+  Future<List<String>?> fetchModerators() async {
+    final List<String> moderators = [];
+    String? cursor;
+    do {
+      final parameters = {
+        'broadcaster_id': streamerId.toString(),
+        'first': '100',
+      };
+      if (cursor != null) parameters['after'] = cursor;
+
+      final response = await _sendGetRequest(
+          requestType: 'moderation/moderators', parameters: parameters);
+      if (response == null) return null; // There was an error
+
+      // Copy answer to the output variable
+      moderators
+          .addAll(response.data.map<String>((e) => e['user_login']).toList());
+
+      if (response.cursor == null) break; // We are done
+      cursor = response.cursor;
+    } while (true);
+
+    return moderators;
+  }
+
+  ///
   /// Get the list of current followers of the channel.
   Future<List<String>?> fetchFollowers() async {
     final List<String> users = [];
@@ -294,7 +321,7 @@ class TwitchApi {
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {
-      dev.log('Token invalid, please refresh your authentication');
+      dev.log('ERROR: ${responseDecoded['message']}');
       return false;
     }
     return true;
