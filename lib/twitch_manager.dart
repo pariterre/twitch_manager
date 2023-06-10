@@ -105,11 +105,13 @@ class TwitchManager {
     _api ??= await TwitchApi.factory(
         appInfo: _appInfo, authenticator: _authenticator);
 
+    final streamerLogin = await _api!.login(_api!.streamerId);
+    if (streamerLogin == null) return;
+
     // Connect the IRC
     if (_appInfo.hasChatbot && !_authenticator.isChatbotConnected) return;
     _irc = await TwitchIrc.factory(
-        streamerLogin: (await _api!.login(_api!.streamerId))!,
-        authenticator: _authenticator);
+        streamerLogin: streamerLogin, authenticator: _authenticator);
     _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
 
     // Mark the Manager as being ready
