@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
 
-import 'twitch_manager.dart';
+import 'twitch_api.dart';
+import 'twitch_app_info.dart';
 
 class TwitchAuthenticator {
   ///
@@ -93,7 +93,6 @@ class TwitchAuthenticator {
   }
 
   /// ATTRIBUTES
-  String? streamer; // Streamer login
   String? streamerOauthKey; // Streamer OAuth key
   String? chatbotOauthKey; // Chatbot OAuth key
 

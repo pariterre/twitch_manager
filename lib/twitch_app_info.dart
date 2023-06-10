@@ -1,4 +1,4 @@
-import 'package:twitch_manager/twitch_manager.dart';
+import 'twitch_manager.dart';
 
 class TwitchAppInfo {
   ///

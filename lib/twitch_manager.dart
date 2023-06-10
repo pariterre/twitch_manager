@@ -1,15 +1,10 @@
-import 'package:twitch_manager/twitch_app_info.dart';
-
 import 'twitch_api.dart';
-import 'twitch_irc.dart';
+import 'twitch_app_info.dart';
 import 'twitch_authenticator.dart';
+import 'twitch_irc.dart';
 
-export 'twitch_api.dart';
 export 'twitch_authentication_screen.dart';
-export 'twitch_irc.dart';
-export 'twitch_manager.dart';
 export 'twitch_scope.dart';
-export 'twitch_authenticator.dart';
 
 class TwitchManager {
   ///
@@ -109,11 +104,12 @@ class TwitchManager {
     // Connect the API
     _api ??= await TwitchApi.factory(
         appInfo: _appInfo, authenticator: _authenticator);
-    _authenticator.streamer = await _api!.login(_api!.streamerId);
 
     // Connect the IRC
     if (_appInfo.hasChatbot && !_authenticator.isChatbotConnected) return;
-    _irc = await TwitchIrc.factory(_authenticator);
+    _irc = await TwitchIrc.factory(
+        streamerLogin: (await _api!.login(_api!.streamerId))!,
+        authenticator: _authenticator);
     _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
 
     // Mark the Manager as being ready

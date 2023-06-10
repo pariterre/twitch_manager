@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
-import 'package:twitch_manager/twitch_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'twitch_app_info.dart';
+import 'twitch_manager.dart';
 
 ///
 /// A helper to follow the current status of connexion

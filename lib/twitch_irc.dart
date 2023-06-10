@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-import 'twitch_manager.dart';
+import 'twitch_authenticator.dart';
 
 // Define some constant from Twitch itself
 const _ircServerAddress = 'irc.chat.twitch.tv';
@@ -23,20 +23,20 @@ class TwitchIrc {
   ///
   /// Send a [message] to the chat
   void send(String message) {
-    _send('PRIVMSG #$_username :$message');
+    _send('PRIVMSG #$streamerLogin :$message');
   }
 
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
-    _send('PART $_username');
+    _send('PART $streamerLogin');
 
     await _socket.close();
   }
 
   /// ATTRIBUTES
   final TwitchAuthenticator _authenticator;
-  String get _username => _authenticator.streamer!;
+  final String streamerLogin;
   String get _oauthKey =>
       _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
   Socket _socket;
@@ -44,14 +44,17 @@ class TwitchIrc {
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrc> factory(TwitchAuthenticator authenticator) async {
-    return TwitchIrc._(await _getConnectedSocket(), authenticator);
+  static Future<TwitchIrc> factory(
+      {required String streamerLogin,
+      required TwitchAuthenticator authenticator}) async {
+    return TwitchIrc._(
+        streamerLogin, await _getConnectedSocket(), authenticator);
   }
 
   ///
   /// Private constructor
   ///
-  TwitchIrc._(this._socket, this._authenticator) {
+  TwitchIrc._(this.streamerLogin, this._socket, this._authenticator) {
     _connect(_authenticator);
   }
 
@@ -102,8 +105,8 @@ class TwitchIrc {
     }
 
     _send('PASS oauth:$_oauthKey');
-    _send('NICK $_username');
-    _send('JOIN #${authenticator.streamer}');
+    _send('NICK $streamerLogin');
+    _send('JOIN #$streamerLogin');
   }
 
   ///

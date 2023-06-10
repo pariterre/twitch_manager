@@ -4,8 +4,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
 
+import 'twitch_app_info.dart';
+import 'twitch_authenticator.dart';
 import 'twitch_manager.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
