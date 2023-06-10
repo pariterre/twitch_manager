@@ -2,24 +2,30 @@ import 'package:twitch_manager/twitch_app_info.dart';
 
 import 'twitch_api.dart';
 import 'twitch_irc.dart';
-import 'twitch_user.dart';
+import 'twitch_authenticator.dart';
 
 export 'twitch_api.dart';
 export 'twitch_authentication_screen.dart';
 export 'twitch_irc.dart';
 export 'twitch_manager.dart';
 export 'twitch_scope.dart';
-export 'twitch_user.dart';
+export 'twitch_authenticator.dart';
 
 class TwitchManager {
-  final TwitchAppInfo appInfo;
-  final TwitchAuthenticator _user;
+  ///
+  /// If the streamer is connected
+  bool get isStreamerConnected => _authenticator.isStreamerConnected;
 
-  bool _isInitialized = false;
-  TwitchIrc? _irc;
-  TwitchApi? _api;
+  ///
+  /// If the streamer is connected
+  bool get isChatbotConnected => _authenticator.isChatbotConnected;
 
+  ///
+  /// If all the necessary users are connected and the API and IRC are initialized
   bool get isInitialized => _isInitialized;
+
+  ///
+  /// Get a reference to the twitch IRC
   TwitchIrc get irc {
     if (!_isInitialized) {
       throw 'irc necessitate the user to be connected';
@@ -27,6 +33,8 @@ class TwitchManager {
     return _irc!;
   }
 
+  ///
+  /// Get a reference to the twitch API
   TwitchApi get api {
     if (!_isInitialized) {
       throw 'api necessitate the user to be connected';
@@ -34,52 +42,86 @@ class TwitchManager {
     return _api!;
   }
 
-  TwitchManager._(this.appInfo, this._user);
-
-  static Future<TwitchManager> factory(
-      {required TwitchAppInfo appInfo, required bool hasChatbot}) async {
-    final user = TwitchAuthenticator(
-        appInfo: appInfo,
-        hasChatbot: hasChatbot,
-        onRequestBrowsing: (_) async {});
-    await user.loadPreviousSession(appInfo: appInfo);
-
-    return TwitchManager._(appInfo, user);
-  }
-
-  Future<void> connectStreamer(
-      {required Future<void> Function(String address)
-          onRequestBrowsing}) async {
-    await _user.connectStreamer(
-        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
-    await connectToTwitchBackend();
-  }
-
-  Future<void> connectChatbot({
-    required Future<void> Function(String address) onAuthenticationRequest,
-    required Future<void> Function(String address) onRequestBrowsing,
+  /// Main constructor for the TwitchManager.
+  /// [appInfo] is all the required information of the current app
+  /// [loadPreviousSession] uses credidential from previous session if set to true.
+  /// It requires new credidentials otherwise
+  static Future<TwitchManager> factory({
+    required TwitchAppInfo appInfo,
+    bool loadPreviousSession = true,
   }) async {
-    await _user.connectChatbot(
-        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
-    await connectToTwitchBackend();
+    final authenticator = TwitchAuthenticator();
+
+    if (loadPreviousSession) {
+      await authenticator.loadPreviousSession(appInfo: appInfo);
+    }
+
+    final manager = TwitchManager._(appInfo, authenticator);
+    if (authenticator.streamerOauthKey != null) {
+      await manager.connectStreamer(onRequestBrowsing: null);
+    }
+    if (authenticator.chatbotOauthKey != null) {
+      await manager.connectChatbot(onRequestBrowsing: null);
+    }
+
+    return manager;
   }
 
   ///
-  /// Main constructor
-  /// [onAuthenticationRequest] is called if the Authentication needs to create a
-  /// new OAUTH key. Adress is the address to browse.
+  /// Entry point for connecting a streamer to Twitch
   ///
-  Future<void> connectToTwitchBackend() async {
-    if (!_user.isStreamerConnected) return;
-    _api ??= await TwitchApi.factory(appInfo: appInfo, user: _user);
+  Future<void> connectStreamer(
+      {required Future<void> Function(String address)?
+          onRequestBrowsing}) async {
+    await _authenticator.connectStreamer(
+        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+    await _connectToTwitchBackend();
+  }
 
-    if (_user.hasChatbot && !_user.isChatbotConnected) return;
-    _irc = await TwitchIrc.factory(_user);
+  ///
+  /// Entry point for connecting a chatbot to Twitch
+  ///
+  Future<void> connectChatbot({
+    required Future<void> Function(String address)? onRequestBrowsing,
+  }) async {
+    await _authenticator.connectChatbot(
+        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+    await _connectToTwitchBackend();
+  }
+
+  ///
+  /// ATTRIBUTES
+  final TwitchAppInfo _appInfo;
+  final TwitchAuthenticator _authenticator;
+  TwitchIrc? _irc;
+  TwitchApi? _api;
+  bool _isInitialized = false;
+
+  ///
+  /// Main constructor of the Twitch Manager
+  TwitchManager._(this._appInfo, this._authenticator);
+
+  ///
+  /// Initialize the connexion with twitch for all the relevent users
+  ///
+  Future<void> _connectToTwitchBackend() async {
+    if (!_authenticator.isStreamerConnected) return;
+    // Connect the API
+    _api ??= await TwitchApi.factory(
+        appInfo: _appInfo, authenticator: _authenticator);
+    _authenticator.streamer = await _api!.login(_api!.streamerId);
+
+    // Connect the IRC
+    if (_appInfo.hasChatbot && !_authenticator.isChatbotConnected) return;
+    _irc = await TwitchIrc.factory(_authenticator);
     _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
 
+    // Mark the Manager as being ready
     _isInitialized = true;
   }
 
+  ///
+  /// Finalizer of the IRC, so it frees the Socket
   static final Finalizer<TwitchIrc> _finalizerIrc =
       Finalizer((irc) => irc.disconnect());
 }

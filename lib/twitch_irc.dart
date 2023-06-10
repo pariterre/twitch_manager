@@ -11,22 +11,65 @@ const _ircPort = 6667;
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
-  String get _chatbotUsername => _user.chatbot ?? _user.streamer!;
-  final TwitchAuthenticator _user;
-
-  Socket _socket;
-  bool isConnected = false;
-
+  ///
+  /// Callback to register to which is called when a message is received.
   Function(String sender, String message)? messageCallback;
-  Function(String message)? twitchCallback;
+
+  ///
+  /// Callback to register to which is called when any communication which is
+  /// not a message from a user to the chat is received
+  Function(String message)? twitchCommunicationCallback;
+
+  ///
+  /// Send a [message] to the chat
+  void send(String message) {
+    _send('PRIVMSG #$_username :$message');
+  }
+
+  ///
+  /// Disconnect to Twitch IRC
+  Future<void> disconnect() async {
+    _send('PART $_username');
+
+    await _socket.close();
+  }
+
+  /// ATTRIBUTES
+  final TwitchAuthenticator _authenticator;
+  String get _username => _authenticator.streamer!;
+  String get _oauthKey =>
+      _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
+  Socket _socket;
 
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrc> factory(TwitchAuthenticator user) async {
-    return TwitchIrc._(await _getConnectedSocket(), user);
+  static Future<TwitchIrc> factory(TwitchAuthenticator authenticator) async {
+    return TwitchIrc._(await _getConnectedSocket(), authenticator);
   }
 
+  ///
+  /// Private constructor
+  ///
+  TwitchIrc._(this._socket, this._authenticator) {
+    _connect(_authenticator);
+  }
+
+  ///
+  /// Send a message to Twitch IRC. If connection failed it tries another time.
+  ///
+  void _send(String command) async {
+    try {
+      _socket.write('$command\n');
+    } on SocketException {
+      _socket = await _getConnectedSocket();
+      _send(command);
+      return;
+    }
+  }
+
+  ///
+  /// Establish a connexion with the Twitch IRC channel
   static Future<Socket> _getConnectedSocket() async {
     bool socketIsConnected = false;
     late Socket socket;
@@ -47,62 +90,24 @@ class TwitchIrc {
   }
 
   ///
-  /// Private constructor
-  ///
-  TwitchIrc._(this._socket, this._user) {
-    _connect(_user);
-  }
-
-  ///
-  /// Send a [message] to the chat of the channel
-  ///
-  void send(String message) {
-    _send('PRIVMSG #$_chatbotUsername :$message');
-  }
-
-  ///
-  /// Send a message to Twitch IRC. If connection failed it tries another time.
-  ///
-  void _send(String command) async {
-    try {
-      _socket.write('$command\n');
-    } on SocketException {
-      _socket = await _getConnectedSocket();
-      _send(command);
-      return;
-    }
-  }
-
-  ///
-  /// Connect to Twitch IRC. If a socket exception is raised try another time.
-  void _connect(TwitchAuthenticator user) async {
+  /// Connect to Twitch IRC channel.
+  void _connect(TwitchAuthenticator authenticator) async {
     try {
       _socket.listen(_messageReceived);
     } on SocketException {
       // Wait for some time and reconnect
       _socket = await _getConnectedSocket();
-      _connect(user);
+      _connect(authenticator);
       return;
     }
-    isConnected = true;
 
-    _send('PASS oauth:${user.streamerOauthKey}');
-    _send('NICK $_chatbotUsername');
-    _send('JOIN #${user.streamer}');
+    _send('PASS oauth:$_oauthKey');
+    _send('NICK $_username');
+    _send('JOIN #${authenticator.streamer}');
   }
 
   ///
-  /// Disconnect to Twitch IRC
-  Future<void> disconnect() async {
-    _send('PART $_chatbotUsername');
-
-    await _socket.close();
-    isConnected = false;
-  }
-
-  ///
-  /// This method is called each time a new message is sent
-  ///
+  /// This method is called each time a new message is received
   void _messageReceived(Uint8List data) {
     var fullMessage = String.fromCharCodes(data);
     // Remove the line returns
@@ -126,7 +131,9 @@ class TwitchIrc {
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
       log(fullMessage);
-      if (twitchCallback != null) twitchCallback!(fullMessage);
+      if (twitchCommunicationCallback != null) {
+        twitchCommunicationCallback!(fullMessage);
+      }
       return;
     }
 

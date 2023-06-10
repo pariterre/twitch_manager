@@ -11,6 +11,9 @@ import 'twitch_manager.dart';
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
 
+///
+/// Class that holds a response from Twitch API, this is to easy the communication
+/// between internal parts of the API
 class _TwitchResponse {
   List<dynamic> data;
   String? cursor;
@@ -18,33 +21,104 @@ class _TwitchResponse {
 }
 
 class TwitchApi {
-  final TwitchAppInfo appInfo;
-  late final int streamerId; // It is set in the factory
-  final TwitchAuthenticator _user;
-
   ///
-  /// Private constructor
-  ///
-  TwitchApi._(this.appInfo, this._user);
-
-  ///
-  /// The constructor for the Twitch API, [streamerUsername] is the of the streamer
-  ///
+  /// The constructor for the Twitch API
+  /// [appInfo] holds all the information required to run the API
+  /// [authenticator] holds the OAuth key to communicate with the API
   static Future<TwitchApi> factory({
     required TwitchAppInfo appInfo,
-    required TwitchAuthenticator user,
+    required TwitchAuthenticator authenticator,
   }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApi._(appInfo, user);
-    await api._setStreamerInfo();
+    final api = TwitchApi._(appInfo, authenticator);
+    api.streamerId = await api._userId(authenticator.streamerOauthKey!);
     return api;
   }
 
+  ////// CONNEXION RELATED API //////
+
+  ///
+  /// Validates the current OAUTH key. This is mandatory as stated here:
+  /// https://dev.twitch.tv/docs/authentication/validate-tokens/
+  static Future<bool> validateOauthToken(
+      {required TwitchAppInfo appInfo, required String oauthKey}) async {
+    final response = await get(
+      Uri.parse(_twitchValidateUri),
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        'Client-Id': appInfo.twitchAppId,
+      },
+    );
+
+    return _checkIfTokenIsValid(response);
+  }
+
+  ///
+  /// Get a new OAUTH for the user
+  /// [appInfo] holds all the necessary information to connect.
+  /// [onRequestBrowsing] is the callback to show which address the user must
+  /// browse.
+  ///
+  static Future<String> getNewOauth({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String) onRequestBrowsing,
+    bool chatOnly = false,
+  }) async {
+    // Create the authentication link
+    String stateToken = Random().nextInt(0x7fffffff).toString();
+
+    final scope = chatOnly ? appInfo.chatScope : appInfo.scope;
+    final address = 'https://id.twitch.tv/oauth2/authorize?'
+        'response_type=token'
+        '&client_id=${appInfo.twitchAppId}'
+        '&redirect_uri=${appInfo.redirectAddress}'
+        '&scope=${scope.map<String>((e) => e.text()).join('+')}'
+        '&state=$stateToken';
+
+    // Send link to user and wait for the user to accept
+    onRequestBrowsing(address);
+    final response = await _authenticate(appInfo.redirectAddress);
+
+    // Parse the answer
+    final re = RegExp(r'^' +
+        appInfo.redirectAddress +
+        r'/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
+    final match = re.firstMatch(response);
+
+    if (match!.group(2)! != stateToken) {
+      throw 'State token not equal, this connexion may be compromised';
+    }
+    return match.group(1)!;
+  }
+
+  ///
+  /// Get the stream login of the user [userId].
+  Future<String?> login(int userId) async {
+    final response = await _sendGetRequest(
+        requestType: 'users', parameters: {'id': userId.toString()});
+    if (response == null) return null; // There was an error
+
+    // Extract the usernames and removed the blacklisted
+    return response.data[0]["login"];
+  }
+
+  ///
+  /// Get the display name of the user [userId].
+  Future<String?> displayName(int userId) async {
+    final response = await _sendGetRequest(
+        requestType: 'users', parameters: {'id': userId.toString()});
+    if (response == null) return null; // There was an error
+
+    // Extract the usernames and removed the blacklisted
+    return response.data[0]["display_name"];
+  }
+
+  ////// CHAT RELATED API //////
+
   ///
   /// Get the list of current chatters.
-  /// The [blacklist] ignore some chatters (ignoring bots for instance)
-  ///
+  /// The [blacklist] ignore some chatters (ignoring bots for instance).
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
     final response = await _sendGetRequest(
         requestType: 'chat/chatters',
@@ -67,9 +141,10 @@ class TwitchApi {
         .cast<String>();
   }
 
+  ////// CHANNEL RELATED API //////
+
   ///
   /// Get the list of current followers of the channel.
-  ///
   Future<List<String>?> fetchFollowers() async {
     final List<String> users = [];
     String? cursor;
@@ -95,9 +170,20 @@ class TwitchApi {
     return users;
   }
 
+  ////// INTERNAL //////
+
   ///
-  /// Post an actual request to Twitch
+  /// ATTRIBUTES
+  final TwitchAppInfo _appInfo;
+  late final int streamerId; // It is set in the factory
+  final TwitchAuthenticator _authenticator;
+
   ///
+  /// Private constructor
+  TwitchApi._(this._appInfo, this._authenticator);
+
+  ///
+  /// Post an actual GET request to Twitch
   Future<_TwitchResponse?> _sendGetRequest(
       {required String requestType, Map<String, String?>? parameters}) async {
     var params = '';
@@ -112,14 +198,16 @@ class TwitchApi {
       Uri.parse(
           '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_user.streamerOauthKey}',
-        'Client-Id': appInfo.twitchAppId,
+        HttpHeaders.authorizationHeader:
+            'Bearer ${_authenticator.streamerOauthKey}',
+        'Client-Id': _appInfo.twitchAppId,
       },
     );
 
     // Make sure the token is still valid before continuing
     if (!await _checkIfTokenIsValid(response)) return null;
 
+    // Prepare the answer to be returned
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.containsKey('data')) {
       return _TwitchResponse(
@@ -132,56 +220,23 @@ class TwitchApi {
   }
 
   ///
-  /// Get the stream ID of [username].
-  ///
-  Future<void> _setStreamerInfo() async {
+  /// Fetch the user id from its [oauthKey]
+  Future<int> _userId(String oauthKey) async {
     final response = await get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_user.streamerOauthKey}',
+        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
       },
     );
 
-    _user.streamer = jsonDecode(response.body)?['login'];
-    streamerId = int.tryParse(jsonDecode(response.body)?['user_id']) ?? -1;
+    return int.tryParse(jsonDecode(response.body)?['user_id']) ?? -1;
   }
 
   ///
-  /// Get a new OAUTH for the user
-  /// [appId] is the twitch app id; [scope] are the requested rights for the app;
-  /// [onRequestBrowsing] is the callback to show which address the user must
-  /// browse;
-  ///
-  static Future<String> getNewOauth({
-    required TwitchAppInfo appInfo,
-    required Future<void> Function(String) onRequestBrowsing,
-  }) async {
-    // Create the authentication link
-    String stateToken = Random().nextInt(0x7fffffff).toString();
-    final address = 'https://id.twitch.tv/oauth2/authorize?'
-        'response_type=token'
-        '&client_id=${appInfo.twitchAppId}'
-        '&redirect_uri=${appInfo.redirectAddress}'
-        '&scope=${appInfo.scope.map<String>((e) => e.text()).join('+')}'
-        '&state=$stateToken';
-
-    // Send link to user and wait for the user to accept
-    onRequestBrowsing(address);
-    final response = await _waitForTwitchResponse(appInfo.redirectAddress);
-
-    // Parse the answer
-    final re = RegExp(r'^' +
-        appInfo.redirectAddress +
-        r'/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
-    final match = re.firstMatch(response);
-
-    if (match!.group(2)! != stateToken) {
-      throw 'State token not equal, this connexion may be compromised';
-    }
-    return match.group(1)!;
-  }
-
-  static Future<String> _waitForTwitchResponse(String redirectAddress) async {
+  /// Call the Twitch API to Authenticate the user.
+  /// The [redirectAddress] should match the configured one in the extension
+  /// dev panel of dev.twitch.tv.
+  static Future<String> _authenticate(String redirectAddress) async {
     // In the success page, we have to fetch the address and POST it to ourselves
     // since it is not possible otherwise to get it
     final successWebsite = '<!DOCTYPE html>'
@@ -226,6 +281,7 @@ class TwitchApi {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
+    server.close();
     return twitchResponse!;
   }
 
@@ -242,22 +298,5 @@ class TwitchApi {
       return false;
     }
     return true;
-  }
-
-  ///
-  /// Validates the current token. This is mandatory as stated here:
-  /// https://dev.twitch.tv/docs/authentication/validate-tokens/
-  ///
-  static Future<bool> validateToken(
-      {required TwitchAppInfo appInfo, required String oauthKey}) async {
-    final response = await get(
-      Uri.parse(_twitchValidateUri),
-      headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
-        'Client-Id': appInfo.twitchAppId,
-      },
-    );
-
-    return _checkIfTokenIsValid(response);
   }
 }

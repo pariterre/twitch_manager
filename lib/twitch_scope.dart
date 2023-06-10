@@ -1,3 +1,5 @@
+///
+/// The access right provided to the app by the streamer
 enum TwitchScope {
   chatRead,
   chatEdit,

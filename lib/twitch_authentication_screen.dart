@@ -3,10 +3,11 @@ import 'package:twitch_manager/twitch_app_info.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+///
+/// A helper to follow the current status of connexion
 enum _ConnexionStatus {
-  waitToEstablishConnexion,
+  waitForUser,
   waitForTwitchValidation,
-  wrongToken,
   connected,
 }
 
@@ -23,15 +24,13 @@ class TwitchAuthenticationScreen extends StatefulWidget {
     super.key,
     required this.appInfo,
     required this.onFinishedConnexion,
-    required this.hasChatbot,
-    this.forceNewAuthentication = false,
+    this.loadPreviousSession = true,
   });
   static const route = '/twitch-authentication';
   final Function(TwitchManager) onFinishedConnexion;
 
   final TwitchAppInfo appInfo;
-  final bool hasChatbot;
-  final bool forceNewAuthentication;
+  final bool loadPreviousSession;
 
   @override
   State<TwitchAuthenticationScreen> createState() =>
@@ -40,29 +39,45 @@ class TwitchAuthenticationScreen extends StatefulWidget {
 
 class _TwitchAuthenticationScreenState
     extends State<TwitchAuthenticationScreen> {
-  _ConnexionStatus _status = _ConnexionStatus.waitToEstablishConnexion;
+  var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
-  late final _manager = TwitchManager.factory(
-      appInfo: widget.appInfo, hasChatbot: widget.hasChatbot);
-  final _formKey = GlobalKey<FormState>();
+  TwitchManager? _manager;
+  late Future<TwitchManager> factoryManager = TwitchManager.factory(
+      appInfo: widget.appInfo, loadPreviousSession: widget.loadPreviousSession);
 
-  String? oauthKey;
+  Future<void> _connectStreamer() async {
+    if (_manager == null) return;
 
-  Future<void> _connectStreamer({bool skipFormValidation = false}) async {
-    if (!skipFormValidation && !_formKey.currentState!.validate()) return;
+    await _manager!.connectStreamer(onRequestBrowsing: _onRequestBrowsing);
+    _checkForConnexionDone();
+  }
 
-    // Twitch app informations
-    final manager = await _manager;
+  Future<void> _connectChatbot() async {
+    if (_manager == null) return;
 
-    await manager.connectStreamer(onRequestBrowsing: _onRequestBrowsing);
-    if (!manager.isInitialized) {
+    await _manager!.connectChatbot(onRequestBrowsing: _onRequestBrowsing);
+    _checkForConnexionDone();
+  }
+
+  _checkForConnexionDone({bool skipSetState = false}) {
+    // This will be false if chatbot should be initialized
+    if (!_manager!.isInitialized) {
+      _status = _ConnexionStatus.waitForUser;
+      if (!skipSetState) {
+        setState(() {});
+      }
       return;
     }
 
-    setState(() {
-      _status = _ConnexionStatus.connected;
+    _status = _ConnexionStatus.connected;
+    if (!skipSetState) {
+      setState(() {});
+    }
+
+    // If we get here, we are done authenticating
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      widget.onFinishedConnexion(_manager!);
     });
-    widget.onFinishedConnexion(manager);
   }
 
   Future<void> _onRequestBrowsing(String address) async {
@@ -94,7 +109,7 @@ class _TwitchAuthenticationScreenState
     );
   }
 
-  Widget _buildNavigateTo() {
+  Widget _buildBrowseTo() {
     return Center(
       child: Padding(
         padding:
@@ -130,101 +145,81 @@ class _TwitchAuthenticationScreenState
     );
   }
 
-  Widget _buildWrongToken() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.only(left: 18.0, right: 18.0, top: 12, bottom: 20),
-        child: Text(
-          'Invalid token, please wait while we renew your OAUTH authentication',
-          style: TextStyle(color: Colors.white),
+  Widget _buildButtons() {
+    return Column(
+      children: [
+        ElevatedButton(
+          onPressed: _manager != null && _manager!.isStreamerConnected
+              ? null
+              : _connectStreamer,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+          child: const Text(
+            'Connect streamer',
+            style: TextStyle(color: Colors.black),
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLogginForms() {
-    return Theme(
-      data: ThemeData(
-        inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: Colors.black),
-          hintStyle: TextStyle(color: Colors.black),
-          border: OutlineInputBorder(),
-          filled: true,
-          fillColor: Colors.white,
-          enabledBorder:
-              OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-          focusedBorder:
-              OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-        ),
-      ),
-      child: Column(
-        children: [
+        const SizedBox(height: 8),
+        if (widget.appInfo.hasChatbot)
           ElevatedButton(
-            onPressed: _connectStreamer,
+            onPressed: _manager == null || !_manager!.isStreamerConnected
+                ? null
+                : _connectChatbot,
             style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
             child: const Text(
-              'Connect streamer',
+              'Connect chatbot',
               style: TextStyle(color: Colors.black),
             ),
           ),
-          const SizedBox(height: 8),
-          if (widget.hasChatbot)
-            Padding(
-              padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
-              child: ElevatedButton(
-                onPressed: _connectStreamer,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                child: const Text(
-                  'Connect chatbot',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConnexionGui() {
-    return Column(
-      children: [
-        if (_status == _ConnexionStatus.waitToEstablishConnexion)
-          Padding(
-            padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 15),
-            child: _buildLogginForms(),
-          ),
-        if (_status == _ConnexionStatus.waitForTwitchValidation)
-          _buildNavigateTo(),
-        if (_status == _ConnexionStatus.wrongToken) _buildWrongToken(),
-        if (_status == _ConnexionStatus.connected)
-          _buildWaitingMessage('Please wait while we are logging you'),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Scaffold(
-          body: Center(
-        child: Container(
-            color: const Color.fromARGB(255, 119, 35, 215),
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Text(
-                    'TWITCH AUTHENTICATION',
-                    style: TextStyle(fontSize: 20, color: Colors.white),
-                  ),
-                ),
-                _buildConnexionGui(),
-              ],
-            )),
-      )),
-    );
+    return Scaffold(
+        body: Center(
+      child: FutureBuilder(
+          future: factoryManager,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (_manager == null && snapshot.hasData) {
+              _manager = snapshot.data;
+              _checkForConnexionDone(skipSetState: true);
+            }
+
+            return Container(
+                color: const Color.fromARGB(255, 119, 35, 215),
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Text(
+                        'TWITCH AUTHENTICATION',
+                        style: TextStyle(fontSize: 20, color: Colors.white),
+                      ),
+                    ),
+                    Column(
+                      children: [
+                        if (_status == _ConnexionStatus.waitForUser)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                left: 20.0, right: 20.0, bottom: 15),
+                            child: _buildButtons(),
+                          ),
+                        if (_status == _ConnexionStatus.waitForTwitchValidation)
+                          _buildBrowseTo(),
+                        if (_status == _ConnexionStatus.connected)
+                          _buildWaitingMessage(
+                              'Please wait while we are logging you'),
+                      ],
+                    ),
+                  ],
+                ));
+          }),
+    ));
   }
 }

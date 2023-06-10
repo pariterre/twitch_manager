@@ -12,7 +12,8 @@ void main() async {
             onFinishedConnexion: (manager) => Navigator.of(ctx)
                 .pushReplacementNamed(TwitchChatBot.route, arguments: manager),
             appInfo: TwitchAppInfo(
-                twitchAppId: 'YOUR_APP_ID',
+                appName: 'My Lovely App',
+                twitchAppId: 'YOUR_APP_ID_HERE',
                 scope: const [
                   TwitchScope.chatRead,
                   TwitchScope.chatEdit,
@@ -21,8 +22,7 @@ void main() async {
                   TwitchScope.readSubscribers,
                 ],
                 redirectAddress: 'http://localhost:3000'),
-            hasChatbot: false,
-            forceNewAuthentication: true,
+            loadPreviousSession: false,
           ),
       TwitchChatBot.route: (ctx) => const TwitchChatBot(),
     },
