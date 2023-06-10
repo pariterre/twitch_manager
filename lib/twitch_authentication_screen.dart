@@ -61,7 +61,7 @@ class _TwitchAuthenticationScreenState
 
   _checkForConnexionDone({bool skipSetState = false}) {
     // This will be false if chatbot should be initialized
-    if (!_manager!.isInitialized) {
+    if (!_manager!.isConnected) {
       _status = _ConnexionStatus.waitForUser;
       if (!skipSetState) {
         setState(() {});

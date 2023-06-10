@@ -22,12 +22,12 @@ class TwitchManager {
 
   ///
   /// If all the necessary users are connected and the API and IRC are initialized
-  bool get isInitialized => _isInitialized;
+  bool get isConnected => _isConnected;
 
   ///
   /// Get a reference to the twitch IRC
   TwitchIrc get irc {
-    if (!_isInitialized) {
+    if (!_isConnected) {
       throw 'irc necessitate the user to be connected';
     }
     return _irc!;
@@ -36,7 +36,7 @@ class TwitchManager {
   ///
   /// Get a reference to the twitch API
   TwitchApi get api {
-    if (!_isInitialized) {
+    if (!_isConnected) {
       throw 'api necessitate the user to be connected';
     }
     return _api!;
@@ -95,7 +95,7 @@ class TwitchManager {
   final TwitchAuthenticator _authenticator;
   TwitchIrc? _irc;
   TwitchApi? _api;
-  bool _isInitialized = false;
+  bool _isConnected = false;
 
   ///
   /// Main constructor of the Twitch Manager
@@ -117,7 +117,7 @@ class TwitchManager {
     _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
 
     // Mark the Manager as being ready
-    _isInitialized = true;
+    _isConnected = true;
   }
 
   ///
