@@ -11,9 +11,8 @@ const _ircPort = 6667;
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
-  String get chatbotUsername => _chatbot?.username ?? _streamer.username;
-  final TwitchUser _streamer;
-  final TwitchUser? _chatbot;
+  String get _chatbotUsername => _user.chatbot ?? _user.streamer!;
+  final TwitchAuthenticator _user;
 
   Socket _socket;
   bool isConnected = false;
@@ -24,9 +23,8 @@ class TwitchIrc {
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrc> factory(
-      {required TwitchUser streamer, TwitchUser? chatbot}) async {
-    return TwitchIrc._(await _getConnectedSocket(), streamer, chatbot);
+  static Future<TwitchIrc> factory(TwitchAuthenticator user) async {
+    return TwitchIrc._(await _getConnectedSocket(), user);
   }
 
   static Future<Socket> _getConnectedSocket() async {
@@ -51,15 +49,15 @@ class TwitchIrc {
   ///
   /// Private constructor
   ///
-  TwitchIrc._(this._socket, this._streamer, this._chatbot) {
-    _connect(_chatbot ?? _streamer);
+  TwitchIrc._(this._socket, this._user) {
+    _connect(_user);
   }
 
   ///
   /// Send a [message] to the chat of the channel
   ///
   void send(String message) {
-    _send('PRIVMSG #$chatbotUsername :$message');
+    _send('PRIVMSG #$_chatbotUsername :$message');
   }
 
   ///
@@ -77,7 +75,7 @@ class TwitchIrc {
 
   ///
   /// Connect to Twitch IRC. If a socket exception is raised try another time.
-  void _connect(TwitchUser user) async {
+  void _connect(TwitchAuthenticator user) async {
     try {
       _socket.listen(_messageReceived);
     } on SocketException {
@@ -88,15 +86,15 @@ class TwitchIrc {
     }
     isConnected = true;
 
-    _send('PASS oauth:${user.oauthKey}');
-    _send('NICK $chatbotUsername');
-    _send('JOIN #${_streamer.username}');
+    _send('PASS oauth:${user.streamerOauthKey}');
+    _send('NICK $_chatbotUsername');
+    _send('JOIN #${user.streamer}');
   }
 
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
-    _send('PART $chatbotUsername');
+    _send('PART $_chatbotUsername');
 
     await _socket.close();
     isConnected = false;

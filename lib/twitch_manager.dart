@@ -12,40 +12,74 @@ export 'twitch_scope.dart';
 export 'twitch_user.dart';
 
 class TwitchManager {
-  late final TwitchIrc? irc;
-  late final TwitchApi api;
+  final TwitchAppInfo appInfo;
+  final TwitchAuthenticator _user;
 
-  static final Finalizer<TwitchIrc> _finalizerIrc =
-      Finalizer((irc) => irc.disconnect());
+  bool _isInitialized = false;
+  TwitchIrc? _irc;
+  TwitchApi? _api;
+
+  bool get isInitialized => _isInitialized;
+  TwitchIrc get irc {
+    if (!_isInitialized) {
+      throw 'irc necessitate the user to be connected';
+    }
+    return _irc!;
+  }
+
+  TwitchApi get api {
+    if (!_isInitialized) {
+      throw 'api necessitate the user to be connected';
+    }
+    return _api!;
+  }
+
+  TwitchManager._(this.appInfo, this._user);
+
+  static Future<TwitchManager> factory(
+      {required TwitchAppInfo appInfo, required bool hasChatbot}) async {
+    final user = TwitchAuthenticator(
+        appInfo: appInfo,
+        hasChatbot: hasChatbot,
+        onRequestBrowsing: (_) async {});
+    await user.loadPreviousSession(appInfo: appInfo);
+
+    return TwitchManager._(appInfo, user);
+  }
+
+  Future<void> connectStreamer(
+      {required Future<void> Function(String address)
+          onRequestBrowsing}) async {
+    await _user.connectStreamer(
+        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
+    await connectToTwitchBackend();
+  }
+
+  Future<void> connectChatbot({
+    required Future<void> Function(String address) onAuthenticationRequest,
+    required Future<void> Function(String address) onRequestBrowsing,
+  }) async {
+    await _user.connectChatbot(
+        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
+    await connectToTwitchBackend();
+  }
 
   ///
   /// Main constructor
   /// [onAuthenticationRequest] is called if the Authentication needs to create a
   /// new OAUTH key. Adress is the address to browse.
-  /// [onSuccess] This callback is called after the success of authentication
-  /// [onInvalidToken] is called if the Token is found invalid.
   ///
-  static Future<TwitchManager> factory({
-    required TwitchUser user,
-    required TwitchAppInfo appInfo,
-    required Future<void> Function(String address) onAuthenticationRequest,
-    Future<void> Function()? onInvalidToken,
-  }) async {
-    final success = await user.connect(
-      requestUserToBrowse: onAuthenticationRequest,
-      onInvalidToken: onInvalidToken,
-    );
-    if (!success) throw 'Failed to connect';
+  Future<void> connectToTwitchBackend() async {
+    if (!_user.isStreamerConnected) return;
+    _api ??= await TwitchApi.factory(appInfo: appInfo, user: _user);
 
-    final api = await TwitchApi.factory(user, appInfo);
-    final irc = await TwitchIrc.factory(streamer: user);
-    _finalizerIrc.attach(irc, irc, detach: irc);
+    if (_user.hasChatbot && !_user.isChatbotConnected) return;
+    _irc = await TwitchIrc.factory(_user);
+    _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
 
-    return TwitchManager._(irc, api);
+    _isInitialized = true;
   }
 
-  ///
-  /// Private constructor
-  ///
-  TwitchManager._(this.irc, this.api);
+  static final Finalizer<TwitchIrc> _finalizerIrc =
+      Finalizer((irc) => irc.disconnect());
 }

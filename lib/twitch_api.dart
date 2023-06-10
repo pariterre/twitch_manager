@@ -8,7 +8,8 @@ import 'package:twitch_manager/twitch_app_info.dart';
 
 import 'twitch_manager.dart';
 
-const _twitchUri = 'https://api.twitch.tv/helix';
+const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
+const _twitchHelixUri = 'https://api.twitch.tv/helix';
 
 class _TwitchResponse {
   List<dynamic> data;
@@ -17,37 +18,27 @@ class _TwitchResponse {
 }
 
 class TwitchApi {
-  String get streamerUsername => _streamer.username;
   final TwitchAppInfo appInfo;
   late final int streamerId; // It is set in the factory
-  final TwitchUser _streamer;
+  final TwitchAuthenticator _user;
 
   ///
   /// Private constructor
   ///
-  TwitchApi._(this._streamer, {required this.appInfo});
+  TwitchApi._(this.appInfo, this._user);
 
   ///
   /// The constructor for the Twitch API, [streamerUsername] is the of the streamer
   ///
-  static Future<TwitchApi> factory(
-      TwitchUser streamer, TwitchAppInfo appInfo) async {
+  static Future<TwitchApi> factory({
+    required TwitchAppInfo appInfo,
+    required TwitchAuthenticator user,
+  }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApi._(streamer, appInfo: appInfo);
-    api.streamerId = (await api.fetchStreamerId(streamer.username))!;
+    final api = TwitchApi._(appInfo, user);
+    await api._setStreamerInfo();
     return api;
-  }
-
-  ///
-  /// Get the stream ID of [username].
-  ///
-  Future<int?> fetchStreamerId(String username) async {
-    final response = await _sendGetRequest(
-        requestType: 'users', parameters: {'login': username});
-    if (response == null) return null; // There was an error
-
-    return int.parse(response.data[0]['id']);
   }
 
   ///
@@ -108,23 +99,26 @@ class TwitchApi {
   /// Post an actual request to Twitch
   ///
   Future<_TwitchResponse?> _sendGetRequest(
-      {required String requestType,
-      required Map<String, String?> parameters}) async {
+      {required String requestType, Map<String, String?>? parameters}) async {
     var params = '';
-    parameters.forEach(
-        (key, value) => params += '$key${value == null ? '' : '=$value'}&');
-    params = params.substring(0, params.length - 1); // Remove to final '&'
+
+    if (parameters != null) {
+      parameters.forEach(
+          (key, value) => params += '$key${value == null ? '' : '=$value'}&');
+      params = params.substring(0, params.length - 1); // Remove to final '&'
+    }
 
     final response = await get(
-      Uri.parse('$_twitchUri/$requestType?$params'),
+      Uri.parse(
+          '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_streamer.oauthKey}',
-        'Client-Id': appInfo.twitchId,
+        HttpHeaders.authorizationHeader: 'Bearer ${_user.streamerOauthKey}',
+        'Client-Id': appInfo.twitchAppId,
       },
     );
 
     // Make sure the token is still valid before continuing
-    if (!await _streamer.checkIfTokenIsValid(response)) return null;
+    if (!await _checkIfTokenIsValid(response)) return null;
 
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.containsKey('data')) {
@@ -138,26 +132,41 @@ class TwitchApi {
   }
 
   ///
+  /// Get the stream ID of [username].
+  ///
+  Future<void> _setStreamerInfo() async {
+    final response = await get(
+      Uri.parse(_twitchValidateUri),
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer ${_user.streamerOauthKey}',
+      },
+    );
+
+    _user.streamer = jsonDecode(response.body)?['login'];
+    streamerId = int.tryParse(jsonDecode(response.body)?['user_id']) ?? -1;
+  }
+
+  ///
   /// Get a new OAUTH for the user
   /// [appId] is the twitch app id; [scope] are the requested rights for the app;
-  /// [requestUserToBrowse] is the callback to show which address the user must
+  /// [onRequestBrowsing] is the callback to show which address the user must
   /// browse;
   ///
   static Future<String> getNewOauth({
     required TwitchAppInfo appInfo,
-    required Future<void> Function(String) requestUserToBrowse,
+    required Future<void> Function(String) onRequestBrowsing,
   }) async {
     // Create the authentication link
     String stateToken = Random().nextInt(0x7fffffff).toString();
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
-        '&client_id=${appInfo.twitchId}'
+        '&client_id=${appInfo.twitchAppId}'
         '&redirect_uri=${appInfo.redirectAddress}'
         '&scope=${appInfo.scope.map<String>((e) => e.text()).join('+')}'
         '&state=$stateToken';
 
     // Send link to user and wait for the user to accept
-    requestUserToBrowse(address);
+    onRequestBrowsing(address);
     final response = await _waitForTwitchResponse(appInfo.redirectAddress);
 
     // Parse the answer
@@ -218,5 +227,37 @@ class TwitchApi {
     }
 
     return twitchResponse!;
+  }
+
+  ///
+  /// This method can be call by any of the user of authentication to inform
+  /// that the token is now invalid.
+  /// Returns true if it is, otherwise it returns false.
+  ///
+  static Future<bool> _checkIfTokenIsValid(Response response) async {
+    final responseDecoded = await jsonDecode(response.body) as Map;
+    if (responseDecoded.keys.contains('status') &&
+        responseDecoded['status'] == 401) {
+      dev.log('Token invalid, please refresh your authentication');
+      return false;
+    }
+    return true;
+  }
+
+  ///
+  /// Validates the current token. This is mandatory as stated here:
+  /// https://dev.twitch.tv/docs/authentication/validate-tokens/
+  ///
+  static Future<bool> validateToken(
+      {required TwitchAppInfo appInfo, required String oauthKey}) async {
+    final response = await get(
+      Uri.parse(_twitchValidateUri),
+      headers: <String, String>{
+        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        'Client-Id': appInfo.twitchAppId,
+      },
+    );
+
+    return _checkIfTokenIsValid(response);
   }
 }

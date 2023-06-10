@@ -12,14 +12,14 @@ class TwitchChatBot extends StatelessWidget {
 
   ///
   /// This sends a message to the chat greating everyone in the chat except for
-  /// StreamElements which was blacklisted. This can be used as an example on 
+  /// StreamElements which was blacklisted. This can be used as an example on
   /// how to get information from the API and send a message to the chat.
-  /// 
+  ///
   void greatings(TwitchManager twitchManager) async {
     final chatters =
         await twitchManager.api.fetchChatters(blacklist: ['StreamElements']);
     final message = 'Bonjour à tous ${chatters!.map((e) => '@$e')}';
-    twitchManager.irc!.send(message);
+    twitchManager.irc.send(message);
   }
 
   @override

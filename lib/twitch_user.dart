@@ -1,14 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as devel;
 import 'dart:io';
 
-import 'package:http/http.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
 
 import 'twitch_manager.dart';
 
-class TwitchUser {
+class TwitchAuthenticator {
+  String? streamer;
+  String? streamerOauthKey;
+  bool hasChatbot;
+  String? chatbot;
+  String? chatbotOauthKey;
+
+  bool _isStreamerConnected = false;
+  bool get isStreamerConnected => _isStreamerConnected;
+  bool _isChatbotConnected = false;
+  bool get isChatbotConnected => _isChatbotConnected;
+
   ///
   /// [oauthKey] is the OAUTH key. If none is provided, the process to generate
   /// one is launched.
@@ -18,97 +28,107 @@ class TwitchUser {
   /// [scope] is the required scope of the current app. Comes into play if
   /// generate OAUTH is launched.
   ///
-  TwitchUser._({
-    required this.username,
-    required this.appInfo,
-  });
-
-  static Future<TwitchUser> factory({
-    required String username,
+  TwitchAuthenticator({
     required TwitchAppInfo appInfo,
-  }) async {
-    return TwitchUser._(
-      username: username,
-      appInfo: appInfo,
-    );
+    required this.hasChatbot,
+    this.streamer,
+    this.streamerOauthKey,
+    this.chatbot,
+    this.chatbotOauthKey,
+    required Future<void> Function(String address) onRequestBrowsing,
+  }) {
+    _connectAll(
+        appInfo: appInfo,
+        onRequestBrowsing: (_) async {
+          return;
+        });
   }
 
-  final String username;
-  String? oauthKey;
-  final TwitchAppInfo appInfo;
+  ///
+  /// Helpers for saving to a Json file
+  Map<String, dynamic> _serialize() => {
+        'hasChatbot': hasChatbot,
+        'streamerOauthKey': streamerOauthKey,
+        'chatbotOauthKey': chatbotOauthKey,
+      };
 
-  /// Provide a callback to react if at any point the token is found invalid.
-  /// This is mandatory when connect is called
-  Future<void> Function()? _onInvalidTokenCallback;
+  Future<void> loadPreviousSession({required TwitchAppInfo appInfo}) async {
+    final savePath = await getApplicationDocumentsDirectory();
+    final credentialFile = File('$savePath/.credentials.json');
+
+    if (!await credentialFile.exists()) return;
+
+    late final dynamic usersMap;
+    try {
+      usersMap = jsonDecode(await credentialFile.readAsString())
+          as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    hasChatbot = usersMap['hasChatbot'];
+    streamerOauthKey = usersMap['streamerOauthKey'];
+    chatbotOauthKey = usersMap['chatbotOauthKey'];
+    _connectAll(appInfo: appInfo, onRequestBrowsing: (_) async {});
+  }
 
   ///
   /// Prepare everything which is required when connecting with Twitch API
-  /// [requestUserToBrowse] provides a website that the user must navigate to in
+  /// [onRequestBrowsing] provides a website that the user must navigate to in
   /// order to authenticate; [onInvalidToken] is the callback if token is found
   /// to be invalid; [onSuccess] is the callback if everything went well; if
   /// [retry] is set to true, the connexion will retry if it fails.
-  Future<bool> connect({
-    required Future<void> Function(String address) requestUserToBrowse,
-    Future<void> Function()? onInvalidToken,
+  Future<bool> connectStreamer({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String address) onRequestBrowsing,
     bool retry = true,
   }) async {
-    _onInvalidTokenCallback = onInvalidToken;
+    if (_isStreamerConnected) return true;
 
-    oauthKey ??= await TwitchApi.getNewOauth(
-        appInfo: appInfo, requestUserToBrowse: requestUserToBrowse);
+    streamerOauthKey ??= await TwitchApi.getNewOauth(
+        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
 
-    final success = await _validateToken();
-    if (success) {
-      // If everything goes as planned, set a validation every hours and exit
-      Timer.periodic(const Duration(hours: 1), (timer) => _validateToken());
+    _isStreamerConnected = await TwitchApi.validateToken(
+        appInfo: appInfo, oauthKey: streamerOauthKey!);
+    if (!_isStreamerConnected) {
+      if (!retry) return false;
 
-      return true;
-    }
-
-    // If we can't validate, we should drop the oauth key and generate a new one
-    if (retry) {
-      oauthKey = null;
-      return connect(
-        requestUserToBrowse: requestUserToBrowse,
-        onInvalidToken: onInvalidToken,
+      // If we can't validate, we should drop the oauth key and generate a new one
+      streamerOauthKey = null;
+      return connectStreamer(
+        appInfo: appInfo,
+        onRequestBrowsing: onRequestBrowsing,
         retry: false,
       );
     }
 
-    // If we get here, we are abording connecting
-    return false;
+    // If everything goes as planned, set a validation every hours and exit
+    Timer.periodic(
+        const Duration(hours: 1),
+        (timer) => TwitchApi.validateToken(
+            appInfo: appInfo, oauthKey: streamerOauthKey!));
+
+    return _isStreamerConnected;
   }
 
-  ///
-  /// This method can be call by any of the user of authentication to inform
-  /// that the token is now invalid.
-  /// Returns true if it is, otherwise it returns false.
-  ///
-  Future<bool> checkIfTokenIsValid(Response response) async {
-    final responseDecoded = await jsonDecode(response.body) as Map;
-    if (responseDecoded.keys.contains('status') &&
-        responseDecoded['status'] == 401) {
-      if (_onInvalidTokenCallback != null) _onInvalidTokenCallback!();
-
-      devel.log('Token invalid, please refresh your authentication');
-      return false;
-    }
+  Future<bool> connectChatbot({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String address) onRequestBrowsing,
+    bool retry = true,
+  }) async {
+    _isChatbotConnected = true;
     return true;
   }
 
-  ///
-  /// Validates the current token. This is mandatory as stated here:
-  /// https://dev.twitch.tv/docs/authentication/validate-tokens/
-  ///
-  Future<bool> _validateToken() async {
-    final response = await get(
-      Uri.parse('https://id.twitch.tv/oauth2/validate'),
-      headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
-        'Client-Id': appInfo.twitchId,
-      },
-    );
-
-    return await checkIfTokenIsValid(response);
+  void _connectAll({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String address) onRequestBrowsing,
+  }) {
+    if (streamerOauthKey != null) {
+      connectStreamer(appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
+    }
+    if (hasChatbot && chatbotOauthKey != null) {
+      connectChatbot(appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
+    }
   }
 }
