@@ -1,13 +1,10 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
-
 import 'twitch_authenticator.dart';
 
 // Define some constant from Twitch itself
-const _ircServerAddress = 'irc.chat.twitch.tv';
-const _ircPort = 6667;
+const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
@@ -39,7 +36,7 @@ class TwitchIrc {
   final String streamerLogin;
   String get _oauthKey =>
       _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
-  Socket _socket;
+  WebSocket _socket;
 
   ///
   /// Main constructor
@@ -63,7 +60,7 @@ class TwitchIrc {
   ///
   void _send(String command) async {
     try {
-      _socket.write('$command\n');
+      _socket.add('$command\n');
     } on SocketException {
       _socket = await _getConnectedSocket();
       _send(command);
@@ -73,13 +70,13 @@ class TwitchIrc {
 
   ///
   /// Establish a connexion with the Twitch IRC channel
-  static Future<Socket> _getConnectedSocket() async {
+  static Future<WebSocket> _getConnectedSocket() async {
     bool socketIsConnected = false;
-    late Socket socket;
+    late WebSocket socket;
     int retryCounter = 0;
     while (!socketIsConnected) {
       try {
-        socket = await Socket.connect(_ircServerAddress, _ircPort);
+        socket = await WebSocket.connect(_ircWebSocketServerAddress);
         socketIsConnected = true;
       } on SocketException {
         // Retry after some time
@@ -111,8 +108,8 @@ class TwitchIrc {
 
   ///
   /// This method is called each time a new message is received
-  void _messageReceived(Uint8List data) {
-    var fullMessage = String.fromCharCodes(data);
+  void _messageReceived(event) {
+    var fullMessage = event; //String.fromCharCodes(event);
     // Remove the line returns
     if (fullMessage[fullMessage.length - 1] == '\n') {
       fullMessage = fullMessage.substring(0, fullMessage.length - 1);
