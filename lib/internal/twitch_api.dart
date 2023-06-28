@@ -5,9 +5,9 @@ import 'dart:math';
 
 import 'package:http/http.dart';
 
-import 'twitch_app_info.dart';
+import '../twitch_app_info.dart';
+import '../twitch_scope.dart';
 import 'twitch_authenticator.dart';
-import 'twitch_manager.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -101,7 +101,7 @@ class TwitchApi {
     if (response == null) return null; // There was an error
 
     // Extract the usernames and removed the blacklisted
-    return response.data[0]["login"];
+    return response.data[0]['login'];
   }
 
   ///
@@ -112,7 +112,7 @@ class TwitchApi {
     if (response == null) return null; // There was an error
 
     // Extract the usernames and removed the blacklisted
-    return response.data[0]["display_name"];
+    return response.data[0]['display_name'];
   }
 
   ////// CHAT RELATED API //////
@@ -204,7 +204,7 @@ class TwitchApi {
   /// ATTRIBUTES
   final TwitchAppInfo _appInfo;
   late final int streamerId; // It is set in the factory
-  final TwitchAuthenticator _authenticator;
+  final TwitchAuthenticator? _authenticator;
 
   ///
   /// Private constructor
@@ -227,7 +227,7 @@ class TwitchApi {
           '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
       headers: <String, String>{
         HttpHeaders.authorizationHeader:
-            'Bearer ${_authenticator.streamerOauthKey}',
+            'Bearer ${_authenticator!.streamerOauthKey}',
         'Client-Id': _appInfo.twitchAppId,
       },
     );
@@ -327,4 +327,55 @@ class TwitchApi {
     }
     return true;
   }
+}
+
+class TwitchApiMock extends TwitchApi {
+  ///
+  /// The constructor for the Twitch API
+  /// [appInfo] holds all the information required to run the API
+  /// [authenticator] holds the OAuth key to communicate with the API
+  static Future<TwitchApiMock> factory({required TwitchAppInfo appInfo}) async {
+    // Create a temporary TwitchApi with [streamerId] empty so we
+    // can fetch it
+    final api = TwitchApiMock._(appInfo);
+    api.streamerId = 1234567890;
+    return api;
+  }
+
+  ////// CONNEXION RELATED API //////
+
+  @override
+  Future<String?> login(int userId) async {
+    // Extract the usernames and removed the blacklisted
+    return 'login_$userId';
+  }
+
+  @override
+  Future<String?> displayName(int userId) async {
+    return 'display_name_$userId';
+  }
+
+  ////// CHAT RELATED API //////
+  @override
+  Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
+    // Extract the usernames and removed the blacklisted
+    return ['chatter1', 'chatter2', 'chatter3'];
+  }
+
+  ////// CHANNEL RELATED API //////
+  @override
+  Future<List<String>?> fetchModerators() async {
+    return ['chatter1'];
+  }
+
+  @override
+  Future<List<String>?> fetchFollowers() async {
+    return ['chatter1', 'chatter2'];
+  }
+
+  ////// INTERNAL //////
+
+  ///
+  /// Private constructor
+  TwitchApiMock._(TwitchAppInfo appInfo) : super._(appInfo, null);
 }

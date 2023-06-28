@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import 'twitch_api.dart';
-import 'twitch_app_info.dart';
+import '../twitch_app_info.dart';
 
 class TwitchAuthenticator {
   ///

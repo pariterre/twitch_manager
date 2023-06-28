@@ -26,17 +26,18 @@ class TwitchIrc {
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
-    _send('PART $streamerLogin');
+    await _send('PART $streamerLogin');
 
-    await _socket.close();
+    if (_socket == null) return;
+    await _socket!.close();
   }
 
   /// ATTRIBUTES
-  final TwitchAuthenticator _authenticator;
+  final TwitchAuthenticator? _authenticator;
   final String streamerLogin;
   String get _oauthKey =>
-      _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
-  WebSocket _socket;
+      _authenticator!.chatbotOauthKey ?? _authenticator!.streamerOauthKey!;
+  WebSocket? _socket;
 
   ///
   /// Main constructor
@@ -52,15 +53,15 @@ class TwitchIrc {
   /// Private constructor
   ///
   TwitchIrc._(this.streamerLogin, this._socket, this._authenticator) {
-    _connect(_authenticator);
+    _connect();
   }
 
   ///
   /// Send a message to Twitch IRC. If connection failed it tries another time.
   ///
-  void _send(String command) async {
+  Future<void> _send(String command) async {
     try {
-      _socket.add('$command\n');
+      _socket!.add('$command\n');
     } on SocketException {
       _socket = await _getConnectedSocket();
       _send(command);
@@ -90,17 +91,22 @@ class TwitchIrc {
   }
 
   ///
-  /// Connect to Twitch IRC channel.
-  void _connect(TwitchAuthenticator authenticator) async {
+  /// Connect to Twitch websocket.
+  void _connect() async {
     try {
-      _socket.listen(_messageReceived);
+      _socket!.listen(_messageReceived);
     } on SocketException {
       // Wait for some time and reconnect
       _socket = await _getConnectedSocket();
-      _connect(authenticator);
+      _connect();
       return;
     }
+    _connectToTwitchIrc();
+  }
 
+  ///
+  /// Connect to the actual IRC channel
+  void _connectToTwitchIrc() {
     _send('PASS oauth:$_oauthKey');
     _send('NICK $streamerLogin');
     _send('JOIN #$streamerLogin');
@@ -142,5 +148,31 @@ class TwitchIrc {
     final message = match.group(2)!;
     log('Message received:\n$sender: $message');
     if (messageCallback != null) messageCallback!(sender, message);
+  }
+}
+
+class TwitchIrcMock extends TwitchIrc {
+  @override
+  String get _oauthKey => 'chatbotOauthKey';
+
+  ///
+  /// Main constructor
+  ///
+  static Future<TwitchIrcMock> factory({required String streamerLogin}) async =>
+      TwitchIrcMock._(streamerLogin);
+
+  ///
+  /// Private constructor
+  ///
+  TwitchIrcMock._(String streamerLogin) : super._(streamerLogin, null, null);
+
+  @override
+  void _connect() async {
+    _connectToTwitchIrc();
+  }
+
+  @override
+  Future<void> _send(String command) async {
+    log(command);
   }
 }

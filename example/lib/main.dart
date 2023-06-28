@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 
 import 'twitch_chat_bot.dart';

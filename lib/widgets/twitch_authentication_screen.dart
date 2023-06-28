@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:twitch_manager/twitch_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import 'twitch_app_info.dart';
-import 'twitch_manager.dart';
 
 ///
 /// A helper to follow the current status of connexion
@@ -26,7 +24,11 @@ class TwitchAuthenticationScreen extends StatefulWidget {
     required this.appInfo,
     required this.onFinishedConnexion,
     this.loadPreviousSession = true,
+    this.useMock = false,
   });
+
+  final bool useMock;
+
   static const route = '/twitch-authentication';
   final Function(TwitchManager) onFinishedConnexion;
 
@@ -43,8 +45,13 @@ class _TwitchAuthenticationScreenState
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
   TwitchManager? _manager;
-  late Future<TwitchManager> factoryManager = TwitchManager.factory(
-      appInfo: widget.appInfo, loadPreviousSession: widget.loadPreviousSession);
+  late Future<TwitchManager> factoryManager = widget.useMock
+      ? TwitchManagerMock.factory(
+          appInfo: widget.appInfo,
+          loadPreviousSession: widget.loadPreviousSession)
+      : TwitchManager.factory(
+          appInfo: widget.appInfo,
+          loadPreviousSession: widget.loadPreviousSession);
 
   Future<void> _connectStreamer() async {
     if (_manager == null) return;
