@@ -172,7 +172,25 @@ class TwitchIrcMock extends TwitchIrc {
   }
 
   @override
+  void send(String message, {String? username}) {
+    // Normal behavior is that streamer sends a message, specifying a username
+    // overrides this and mock a sent message from that user name
+    final sender = username ?? streamerLogin;
+    _send('PRIVMSG #$sender :$message');
+  }
+
+  @override
   Future<void> _send(String command) async {
     log(command);
+    await Future.delayed(const Duration(seconds: 1));
+
+    final re = RegExp(r'^PRIVMSG #(.*) :(.*)$');
+    final match = re.firstMatch(command);
+    if (match == null || match.groupCount != 2) return;
+
+    final user = match.group(1);
+    final message = match.group(2);
+
+    _messageReceived(':$user!$user@PRIVMSG #$user:$message');
   }
 }

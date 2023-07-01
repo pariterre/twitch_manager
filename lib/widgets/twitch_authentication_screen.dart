@@ -24,10 +24,10 @@ class TwitchAuthenticationScreen extends StatefulWidget {
     required this.appInfo,
     required this.onFinishedConnexion,
     this.loadPreviousSession = true,
-    this.useMock = false,
+    this.mockOptions,
   });
 
-  final bool useMock;
+  final TwitchMockOptions? mockOptions;
 
   static const route = '/twitch-authentication';
   final Function(TwitchManager) onFinishedConnexion;
@@ -45,13 +45,15 @@ class _TwitchAuthenticationScreenState
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
   TwitchManager? _manager;
-  late Future<TwitchManager> factoryManager = widget.useMock
-      ? TwitchManagerMock.factory(
-          appInfo: widget.appInfo,
-          loadPreviousSession: widget.loadPreviousSession)
-      : TwitchManager.factory(
-          appInfo: widget.appInfo,
-          loadPreviousSession: widget.loadPreviousSession);
+  late Future<TwitchManager> factoryManager =
+      widget.mockOptions != null && widget.mockOptions!.isActive
+          ? TwitchManagerMock.factory(
+              appInfo: widget.appInfo,
+              loadPreviousSession: widget.loadPreviousSession,
+              mockOptions: widget.mockOptions!)
+          : TwitchManager.factory(
+              appInfo: widget.appInfo,
+              loadPreviousSession: widget.loadPreviousSession);
 
   Future<void> _connectStreamer() async {
     if (_manager == null) return;

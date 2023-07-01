@@ -1,7 +1,8 @@
-import 'twitch_api.dart';
 import '../twitch_app_info.dart';
+import 'twitch_api.dart';
 import 'twitch_authenticator.dart';
 import 'twitch_irc.dart';
+import 'twitch_mock_options.dart';
 
 ///
 /// Finalizer of the IRC, so it frees the Socket
@@ -123,23 +124,17 @@ class TwitchManager {
 }
 
 class TwitchManagerMock extends TwitchManager {
-  ///
-  /// If the streamer is connected
+  TwitchMockOptions mockOptions;
+
   @override
   bool get isStreamerConnected => true;
 
-  ///
-  /// If the streamer is connected
   @override
   bool get isChatbotConnected => true;
 
-  ///
-  /// If all the necessary users are connected and the API and IRC are initialized
   @override
   bool get isConnected => true;
 
-  ///
-  /// Get a reference to the twitch IRC
   @override
   TwitchIrcMock get irc {
     if (!_isConnected) {
@@ -148,8 +143,6 @@ class TwitchManagerMock extends TwitchManager {
     return _irc! as TwitchIrcMock;
   }
 
-  ///
-  /// Get a reference to the twitch API
   @override
   TwitchApi get api {
     if (!_isConnected) {
@@ -161,12 +154,14 @@ class TwitchManagerMock extends TwitchManager {
   /// Main constructor for the TwitchManager.
   /// [appInfo] is all the required information of the current app
   /// [loadPreviousSession] uses credidential from previous session if set to true.
-  /// It requires new credidentials otherwise
+  /// It requires new credidentials otherwise.
+  /// [mockOptions] is all the user defined options for the mocking
   static Future<TwitchManagerMock> factory({
     required TwitchAppInfo appInfo,
     bool loadPreviousSession = true,
+    required TwitchMockOptions mockOptions,
   }) async {
-    return TwitchManagerMock._(appInfo);
+    return TwitchManagerMock._(appInfo, mockOptions);
   }
 
   @override
@@ -188,7 +183,8 @@ class TwitchManagerMock extends TwitchManager {
 
   ///
   /// Main constructor of the Twitch Manager
-  TwitchManagerMock._(TwitchAppInfo appInfo) : super._(appInfo, null) {
+  TwitchManagerMock._(TwitchAppInfo appInfo, this.mockOptions)
+      : super._(appInfo, null) {
     _connectToTwitchBackend();
   }
 
