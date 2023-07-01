@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart';
+import 'package:twitch_manager/twitch_manager.dart';
 
 import '../twitch_app_info.dart';
 import '../twitch_scope.dart';
@@ -330,14 +331,19 @@ class TwitchApi {
 }
 
 class TwitchApiMock extends TwitchApi {
+  TwitchMockOptions mockOptions;
+
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchApiMock> factory({required TwitchAppInfo appInfo}) async {
+  static Future<TwitchApiMock> factory({
+    required TwitchAppInfo appInfo,
+    required TwitchMockOptions mockOptions,
+  }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApiMock._(appInfo);
+    final api = TwitchApiMock._(appInfo, mockOptions);
     api.streamerId = 1234567890;
     return api;
   }
@@ -359,23 +365,39 @@ class TwitchApiMock extends TwitchApi {
   @override
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
     // Extract the usernames and removed the blacklisted
-    return ['chatter1', 'chatter2', 'chatter3'];
+    final List<String> out = [];
+    for (final follower in mockOptions.followers) {
+      out.add(follower);
+    }
+    for (final moderator in mockOptions.moderators) {
+      if (!out.contains(moderator)) out.add(moderator);
+    }
+    return out;
   }
 
   ////// CHANNEL RELATED API //////
   @override
   Future<List<String>?> fetchModerators() async {
-    return ['chatter1'];
+    final List<String> out = [];
+    for (final moderator in mockOptions.moderators) {
+      out.add(moderator);
+    }
+    return out;
   }
 
   @override
   Future<List<String>?> fetchFollowers() async {
-    return ['chatter1', 'chatter2'];
+    final List<String> out = [];
+    for (final follower in mockOptions.followers) {
+      out.add(follower);
+    }
+    return out;
   }
 
   ////// INTERNAL //////
 
   ///
   /// Private constructor
-  TwitchApiMock._(TwitchAppInfo appInfo) : super._(appInfo, null);
+  TwitchApiMock._(TwitchAppInfo appInfo, this.mockOptions)
+      : super._(appInfo, null);
 }

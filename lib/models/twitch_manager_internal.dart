@@ -194,7 +194,8 @@ class TwitchManagerMock extends TwitchManager {
   @override
   Future<void> _connectToTwitchBackend() async {
     // Connect the API
-    _api ??= await TwitchApiMock.factory(appInfo: _appInfo);
+    _api ??= await TwitchApiMock.factory(
+        appInfo: _appInfo, mockOptions: mockOptions);
 
     final streamerLogin = await _api!.login(_api!.streamerId);
     if (streamerLogin == null) return;
