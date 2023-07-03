@@ -4,11 +4,11 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart';
-import 'package:twitch_manager/twitch_manager.dart';
 
 import '../twitch_app_info.dart';
 import '../twitch_scope.dart';
 import 'twitch_authenticator.dart';
+import 'twitch_mock_options.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';

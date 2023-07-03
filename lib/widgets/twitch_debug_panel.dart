@@ -14,33 +14,31 @@ class TwitchDebugPanel extends StatelessWidget {
     if (manager.runtimeType != TwitchManagerMock) return Container();
     final mockOptions = (manager as TwitchManagerMock).mockOptions;
 
-    return Center(
-      child: Container(
-        width: width,
-        height: height,
-        decoration: const BoxDecoration(color: Colors.purple),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (mockOptions.moderators.isNotEmpty)
-              _ChatterBox(
-                  manager: manager as TwitchManagerMock,
-                  senderType: _SenderType.moderator,
-                  usernames: mockOptions.moderators,
-                  messages: mockOptions.messagesModerators,
-                  maxWidth: width),
-            const SizedBox(height: 8),
-            if (mockOptions.followers.isNotEmpty)
-              _ChatterBox(
-                  manager: manager as TwitchManagerMock,
-                  senderType: _SenderType.follower,
-                  usernames: mockOptions.followers,
-                  messages: mockOptions.messagesFollowers,
-                  maxWidth: width),
-          ],
-        ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: const BoxDecoration(color: Colors.purple),
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (mockOptions.moderators.isNotEmpty)
+            _ChatterBox(
+                manager: manager as TwitchManagerMock,
+                senderType: _SenderType.moderator,
+                usernames: mockOptions.moderators,
+                messages: mockOptions.messagesModerators,
+                maxWidth: width),
+          const SizedBox(height: 8),
+          if (mockOptions.followers.isNotEmpty)
+            _ChatterBox(
+                manager: manager as TwitchManagerMock,
+                senderType: _SenderType.follower,
+                usernames: mockOptions.followers,
+                messages: mockOptions.messagesFollowers,
+                maxWidth: width),
+        ],
       ),
     );
   }
@@ -79,7 +77,6 @@ class _ChatterBoxState extends State<_ChatterBox> {
     if (controller.text == '') return;
     widget.manager.irc
         .send(controller.text, username: widget.usernames[_currentSender]);
-    controller.text = '';
   }
 
   @override
