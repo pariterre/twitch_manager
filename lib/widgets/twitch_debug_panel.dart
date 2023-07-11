@@ -1,44 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:twitch_manager/models/twitch_manager_internal.dart';
 
-class TwitchDebugPanel extends StatelessWidget {
+///
+/// This is a debug panel, it must be placed in a Stack on the top Screen.
+/// It creates a draggable panel.
+class TwitchDebugPanel extends StatefulWidget {
   const TwitchDebugPanel(
-      {super.key, required this.manager, this.height = 400, this.width = 300});
+      {super.key,
+      required this.manager,
+      this.maxHeight = 400,
+      this.width = 300});
 
-  final double height;
+  final double maxHeight;
   final double width;
   final TwitchManager manager;
 
   @override
-  Widget build(BuildContext context) {
-    if (manager.runtimeType != TwitchManagerMock) return Container();
-    final mockOptions = (manager as TwitchManagerMock).mockOptions;
+  State<TwitchDebugPanel> createState() => _TwitchDebugPanelState();
+}
 
-    return Container(
-      width: width,
-      height: height,
-      decoration: const BoxDecoration(color: Colors.purple),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (mockOptions.moderators.isNotEmpty)
-            _ChatterBox(
-                manager: manager as TwitchManagerMock,
-                senderType: _SenderType.moderator,
-                usernames: mockOptions.moderators,
-                messages: mockOptions.messagesModerators,
-                maxWidth: width),
-          const SizedBox(height: 8),
-          if (mockOptions.followers.isNotEmpty)
-            _ChatterBox(
-                manager: manager as TwitchManagerMock,
-                senderType: _SenderType.follower,
-                usernames: mockOptions.followers,
-                messages: mockOptions.messagesFollowers,
-                maxWidth: width),
-        ],
+var _twitchDragOffset = const Offset(0, 0);
+var _currentTwitchPosition = const Offset(0, 0);
+
+class _TwitchDebugPanelState extends State<TwitchDebugPanel> {
+  @override
+  Widget build(BuildContext context) {
+    if (widget.manager.runtimeType != TwitchManagerMock) return Container();
+    final mockOptions = (widget.manager as TwitchManagerMock).mockOptions;
+
+    return Positioned(
+      left: _currentTwitchPosition.dx,
+      top: _currentTwitchPosition.dy,
+      child: GestureDetector(
+        onPanStart: (details) =>
+            _twitchDragOffset = details.globalPosition - _currentTwitchPosition,
+        onPanUpdate: (details) => setState(() => _currentTwitchPosition =
+            details.globalPosition - _twitchDragOffset),
+        child: Container(
+          width: widget.width,
+          constraints: BoxConstraints(maxHeight: widget.maxHeight),
+          decoration: const BoxDecoration(color: Colors.purple),
+          padding: const EdgeInsets.all(8),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (mockOptions.moderators.isNotEmpty)
+                  _ChatterBox(
+                      manager: widget.manager as TwitchManagerMock,
+                      senderType: _SenderType.moderator,
+                      usernames: mockOptions.moderators,
+                      messages: mockOptions.messagesModerators,
+                      maxWidth: widget.width),
+                const SizedBox(height: 8),
+                if (mockOptions.followers.isNotEmpty)
+                  _ChatterBox(
+                      manager: widget.manager as TwitchManagerMock,
+                      senderType: _SenderType.follower,
+                      usernames: mockOptions.followers,
+                      messages: mockOptions.messagesFollowers,
+                      maxWidth: widget.width),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
