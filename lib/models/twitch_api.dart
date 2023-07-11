@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart';
+import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 import '../twitch_app_info.dart';
 import '../twitch_scope.dart';
@@ -12,6 +13,7 @@ import 'twitch_mock_options.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
+const _useLocalServer = true;
 
 ///
 /// Class that holds a response from Twitch API, this is to easy the communication
@@ -80,7 +82,9 @@ class TwitchApi {
 
     // Send link to user and wait for the user to accept
     onRequestBrowsing(address);
-    final response = await _authenticate(appInfo.redirectAddress);
+    final response = await (_useLocalServer
+        ? _authenticate(appInfo.redirectAddress)
+        : _authenticateFromDistantServer(appInfo.redirectAddress, stateToken));
 
     // Parse the answer
     final re = RegExp(r'^' +
@@ -306,11 +310,64 @@ class TwitchApi {
 
     final server = await ServerSocket.bind('localhost', 3000);
     server.listen(twitchResponseCallback);
+
     while (twitchResponse == null) {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
     server.close();
+
+    return twitchResponse!;
+  }
+
+  ///
+  /// Call the Twitch API to Authenticate the user.
+  /// The [redirectAddress] should match the configured one in the extension
+  /// dev panel of dev.twitch.tv.
+  /// This method has the same purpose of _authenticate but is targetted to use
+  /// the distant server. Doing so, we don't need Socket anymore, but only
+  /// websockets, allowing for web interface to be used
+  static Future<String> _authenticateFromDistantServer(
+      String redirectAddress, String stateToken) async {
+    String? twitchResponse;
+
+    ///
+    /// This function mirrors the _communicateWithClient of "twitch_authentication_service".
+    String? communicateWithServer(ws.WebSocket socket, message) {
+      final map = jsonDecode(message);
+
+      final status = map?['status'];
+      if (status == null) {
+        throw 'Wrong status, please contact the project owner for an update';
+      }
+
+      if (status == 'waitingForStateToken') {
+        final protocol = map?['protocolVersion'];
+        if (protocol == null) {
+          throw 'Wrong protocol, please contact the project owner for an update';
+        } else if (protocol != '1.0.0') {
+          throw 'Unrecognized protocol, please contact the project owner for an update';
+        }
+
+        socket.send(json.encode({'stateToken': stateToken}));
+        return null;
+      }
+
+      if (status == 'readyToSendResponse') {
+        return map?['twitchResponse'];
+      }
+
+      return null;
+    }
+
+    // Communication procedure
+    final channel = ws.WebSocket(Uri.parse('ws://localhost:3002'));
+    channel.messages.listen(
+        (message) => twitchResponse = communicateWithServer(channel, message));
+    while (twitchResponse == null) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
     return twitchResponse!;
   }
 
