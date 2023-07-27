@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'twitch_api.dart';
@@ -19,6 +20,8 @@ class TwitchAuthenticator {
   ///
   /// Helper to load a saved file
   Future<void> loadPreviousSession({required TwitchAppInfo appInfo}) async {
+    if (kIsWeb) return;
+
     final savePath = await getApplicationDocumentsDirectory();
     final credentialFile =
         File('${savePath.path}/${appInfo.appName}/.credentials.json');
@@ -111,6 +114,8 @@ class TwitchAuthenticator {
       };
 
   Future<void> _saveSessions({required TwitchAppInfo appInfo}) async {
+    if (kIsWeb) return;
+
     final savePath = await getApplicationDocumentsDirectory();
     final credentialFile =
         File('${savePath.path}/${appInfo.appName}/.credentials.json');

@@ -368,6 +368,8 @@ class TwitchApi {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
+    channel.send(json.encode({'status': 'thanks'}));
+    channel.close();
     return twitchResponse!;
   }
 

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../twitch_app_info.dart';
 import 'twitch_api.dart';
 import 'twitch_authenticator.dart';
@@ -115,7 +117,7 @@ class TwitchManager {
       if (!_authenticator!.isChatbotConnected) return; // Failed
       _irc = await TwitchIrc.factory(
           streamerLogin: streamerLogin, authenticator: _authenticator!);
-      _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
+      if (!kIsWeb) _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
     }
 
     // Mark the Manager as being ready
