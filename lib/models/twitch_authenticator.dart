@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'twitch_api.dart';
 import '../twitch_app_info.dart';
+import 'twitch_api.dart';
 
 class TwitchAuthenticator {
   ///
@@ -20,24 +17,9 @@ class TwitchAuthenticator {
   ///
   /// Helper to load a saved file
   Future<void> loadPreviousSession({required TwitchAppInfo appInfo}) async {
-    if (kIsWeb) return;
-
-    final savePath = await getApplicationDocumentsDirectory();
-    final credentialFile =
-        File('${savePath.path}/${appInfo.appName}/.credentials.json');
-
-    if (!await credentialFile.exists()) return;
-
-    late final dynamic usersMap;
-    try {
-      usersMap = jsonDecode(await credentialFile.readAsString())
-          as Map<String, dynamic>;
-    } catch (_) {
-      return;
-    }
-
-    streamerOauthKey = usersMap['streamerOauthKey'];
-    chatbotOauthKey = usersMap['chatbotOauthKey'];
+    const storage = FlutterSecureStorage();
+    streamerOauthKey = await storage.read(key: 'streamerOauthKey');
+    chatbotOauthKey = await storage.read(key: 'chatbotOauthKey');
   }
 
   ///
@@ -106,23 +88,10 @@ class TwitchAuthenticator {
   /// Constructor of the Authenticator
   TwitchAuthenticator();
 
-  ///
-  /// Helpers for saving to a Json file
-  Map<String, dynamic> _serialize() => {
-        'streamerOauthKey': streamerOauthKey,
-        'chatbotOauthKey': chatbotOauthKey,
-      };
-
   Future<void> _saveSessions({required TwitchAppInfo appInfo}) async {
-    if (kIsWeb) return;
-
-    final savePath = await getApplicationDocumentsDirectory();
-    final credentialFile =
-        File('${savePath.path}/${appInfo.appName}/.credentials.json');
-
-    // Create the folder structure and save
-    await credentialFile.create(recursive: true);
-    credentialFile.writeAsString(jsonEncode(_serialize()));
+    const storage = FlutterSecureStorage();
+    storage.write(key: 'streamerOauthKey', value: streamerOauthKey);
+    storage.write(key: 'chatbotOauthKey', value: chatbotOauthKey);
   }
 
   ///

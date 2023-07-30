@@ -8,6 +8,9 @@ void main() async {
     initialRoute: TwitchAuthenticationScreen.route,
     routes: {
       TwitchAuthenticationScreen.route: (ctx) => TwitchAuthenticationScreen(
+            mockOptions: const TwitchMockOptions(
+              isActive: true,
+            ),
             onFinishedConnexion: (manager) => Navigator.of(ctx)
                 .pushReplacementNamed(TwitchChatBot.route, arguments: manager),
             appInfo: TwitchAppInfo(
@@ -21,7 +24,7 @@ void main() async {
                   TwitchScope.readSubscribers,
                 ],
                 redirectAddress: 'http://localhost:3000'),
-            loadPreviousSession: false,
+            loadPreviousSession: true,
           ),
       TwitchChatBot.route: (ctx) => const TwitchChatBot(),
     },
