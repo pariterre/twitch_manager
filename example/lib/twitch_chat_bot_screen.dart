@@ -3,10 +3,10 @@ import 'package:twitch_manager/twitch_manager.dart';
 
 import 'twitch_sender.dart';
 
-class TwitchChatBot extends StatelessWidget {
+class TwitchChatBotScreen extends StatelessWidget {
   static const route = '/twitch-chat-bot';
 
-  const TwitchChatBot({super.key});
+  const TwitchChatBotScreen({super.key});
 
   final nbReoccurringRow = 10;
 
@@ -39,20 +39,30 @@ class TwitchChatBot extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Chatting interface')),
       body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Chat API',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  )),
-              TextSender(twitchManager, labelText: 'Send a message'),
-              const Divider(),
-              ...reoccurringSender
-            ],
-          ),
+        child: Stack(
+          children: [
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Chat API',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      )),
+                  TextSender(twitchManager, labelText: 'Send a message'),
+                  const Divider(),
+                  ...reoccurringSender
+                ],
+              ),
+            ),
+            Align(
+              alignment: Alignment.topLeft,
+              child: TwitchDebugPanel(
+                manager: twitchManager,
+              ),
+            )
+          ],
         ),
       ),
     );

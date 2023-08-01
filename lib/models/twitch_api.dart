@@ -82,9 +82,9 @@ class TwitchApi {
     // Send link to user and wait for the user to accept
     onRequestBrowsing(address);
     final response = await (appInfo.useAuthenticationService
-        ? _authenticate(appInfo.redirectAddress)
-        : _authenticateFromAuthenticationService(
-            appInfo.redirectAddress, stateToken));
+        ? _authenticateFromAuthenticationService(
+            appInfo.redirectAddress, stateToken)
+        : _authenticateLocal(appInfo.redirectAddress));
 
     // Parse the answer
     final re = RegExp(r'^' +
@@ -269,7 +269,7 @@ class TwitchApi {
   /// Call the Twitch API to Authenticate the user.
   /// The [redirectAddress] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
-  static Future<String> _authenticate(String redirectAddress) async {
+  static Future<String> _authenticateLocal(String redirectAddress) async {
     // In the success page, we have to fetch the address and POST it to ourselves
     // since it is not possible otherwise to get it
     final successWebsite = '<!DOCTYPE html>'

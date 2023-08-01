@@ -49,6 +49,6 @@ class TwitchAppInfo {
     required this.twitchAppId,
     required this.redirectAddress,
     required this.scope,
-    this.useAuthenticationService = true,
+    this.useAuthenticationService = false,
   }) : hasChatbot = scope.contains(TwitchScope.chatEdit);
 }
