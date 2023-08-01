@@ -81,9 +81,10 @@ class TwitchApi {
 
     // Send link to user and wait for the user to accept
     onRequestBrowsing(address);
-    final response = await (appInfo.useLocalAuthenticationServer
+    final response = await (appInfo.useAuthenticationService
         ? _authenticate(appInfo.redirectAddress)
-        : _authenticateFromDistantServer(appInfo.redirectAddress, stateToken));
+        : _authenticateFromAuthenticationService(
+            appInfo.redirectAddress, stateToken));
 
     // Parse the answer
     final re = RegExp(r'^' +
@@ -324,9 +325,9 @@ class TwitchApi {
   /// The [redirectAddress] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
   /// This method has the same purpose of _authenticate but is targetted to use
-  /// the distant server. Doing so, we don't need Socket anymore, but only
+  /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
-  static Future<String> _authenticateFromDistantServer(
+  static Future<String> _authenticateFromAuthenticationService(
       String redirectAddress, String stateToken) async {
     String? twitchResponse;
 

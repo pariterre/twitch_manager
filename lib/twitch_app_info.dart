@@ -16,11 +16,12 @@ class TwitchAppInfo {
   final String redirectAddress;
 
   ///
-  /// If the authentication should be done via a distant server [false] or a
+  /// If the authentication should be done via a service [false] or a
   /// local server [true]. Local server is incompatible with web apps, on the
-  /// other hand, it does not require any server service to authenticate.
-  /// The code for the distant server sits at ROOT/distant_authenticator_service
-  final bool useLocalAuthenticationServer;
+  /// other hand, it does not require any service to authenticate.
+  /// The code for the service sits at
+  /// `$TWITCH_MANAGER_ROOT/ressources/authentication_service`
+  final bool useAuthenticationService;
 
   ///
   /// The scope of the rights required for the app to work
@@ -48,6 +49,6 @@ class TwitchAppInfo {
     required this.twitchAppId,
     required this.redirectAddress,
     required this.scope,
-    this.useLocalAuthenticationServer = true,
+    this.useAuthenticationService = true,
   }) : hasChatbot = scope.contains(TwitchScope.chatEdit);
 }
