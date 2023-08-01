@@ -51,7 +51,7 @@ void _terminateConnexion(int id, {required bool isSuccess}) {
 
   clients[id]!.terminateConnexion();
   clients.remove(id);
-  print('Client $id was drop (${isSuccess ? 'sucess' : 'downtime'})');
+  print('Client $id was drop (${isSuccess ? 'success' : 'downtime'})');
 }
 
 void clientHandShake(WebSocket socket) {
