@@ -204,7 +204,9 @@ class TwitchManagerMock extends TwitchManager {
 
     // Connect the IRC
     _irc = await TwitchIrcMock.factory(streamerLogin: streamerLogin);
-    _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
+    if (!kIsWeb) {
+      _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
+    }
 
     // Mark the Manager as being ready
     _isConnected = true;

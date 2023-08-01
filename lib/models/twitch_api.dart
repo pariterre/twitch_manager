@@ -13,7 +13,6 @@ import 'twitch_mock_options.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
-const _useLocalServer = true;
 
 ///
 /// Class that holds a response from Twitch API, this is to easy the communication
@@ -82,7 +81,7 @@ class TwitchApi {
 
     // Send link to user and wait for the user to accept
     onRequestBrowsing(address);
-    final response = await (_useLocalServer
+    final response = await (appInfo.useLocalAuthenticationServer
         ? _authenticate(appInfo.redirectAddress)
         : _authenticateFromDistantServer(appInfo.redirectAddress, stateToken));
 

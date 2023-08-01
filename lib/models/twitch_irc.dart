@@ -1,6 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:web_socket_client/web_socket_client.dart' as ws;
+
 import 'twitch_authenticator.dart';
 
 // Define some constant from Twitch itself
@@ -29,7 +31,7 @@ class TwitchIrc {
     await _send('PART $streamerLogin');
 
     if (_socket == null) return;
-    await _socket!.close();
+    _socket!.close();
   }
 
   /// ATTRIBUTES
@@ -37,7 +39,7 @@ class TwitchIrc {
   final String streamerLogin;
   String get _oauthKey =>
       _authenticator!.chatbotOauthKey ?? _authenticator!.streamerOauthKey!;
-  WebSocket? _socket;
+  ws.WebSocket? _socket;
 
   ///
   /// Main constructor
@@ -61,7 +63,7 @@ class TwitchIrc {
   ///
   Future<void> _send(String command) async {
     try {
-      _socket!.add('$command\n');
+      _socket!.send('$command\n');
     } on SocketException {
       _socket = await _getConnectedSocket();
       _send(command);
@@ -71,13 +73,14 @@ class TwitchIrc {
 
   ///
   /// Establish a connexion with the Twitch IRC channel
-  static Future<WebSocket> _getConnectedSocket() async {
+  static Future<ws.WebSocket> _getConnectedSocket() async {
     bool socketIsConnected = false;
-    late WebSocket socket;
+    late ws.WebSocket socket;
     int retryCounter = 0;
     while (!socketIsConnected) {
       try {
-        socket = await WebSocket.connect(_ircWebSocketServerAddress);
+        socket = ws.WebSocket(Uri.parse(_ircWebSocketServerAddress));
+        await socket.connection.firstWhere((state) => state is ws.Connected);
         socketIsConnected = true;
       } on SocketException {
         // Retry after some time
@@ -94,7 +97,7 @@ class TwitchIrc {
   /// Connect to Twitch websocket.
   void _connect() async {
     try {
-      _socket!.listen(_messageReceived);
+      _socket!.messages.listen(_messageReceived);
     } on SocketException {
       // Wait for some time and reconnect
       _socket = await _getConnectedSocket();
