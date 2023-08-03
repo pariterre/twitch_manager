@@ -71,20 +71,19 @@ class TwitchApi {
     // Create the authentication link
     String stateToken = Random().nextInt(0x7fffffff).toString();
 
-    final scope = chatOnly ? appInfo.chatScope : appInfo.scope;
+    final scope = appInfo.scope;
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
         '&redirect_uri=${appInfo.redirectAddress}'
         '&scope=${scope.map<String>((e) => e.text()).join('+')}'
         '&state=$stateToken';
+    onRequestBrowsing(address);
 
     // Send link to user and wait for the user to accept
-    onRequestBrowsing(address);
     final response = await (appInfo.useAuthenticationService
-        ? _authenticateFromAuthenticationService(
-            appInfo.redirectAddress, stateToken)
-        : _authenticateLocal(appInfo.redirectAddress));
+        ? _authenticateFromAuthenticationService(stateToken)
+        : _authenticateLocal(stateToken));
 
     // Parse the answer
     final re = RegExp(r'^' +
@@ -269,15 +268,16 @@ class TwitchApi {
   /// Call the Twitch API to Authenticate the user.
   /// The [redirectAddress] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
-  static Future<String> _authenticateLocal(String redirectAddress) async {
+  static Future<String> _authenticateLocal(String address) async {
     // In the success page, we have to fetch the address and POST it to ourselves
     // since it is not possible otherwise to get it
+
     final successWebsite = '<!DOCTYPE html>'
         '<html><body>'
         'You can close this page'
         '<script>'
         'var xhr = new XMLHttpRequest();'
-        'xhr.open("POST", \'$redirectAddress\', true);'
+        'xhr.open("POST", \'$address\', true);'
         'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
         'xhr.send(JSON.stringify({\'token\': window.location.href}));'
         '</script>'
@@ -328,7 +328,7 @@ class TwitchApi {
   /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
   static Future<String> _authenticateFromAuthenticationService(
-      String redirectAddress, String stateToken) async {
+      String stateToken) async {
     String? twitchResponse;
 
     ///

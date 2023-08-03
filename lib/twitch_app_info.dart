@@ -28,16 +28,6 @@ class TwitchAppInfo {
   final List<TwitchScope> scope;
 
   ///
-  /// This is the same as scope, but only for chat related scope.
-  List<TwitchScope> get chatScope {
-    List<TwitchScope> out = [];
-    for (final s in scope) {
-      if (s == TwitchScope.chatEdit || s == TwitchScope.chatRead) out.add(s);
-    }
-    return out;
-  }
-
-  ///
   /// If the app needs a chat bot. This is automatically set to true as soon as
   /// TwitchScope.chatEdit is required
   final bool hasChatbot;
