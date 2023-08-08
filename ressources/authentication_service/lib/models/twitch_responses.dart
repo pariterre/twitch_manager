@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:mutex/mutex.dart';
 
-int _maxDownTime = 15; // seconds
+int _maxDownTime = 600; // seconds
 
 class TwitchResponses {
   final _mutex = Mutex();

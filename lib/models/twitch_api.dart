@@ -66,7 +66,6 @@ class TwitchApi {
   static Future<String> getNewOauth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
-    bool chatOnly = false,
   }) async {
     // Create the authentication link
     String stateToken = Random().nextInt(0x7fffffff).toString();

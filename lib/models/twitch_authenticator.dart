@@ -43,7 +43,6 @@ class TwitchAuthenticator {
       onRequestBrowsing: onRequestBrowsing,
       getOauthKey: () => streamerOauthKey,
       setOauthKey: (value) => streamerOauthKey = value,
-      chatOnly: false,
     );
 
     _saveSessions(appInfo: appInfo);
@@ -70,7 +69,6 @@ class TwitchAuthenticator {
       onRequestBrowsing: onRequestBrowsing,
       getOauthKey: () => chatbotOauthKey,
       setOauthKey: (value) => chatbotOauthKey = value,
-      chatOnly: true,
     );
 
     _saveSessions(appInfo: appInfo);
@@ -102,7 +100,6 @@ class TwitchAuthenticator {
   /// OAuth key. If there is none, it simply returns.
   /// [getOauthKey] Callback to the current OAuth key of the user.
   /// [setOauthKey] Callback to set the OAuth key of the user.
-  /// [chatOnly] if the user is the chatbot.
   /// If [tryNewOauthKey] is false, then only the validation is performed, otherwise
   /// a new Oauth key is generated
   Future<bool> _connectUser({
@@ -110,7 +107,6 @@ class TwitchAuthenticator {
     required Future<void> Function(String address)? onRequestBrowsing,
     required String? Function() getOauthKey,
     required void Function(String oauthKey) setOauthKey,
-    required bool chatOnly,
     bool tryNewOauthKey = true,
   }) async {
     bool isConnected = false;
@@ -126,9 +122,9 @@ class TwitchAuthenticator {
 
       // Get a new OAuth key
       setOauthKey(await TwitchApi.getNewOauth(
-          appInfo: appInfo,
-          onRequestBrowsing: onRequestBrowsing,
-          chatOnly: chatOnly));
+        appInfo: appInfo,
+        onRequestBrowsing: onRequestBrowsing,
+      ));
 
       // Try to reconnect, but only once [retry = false]
       return _connectUser(
@@ -136,7 +132,6 @@ class TwitchAuthenticator {
         onRequestBrowsing: onRequestBrowsing,
         getOauthKey: getOauthKey,
         setOauthKey: setOauthKey,
-        chatOnly: chatOnly,
         tryNewOauthKey: false,
       );
     }
@@ -152,7 +147,6 @@ class TwitchAuthenticator {
           onRequestBrowsing: onRequestBrowsing,
           getOauthKey: getOauthKey,
           setOauthKey: setOauthKey,
-          chatOnly: chatOnly,
         );
       }
     });
