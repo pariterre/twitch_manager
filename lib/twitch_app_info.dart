@@ -24,6 +24,10 @@ class TwitchAppInfo {
   final bool useAuthenticationService;
 
   ///
+  /// If [useAuthenticationService], then this address must be provided.
+  final String? authenticationServiceAddress;
+
+  ///
   /// The scope of the rights required for the app to work
   final List<TwitchScope> scope;
 
@@ -34,11 +38,18 @@ class TwitchAppInfo {
 
   ///
   /// Main constructor
-  TwitchAppInfo({
-    required this.appName,
-    required this.twitchAppId,
-    required this.redirectAddress,
-    required this.scope,
-    this.useAuthenticationService = false,
-  }) : hasChatbot = scope.contains(TwitchScope.chatEdit);
+  TwitchAppInfo(
+      {required this.appName,
+      required this.twitchAppId,
+      required this.redirectAddress,
+      required this.scope,
+      this.useAuthenticationService = false,
+      this.authenticationServiceAddress})
+      : hasChatbot = scope.contains(TwitchScope.chatEdit) {
+    if (useAuthenticationService) {
+      if (authenticationServiceAddress == null) {
+        throw 'If [useAuthenticationService] is set to true, then [authenticationServiceAddress] must be set.';
+      }
+    }
+  }
 }

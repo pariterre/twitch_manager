@@ -82,7 +82,8 @@ class TwitchApi {
 
     // Send link to user and wait for the user to accept
     final response = await (appInfo.useAuthenticationService
-        ? _authenticateFromAuthenticationService(stateToken)
+        ? _authenticateFromAuthenticationService(
+            appInfo: appInfo, stateToken: stateToken)
         : _authenticateLocal(stateToken));
 
     // Parse the answer
@@ -328,7 +329,7 @@ class TwitchApi {
   /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
   static Future<String> _authenticateFromAuthenticationService(
-      String stateToken) async {
+      {required String stateToken, required TwitchAppInfo appInfo}) async {
     String? twitchResponse;
 
     ///
@@ -361,7 +362,8 @@ class TwitchApi {
     }
 
     // Communication procedure
-    final channel = ws.WebSocket(Uri.parse('ws://localhost:3002'));
+    final channel =
+        ws.WebSocket(Uri.parse(appInfo.authenticationServiceAddress!));
     channel.messages.listen(
         (message) => twitchResponse = communicateWithServer(channel, message));
     while (twitchResponse == null) {

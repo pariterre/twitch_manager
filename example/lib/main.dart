@@ -26,6 +26,8 @@ void main() async {
               ],
               redirectAddress: 'http://localhost:3000',
               useAuthenticationService: false,
+              // The following line must be uncommented if [useAuthenticationService] is true
+              // authenticationServiceAddress: 'ws://localhost:3002',
             ),
             loadPreviousSession: false,
           ),

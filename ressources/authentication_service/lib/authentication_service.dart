@@ -4,11 +4,11 @@ import 'dart:io';
 
 import 'package:authentication_service/models/twitch_client.dart';
 import 'package:authentication_service/models/twitch_responses.dart';
+import 'package:authentication_service/twitch_config.dart';
 
 final _twitchResponses = TwitchResponses();
 final Map<int, TwitchClient> clients = {};
 
-final redirectAddress = 'http://localhost:3000';
 final successWebsite = '<!DOCTYPE html>'
     '<html><body>'
     'You can close this page'
@@ -44,7 +44,7 @@ void twitchResponseCallback(Socket client) {
   });
 }
 
-int _maximumDowntime = 15; // seconds
+int _maximumDowntime = 600; // seconds
 
 void _terminateConnexion(int id, {required bool isSuccess}) {
   if (!clients.containsKey(id)) return;

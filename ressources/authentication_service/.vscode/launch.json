@@ -8,7 +8,7 @@
             "name": "Authentication service",
             "request": "launch",
             "type": "dart",
-            "program": "bin/twitch_authenticator_service.dart",
+            "program": "bin/authentication_service.dart",
         }
     ]
 }
