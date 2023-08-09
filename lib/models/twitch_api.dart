@@ -50,6 +50,8 @@ class TwitchApi {
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        HttpHeaders.accessControlAllowOriginHeader: '*',
+        HttpHeaders.accessControlAllowHeadersHeader: '*',
         'Client-Id': appInfo.twitchAppId,
       },
     );
@@ -258,6 +260,8 @@ class TwitchApi {
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        HttpHeaders.accessControlAllowOriginHeader: '*',
+        HttpHeaders.accessControlAllowHeadersHeader: '*',
       },
     );
 
