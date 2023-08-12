@@ -37,7 +37,8 @@ class TwitchResponses {
     _mutex.protect(() async {
       final re = RegExp(r'^.*&.*state=([0-9]*).*$');
       final match = re.firstMatch(response);
-      final stateToken = int.parse(match!.group(1)!);
+      final stateToken = int.tryParse(match!.group(1)!);
+      if (stateToken == null) return;
 
       _responses[stateToken] = response;
       print('Added state token $stateToken to the list');
