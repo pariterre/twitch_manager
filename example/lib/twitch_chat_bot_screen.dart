@@ -56,12 +56,7 @@ class TwitchChatBotScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: TwitchDebugPanel(
-                manager: twitchManager,
-              ),
-            )
+            TwitchDebugPanel(manager: twitchManager)
           ],
         ),
       ),

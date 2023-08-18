@@ -5,24 +5,26 @@ import 'package:twitch_manager/models/twitch_manager_internal.dart';
 /// This is a debug panel, it must be placed in a Stack on the top Screen.
 /// It creates a draggable panel.
 class TwitchDebugPanel extends StatefulWidget {
-  const TwitchDebugPanel(
-      {super.key,
-      required this.manager,
-      this.maxHeight = 400,
-      this.width = 300});
+  const TwitchDebugPanel({
+    super.key,
+    required this.manager,
+    this.maxHeight = 400,
+    this.width = 300,
+    this.startingPosition = const Offset(0, 0),
+  });
 
   final double maxHeight;
   final double width;
   final TwitchManager manager;
+  final Offset startingPosition;
 
   @override
   State<TwitchDebugPanel> createState() => _TwitchDebugPanelState();
 }
 
-var _twitchDragOffset = const Offset(0, 0);
-var _currentTwitchPosition = const Offset(0, 0);
-
 class _TwitchDebugPanelState extends State<TwitchDebugPanel> {
+  var _twitchDragOffset = const Offset(0, 0);
+  late var _currentTwitchPosition = widget.startingPosition;
   @override
   Widget build(BuildContext context) {
     if (widget.manager.runtimeType != TwitchManagerMock) return Container();
