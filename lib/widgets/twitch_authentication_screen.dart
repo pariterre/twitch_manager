@@ -109,10 +109,11 @@ class _TwitchAuthenticationScreenState
         Center(
             child: Text(
           message,
-          style: const TextStyle(color: Colors.white),
+          textAlign: TextAlign.justify,
+          style: const TextStyle(color: Colors.white, fontSize: 20),
         )),
         const Padding(
-          padding: EdgeInsets.all(8),
+          padding: EdgeInsets.all(16),
           child: CircularProgressIndicator(color: Colors.amber),
         ),
       ],
@@ -121,36 +122,41 @@ class _TwitchAuthenticationScreenState
 
   Widget _buildBrowseTo() {
     return Center(
-      child: Padding(
-        padding:
-            const EdgeInsets.only(left: 18.0, right: 18.0, top: 12, bottom: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'You will be redirected to the Twitch logging page. '
-              'If it does not happen automatically, please navigate to:',
-              style: TextStyle(color: Colors.white),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'You will be redirected to the Twitch logging page. '
+            'If it does not happen automatically, please navigate to:',
+            textAlign: TextAlign.justify,
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          const SizedBox(height: 24),
+          SelectableText(
+            _redirectAddress!,
+            textAlign: TextAlign.justify,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline),
+          ),
+          const SizedBox(height: 36),
+          ElevatedButton(
+            onPressed: () async => await launchUrl(
+              Uri.parse(_redirectAddress!),
+              mode: LaunchMode.inAppWebView,
             ),
-            const SizedBox(height: 12),
-            SelectableText(
-              _redirectAddress!,
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 18),
-            ElevatedButton(
-              onPressed: () async => await launchUrl(
-                Uri.parse(_redirectAddress!),
-                mode: LaunchMode.inAppWebView,
-              ),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-              child: const Text(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+            child: const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
                 'Or click here',
-                style: TextStyle(color: Colors.black),
+                style: TextStyle(color: Colors.black, fontSize: 28),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -163,21 +169,27 @@ class _TwitchAuthenticationScreenState
               ? null
               : _connectStreamer,
           style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-          child: const Text(
-            'Connect streamer',
-            style: TextStyle(color: Colors.black),
+          child: const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Connect streamer',
+              style: TextStyle(color: Colors.black, fontSize: 28),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         if (widget.appInfo.hasChatbot)
           ElevatedButton(
             onPressed: _manager == null || !_manager!.isStreamerConnected
                 ? null
                 : _connectChatbot,
             style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: const Text(
-              'Connect chatbot',
-              style: TextStyle(color: Colors.black),
+            child: const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Connect chatbot',
+                style: TextStyle(color: Colors.black, fontSize: 28),
+              ),
             ),
           ),
       ],
@@ -199,36 +211,50 @@ class _TwitchAuthenticationScreenState
               _checkForConnexionDone(skipSetState: true);
             }
 
-            return Container(
-                color: const Color.fromARGB(255, 119, 35, 215),
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20.0),
-                      child: Text(
-                        'TWITCH AUTHENTICATION',
-                        style: TextStyle(fontSize: 20, color: Colors.white),
+            return Transform.scale(
+              scale: 1080 / MediaQuery.of(context).size.width,
+              child: Container(
+                  color: const Color.fromARGB(255, 119, 35, 215),
+                  width: 1080,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 40.0, bottom: 8),
+                        child: Text(
+                          'TWITCH AUTHENTICATION',
+                          style: TextStyle(fontSize: 40, color: Colors.white),
+                        ),
                       ),
-                    ),
-                    Column(
-                      children: [
-                        if (_status == _ConnexionStatus.waitForUser)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                left: 20.0, right: 20.0, bottom: 15),
-                            child: _buildButtons(),
-                          ),
-                        if (_status == _ConnexionStatus.waitForTwitchValidation)
-                          _buildBrowseTo(),
-                        if (_status == _ConnexionStatus.connected)
-                          _buildWaitingMessage(
-                              'Please wait while we are logging you'),
-                      ],
-                    ),
-                  ],
-                ));
+                      SizedBox(
+                        width: 700,
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Please connect to your streamer account on Twitch on '
+                              'your default browser, then click on "Connect streamer". '
+                              'Afterwards, connect to your chatbot account on Twitch, '
+                              'then click on "Connect chatbot". If you don\'t have a '
+                              'chatbot, you can use your streamer account.\n',
+                              textAlign: TextAlign.justify,
+                              style:
+                                  TextStyle(fontSize: 28, color: Colors.white),
+                            ),
+                            if (_status == _ConnexionStatus.waitForUser)
+                              _buildButtons(),
+                            if (_status ==
+                                _ConnexionStatus.waitForTwitchValidation)
+                              _buildBrowseTo(),
+                            if (_status == _ConnexionStatus.connected)
+                              _buildWaitingMessage(
+                                  'Please wait while we are logging you'),
+                            const SizedBox(height: 30),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )),
+            );
           }),
     ));
   }
