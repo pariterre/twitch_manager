@@ -149,7 +149,10 @@ class TwitchApi {
 
   ///
   /// Get the list of moderators of the channel.
-  Future<List<String>?> fetchModerators() async {
+  /// The streamer is not included in the list of moderators. If one need them
+  /// to be included, they can set [includeStreamer] to true. Alternatively,
+  /// they can call `login(streamerId)`.
+  Future<List<String>?> fetchModerators({bool includeStreamer = false}) async {
     final List<String> moderators = [];
     String? cursor;
     do {
@@ -170,6 +173,8 @@ class TwitchApi {
       if (response.cursor == null) break; // We are done
       cursor = response.cursor;
     } while (true);
+
+    if (includeStreamer) moderators.add((await login(streamerId))!);
 
     return moderators;
   }
@@ -436,11 +441,14 @@ class TwitchApiMock extends TwitchApi {
 
   ////// CHANNEL RELATED API //////
   @override
-  Future<List<String>?> fetchModerators() async {
+  Future<List<String>?> fetchModerators({bool includeStreamer = false}) async {
     final List<String> out = [];
     for (final moderator in mockOptions.moderators) {
       out.add(moderator);
     }
+
+    if (includeStreamer) out.add((await login(streamerId))!);
+
     return out;
   }
 
