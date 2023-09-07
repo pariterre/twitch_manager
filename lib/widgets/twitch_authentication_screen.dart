@@ -213,47 +213,49 @@ class _TwitchAuthenticationScreenState
 
             return Transform.scale(
               scale: 1080 / MediaQuery.of(context).size.width,
-              child: Container(
-                  color: const Color.fromARGB(255, 119, 35, 215),
-                  width: 1080,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 40.0, bottom: 8),
-                        child: Text(
-                          'TWITCH AUTHENTICATION',
-                          style: TextStyle(fontSize: 40, color: Colors.white),
+              child: SingleChildScrollView(
+                child: Container(
+                    color: const Color.fromARGB(255, 119, 35, 215),
+                    width: 1080,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 40.0, bottom: 8),
+                          child: Text(
+                            'TWITCH AUTHENTICATION',
+                            style: TextStyle(fontSize: 40, color: Colors.white),
+                          ),
                         ),
-                      ),
-                      SizedBox(
-                        width: 700,
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Please connect to your streamer account on Twitch on '
-                              'your default browser, then click on "Connect streamer". '
-                              'Afterwards, connect to your chatbot account on Twitch, '
-                              'then click on "Connect chatbot". If you don\'t have a '
-                              'chatbot, you can use your streamer account.\n',
-                              textAlign: TextAlign.justify,
-                              style:
-                                  TextStyle(fontSize: 28, color: Colors.white),
-                            ),
-                            if (_status == _ConnexionStatus.waitForUser)
-                              _buildButtons(),
-                            if (_status ==
-                                _ConnexionStatus.waitForTwitchValidation)
-                              _buildBrowseTo(),
-                            if (_status == _ConnexionStatus.connected)
-                              _buildWaitingMessage(
-                                  'Please wait while we are logging you'),
-                            const SizedBox(height: 30),
-                          ],
+                        SizedBox(
+                          width: 700,
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Please connect to your streamer account on Twitch on '
+                                'your default browser, then click on "Connect streamer". '
+                                'Afterwards, connect to your chatbot account on Twitch, '
+                                'then click on "Connect chatbot". If you don\'t have a '
+                                'chatbot, you can use your streamer account.\n',
+                                textAlign: TextAlign.justify,
+                                style: TextStyle(
+                                    fontSize: 28, color: Colors.white),
+                              ),
+                              if (_status == _ConnexionStatus.waitForUser)
+                                _buildButtons(),
+                              if (_status ==
+                                  _ConnexionStatus.waitForTwitchValidation)
+                                _buildBrowseTo(),
+                              if (_status == _ConnexionStatus.connected)
+                                _buildWaitingMessage(
+                                    'Please wait while we are logging you'),
+                              const SizedBox(height: 30),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  )),
+                      ],
+                    )),
+              ),
             );
           }),
     ));

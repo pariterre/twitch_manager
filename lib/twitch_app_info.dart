@@ -45,7 +45,8 @@ class TwitchAppInfo {
       required this.scope,
       this.useAuthenticationService = false,
       this.authenticationServiceAddress})
-      : hasChatbot = scope.contains(TwitchScope.chatEdit) {
+      : hasChatbot = scope.contains(TwitchScope.chatEdit) ||
+            scope.contains(TwitchScope.chatRead) {
     if (useAuthenticationService) {
       if (authenticationServiceAddress == null) {
         throw 'If [useAuthenticationService] is set to true, then [authenticationServiceAddress] must be set.';
