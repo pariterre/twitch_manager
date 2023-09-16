@@ -118,6 +118,22 @@ class TwitchApi {
     return response.data[0]['display_name'];
   }
 
+  ///
+  /// Check if the user of [userId] is currently live. Note the method used here
+  /// is kind of a hack as data is expected to be empty when the user is not
+  /// live (even though, for some reason the key "type" is "live" when the user
+  /// is actually live).
+  Future<bool?> isUserLive(int userId) async {
+    final response = await _sendGetRequest(
+        requestType: 'streams', parameters: {'user_id': userId.toString()});
+    if (response == null) {
+      return null; // There was an error
+    }
+
+    // Extract the islive information
+    return response.data.isNotEmpty && response.data[0]['type'] == 'live';
+  }
+
   ////// CHAT RELATED API //////
 
   ///
@@ -367,6 +383,8 @@ class TwitchApi {
     // Communication procedure
     final channel =
         ws.WebSocket(Uri.parse(appInfo.authenticationServiceAddress!));
+    await channel.connection.firstWhere((state) => state is ws.Connected);
+
     channel.messages.listen(
         (message) => twitchResponse = communicateWithServer(channel, message));
     while (twitchResponse == null) {
