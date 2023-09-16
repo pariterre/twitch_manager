@@ -16,8 +16,8 @@ class TwitchAppInfo {
   final String redirectAddress;
 
   ///
-  /// If the authentication should be done via a service [false] or a
-  /// local server [true]. Local server is incompatible with web apps, on the
+  /// If the authentication should be done via a service [true] or a
+  /// local server [false]. Local server is incompatible with web apps, on the
   /// other hand, it does not require any service to authenticate.
   /// The code for the service sits at
   /// `$TWITCH_MANAGER_ROOT/ressources/authentication_service`
@@ -43,7 +43,7 @@ class TwitchAppInfo {
       required this.twitchAppId,
       required this.redirectAddress,
       required this.scope,
-      this.useAuthenticationService = false,
+      this.useAuthenticationService = true,
       this.authenticationServiceAddress})
       : hasChatbot = scope.contains(TwitchScope.chatEdit) ||
             scope.contains(TwitchScope.chatRead) {

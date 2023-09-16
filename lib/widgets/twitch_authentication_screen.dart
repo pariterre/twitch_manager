@@ -11,13 +11,12 @@ enum _ConnexionStatus {
 }
 
 ///
-/// This is the main window to call to connect to twitch. [appId] is the id
-/// provided by twitch; [scope] is a requested rights for the app;
+/// This is the main window to call to connect to twitch. [appInfo] is all the
+/// information to connect to  twitch;
 /// [onFinishedConnexion] is the callback when connexion is done (typically, it
-/// is to pop the window or push another one); [hasChatbot] is typically
-/// to register a chatbot (the user the app will publish on the chat), if it is
-/// false, then streamer username is used; [forceNewAuthentication] is to forget
-/// previous connexion and request a new OAUTH key.
+/// is to pop the window or push another one);
+/// [loadPreviousSession] is directly passed to [TwitchManager.factory];
+/// [mockOptions] is all the confirmation for TwitchMocker if it should be used;
 class TwitchAuthenticationScreen extends StatefulWidget {
   const TwitchAuthenticationScreen({
     super.key,
