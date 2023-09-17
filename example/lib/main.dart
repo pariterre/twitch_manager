@@ -29,7 +29,7 @@ void main() async {
               // The following line must be uncommented if [useAuthenticationService] is true
               // authenticationServiceAddress: 'ws://localhost:3002',
             ),
-            loadPreviousSession: false,
+            reload: false,
           ),
       TwitchChatBotScreen.route: (ctx) => const TwitchChatBotScreen(),
     },

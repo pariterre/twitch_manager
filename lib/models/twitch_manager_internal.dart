@@ -42,25 +42,29 @@ class TwitchManager {
   }
 
   /// Main constructor for the TwitchManager.
-  /// [appInfo] is all the required information of the current app
-  /// [loadPreviousSession] uses credidential from previous session if set to true.
-  /// It requires new credidentials otherwise
+  /// [appInfo] is all the required information of the current app.
+  /// [reload] load (or not) a previous session.
+  /// [saveKey] can be added to the reload flag so a specific user can be
+  /// loaded. This can be useful if many users are registered via multiple
+  /// instances of TwitchManager in a single app.  If [reload] if false,
+  /// this parameter has no effect.
   static Future<TwitchManager> factory({
     required TwitchAppInfo appInfo,
-    bool loadPreviousSession = true,
+    bool reload = true,
+    String? saveKey,
   }) async {
     final authenticator = TwitchAuthenticator();
 
-    if (loadPreviousSession) {
-      await authenticator.loadPreviousSession(appInfo: appInfo);
+    if (reload) {
+      await authenticator.loadSession(saveKey: saveKey, appInfo: appInfo);
     }
 
     final manager = TwitchManager._(appInfo, authenticator);
     if (authenticator.streamerOauthKey != null) {
-      await manager.connectStreamer(onRequestBrowsing: null);
+      await manager.connectStreamer(onRequestBrowsing: null, saveKey: saveKey);
     }
     if (authenticator.chatbotOauthKey != null) {
-      await manager.connectChatbot(onRequestBrowsing: null);
+      await manager.connectChatbot(onRequestBrowsing: null, saveKey: saveKey);
     }
 
     return manager;
@@ -69,11 +73,15 @@ class TwitchManager {
   ///
   /// Entry point for connecting a streamer to Twitch
   ///
-  Future<void> connectStreamer(
-      {required Future<void> Function(String address)?
-          onRequestBrowsing}) async {
+  Future<void> connectStreamer({
+    required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
+  }) async {
     await _authenticator!.connectStreamer(
-        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+      appInfo: _appInfo,
+      onRequestBrowsing: onRequestBrowsing,
+      saveKey: saveKey,
+    );
     await _connectToTwitchBackend();
   }
 
@@ -82,9 +90,13 @@ class TwitchManager {
   ///
   Future<void> connectChatbot({
     required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
   }) async {
     await _authenticator!.connectChatbot(
-        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+      appInfo: _appInfo,
+      onRequestBrowsing: onRequestBrowsing,
+      saveKey: saveKey,
+    );
     await _connectToTwitchBackend();
   }
 
@@ -160,16 +172,16 @@ class TwitchManagerMock extends TwitchManager {
   /// [mockOptions] is all the user defined options for the mocking
   static Future<TwitchManagerMock> factory({
     required TwitchAppInfo appInfo,
-    bool loadPreviousSession = true,
     required TwitchMockOptions mockOptions,
   }) async {
     return TwitchManagerMock._(appInfo, mockOptions);
   }
 
   @override
-  Future<void> connectStreamer(
-      {required Future<void> Function(String address)?
-          onRequestBrowsing}) async {
+  Future<void> connectStreamer({
+    required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
+  }) async {
     await _connectToTwitchBackend();
   }
 
@@ -179,6 +191,7 @@ class TwitchManagerMock extends TwitchManager {
   @override
   Future<void> connectChatbot({
     required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
   }) async {
     await _connectToTwitchBackend();
   }

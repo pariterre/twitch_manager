@@ -15,14 +15,16 @@ enum _ConnexionStatus {
 /// information to connect to  twitch;
 /// [onFinishedConnexion] is the callback when connexion is done (typically, it
 /// is to pop the window or push another one);
-/// [loadPreviousSession] is directly passed to [TwitchManager.factory];
+/// [reload] is directly passed to [TwitchManager.factory];
+/// [saveKey] is directly passed to [TwitchManager.factory];
 /// [mockOptions] is all the confirmation for TwitchMocker if it should be used;
 class TwitchAuthenticationScreen extends StatefulWidget {
   const TwitchAuthenticationScreen({
     super.key,
     required this.appInfo,
     required this.onFinishedConnexion,
-    this.loadPreviousSession = true,
+    this.reload = true,
+    this.saveKey,
     this.mockOptions,
   });
 
@@ -32,7 +34,8 @@ class TwitchAuthenticationScreen extends StatefulWidget {
   final Function(TwitchManager) onFinishedConnexion;
 
   final TwitchAppInfo appInfo;
-  final bool loadPreviousSession;
+  final bool reload;
+  final String? saveKey;
 
   @override
   State<TwitchAuthenticationScreen> createState() =>
@@ -47,24 +50,25 @@ class _TwitchAuthenticationScreenState
   late Future<TwitchManager> factoryManager =
       widget.mockOptions != null && widget.mockOptions!.isActive
           ? TwitchManagerMock.factory(
-              appInfo: widget.appInfo,
-              loadPreviousSession: widget.loadPreviousSession,
-              mockOptions: widget.mockOptions!)
+              appInfo: widget.appInfo, mockOptions: widget.mockOptions!)
           : TwitchManager.factory(
               appInfo: widget.appInfo,
-              loadPreviousSession: widget.loadPreviousSession);
+              reload: widget.reload,
+              saveKey: widget.saveKey);
 
   Future<void> _connectStreamer() async {
     if (_manager == null) return;
 
-    await _manager!.connectStreamer(onRequestBrowsing: _onRequestBrowsing);
+    await _manager!.connectStreamer(
+        onRequestBrowsing: _onRequestBrowsing, saveKey: widget.saveKey);
     _checkForConnexionDone();
   }
 
   Future<void> _connectChatbot() async {
     if (_manager == null) return;
 
-    await _manager!.connectChatbot(onRequestBrowsing: _onRequestBrowsing);
+    await _manager!.connectChatbot(
+        onRequestBrowsing: _onRequestBrowsing, saveKey: widget.saveKey);
     _checkForConnexionDone();
   }
 

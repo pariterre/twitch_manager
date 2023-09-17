@@ -15,11 +15,17 @@ class TwitchAuthenticator {
   bool get isChatbotConnected => _isChatbotConnected;
 
   ///
-  /// Helper to load a saved file
-  Future<void> loadPreviousSession({required TwitchAppInfo appInfo}) async {
+  /// Helper to load a saved file.
+  /// It is saved with the specified [saveKey] suffix so it can be later
+  /// reloaded. If none is provided, then it is saved in a generic fashion.
+  Future<void> loadSession({
+    required TwitchAppInfo appInfo,
+    String? saveKey,
+  }) async {
     const storage = FlutterSecureStorage();
-    streamerOauthKey = await storage.read(key: 'streamerOauthKey');
-    chatbotOauthKey = await storage.read(key: 'chatbotOauthKey');
+    saveKey ??= '';
+    streamerOauthKey = await storage.read(key: 'streamerOauthKey$saveKey');
+    chatbotOauthKey = await storage.read(key: 'chatbotOauthKey$saveKey');
   }
 
   ///
@@ -33,6 +39,7 @@ class TwitchAuthenticator {
   Future<bool> connectStreamer({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
     bool tryNewOauthKey = true,
   }) async {
     // if it is already connected, we are already done
@@ -45,7 +52,7 @@ class TwitchAuthenticator {
       setOauthKey: (value) => streamerOauthKey = value,
     );
 
-    _saveSessions(appInfo: appInfo);
+    _saveSessions(appInfo: appInfo, saveKey: saveKey);
     return _isStreamerConnected;
   }
 
@@ -60,6 +67,7 @@ class TwitchAuthenticator {
   Future<bool> connectChatbot({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
+    String? saveKey,
     bool tryNewOauthKey = true,
   }) async {
     if (_isChatbotConnected) return true;
@@ -71,7 +79,7 @@ class TwitchAuthenticator {
       setOauthKey: (value) => chatbotOauthKey = value,
     );
 
-    _saveSessions(appInfo: appInfo);
+    _saveSessions(appInfo: appInfo, saveKey: saveKey);
     return _isChatbotConnected;
   }
 
@@ -86,10 +94,16 @@ class TwitchAuthenticator {
   /// Constructor of the Authenticator
   TwitchAuthenticator();
 
-  Future<void> _saveSessions({required TwitchAppInfo appInfo}) async {
+  ///
+  /// Save a session for further reloading.
+  /// It is saved with the specified [saveKey] suffix which can be used to
+  /// reload a specific session.
+  Future<void> _saveSessions(
+      {required String? saveKey, required TwitchAppInfo appInfo}) async {
     const storage = FlutterSecureStorage();
-    storage.write(key: 'streamerOauthKey', value: streamerOauthKey);
-    storage.write(key: 'chatbotOauthKey', value: chatbotOauthKey);
+    saveKey ??= '';
+    storage.write(key: 'streamerOauthKey$saveKey', value: streamerOauthKey);
+    storage.write(key: 'chatbotOauthKey$saveKey', value: chatbotOauthKey);
   }
 
   ///
