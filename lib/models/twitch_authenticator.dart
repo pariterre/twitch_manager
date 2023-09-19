@@ -18,14 +18,19 @@ class TwitchAuthenticator {
   /// Helper to load a saved file.
   /// It is saved with the specified [saveKey] suffix so it can be later
   /// reloaded. If none is provided, then it is saved in a generic fashion.
-  Future<void> loadSession({
-    required TwitchAppInfo appInfo,
-    String? saveKey,
-  }) async {
+  Future<void> loadSession({required TwitchAppInfo appInfo}) async {
     const storage = FlutterSecureStorage();
-    saveKey ??= '';
     streamerOauthKey = await storage.read(key: 'streamerOauthKey$saveKey');
     chatbotOauthKey = await storage.read(key: 'chatbotOauthKey$saveKey');
+
+    streamerOauthKey = streamerOauthKey!.isEmpty ? null : streamerOauthKey;
+    chatbotOauthKey = chatbotOauthKey!.isEmpty ? null : chatbotOauthKey;
+  }
+
+  Future<void> clearHistory() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'streamerOauthKey$saveKey', value: '');
+    await storage.write(key: 'chatbotOauthKey$saveKey', value: '');
   }
 
   ///
@@ -39,7 +44,6 @@ class TwitchAuthenticator {
   Future<bool> connectStreamer({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
     bool tryNewOauthKey = true,
   }) async {
     // if it is already connected, we are already done
@@ -52,7 +56,7 @@ class TwitchAuthenticator {
       setOauthKey: (value) => streamerOauthKey = value,
     );
 
-    _saveSessions(appInfo: appInfo, saveKey: saveKey);
+    _saveSessions(appInfo: appInfo);
     return _isStreamerConnected;
   }
 
@@ -67,7 +71,6 @@ class TwitchAuthenticator {
   Future<bool> connectChatbot({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
     bool tryNewOauthKey = true,
   }) async {
     if (_isChatbotConnected) return true;
@@ -79,11 +82,24 @@ class TwitchAuthenticator {
       setOauthKey: (value) => chatbotOauthKey = value,
     );
 
-    _saveSessions(appInfo: appInfo, saveKey: saveKey);
+    _saveSessions(appInfo: appInfo);
     return _isChatbotConnected;
   }
 
+  ///
+  /// Disconnect user from Twitch and clear the reload history
+  Future<void> disconnect() async {
+    streamerOauthKey = null;
+    chatbotOauthKey = null;
+    _isStreamerConnected = false;
+    _isChatbotConnected = false;
+    // Prevent from being able to reload
+    await clearHistory();
+  }
+
   /// ATTRIBUTES
+  final String? saveKey;
+
   String? streamerOauthKey; // Streamer OAuth key
   String? chatbotOauthKey; // Chatbot OAuth key
 
@@ -92,16 +108,14 @@ class TwitchAuthenticator {
 
   ///
   /// Constructor of the Authenticator
-  TwitchAuthenticator();
+  TwitchAuthenticator({this.saveKey = ''});
 
   ///
   /// Save a session for further reloading.
   /// It is saved with the specified [saveKey] suffix which can be used to
   /// reload a specific session.
-  Future<void> _saveSessions(
-      {required String? saveKey, required TwitchAppInfo appInfo}) async {
+  Future<void> _saveSessions({required TwitchAppInfo appInfo}) async {
     const storage = FlutterSecureStorage();
-    saveKey ??= '';
     storage.write(key: 'streamerOauthKey$saveKey', value: streamerOauthKey);
     storage.write(key: 'chatbotOauthKey$saveKey', value: chatbotOauthKey);
   }
@@ -152,8 +166,14 @@ class TwitchAuthenticator {
 
     // If we are indeed connected, we have to validate the OAuth key every hour
     Timer.periodic(const Duration(hours: 1), (timer) async {
+      final key = getOauthKey();
+      if (key == null) {
+        // The user has disconnected
+        timer.cancel();
+        return;
+      }
       if (!await TwitchApi.validateOauthToken(
-          appInfo: appInfo, oauthKey: getOauthKey()!)) {
+          appInfo: appInfo, oauthKey: key)) {
         // If it fails, restart the connecting process
         timer.cancel();
         _connectUser(

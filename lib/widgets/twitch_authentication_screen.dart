@@ -59,16 +59,14 @@ class _TwitchAuthenticationScreenState
   Future<void> _connectStreamer() async {
     if (_manager == null) return;
 
-    await _manager!.connectStreamer(
-        onRequestBrowsing: _onRequestBrowsing, saveKey: widget.saveKey);
+    await _manager!.connectStreamer(onRequestBrowsing: _onRequestBrowsing);
     _checkForConnexionDone();
   }
 
   Future<void> _connectChatbot() async {
     if (_manager == null) return;
 
-    await _manager!.connectChatbot(
-        onRequestBrowsing: _onRequestBrowsing, saveKey: widget.saveKey);
+    await _manager!.connectChatbot(onRequestBrowsing: _onRequestBrowsing);
     _checkForConnexionDone();
   }
 

@@ -53,18 +53,18 @@ class TwitchManager {
     bool reload = true,
     String? saveKey,
   }) async {
-    final authenticator = TwitchAuthenticator();
+    final authenticator = TwitchAuthenticator(saveKey: saveKey);
 
     if (reload) {
-      await authenticator.loadSession(saveKey: saveKey, appInfo: appInfo);
+      await authenticator.loadSession(appInfo: appInfo);
     }
 
     final manager = TwitchManager._(appInfo, authenticator);
     if (authenticator.streamerOauthKey != null) {
-      await manager.connectStreamer(onRequestBrowsing: null, saveKey: saveKey);
+      await manager.connectStreamer(onRequestBrowsing: null);
     }
     if (authenticator.chatbotOauthKey != null) {
-      await manager.connectChatbot(onRequestBrowsing: null, saveKey: saveKey);
+      await manager.connectChatbot(onRequestBrowsing: null);
     }
 
     return manager;
@@ -75,13 +75,9 @@ class TwitchManager {
   ///
   Future<void> connectStreamer({
     required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
   }) async {
     await _authenticator!.connectStreamer(
-      appInfo: _appInfo,
-      onRequestBrowsing: onRequestBrowsing,
-      saveKey: saveKey,
-    );
+        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
   }
 
@@ -90,14 +86,17 @@ class TwitchManager {
   ///
   Future<void> connectChatbot({
     required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
   }) async {
     await _authenticator!.connectChatbot(
-      appInfo: _appInfo,
-      onRequestBrowsing: onRequestBrowsing,
-      saveKey: saveKey,
-    );
+        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
+  }
+
+  ///
+  /// Disconnect irc and clean the saved OAUTH keys
+  Future<void> disconnect() async {
+    _irc?.disconnect();
+    await _authenticator?.disconnect();
   }
 
   ///

@@ -238,6 +238,9 @@ class TwitchApi {
   /// Post an actual GET request to Twitch
   Future<_TwitchResponse?> _sendGetRequest(
       {required String requestType, Map<String, String?>? parameters}) async {
+    // Stop now if we are disconnected
+    if (_authenticator!.streamerOauthKey == null) return null;
+
     var params = '';
 
     if (parameters != null) {

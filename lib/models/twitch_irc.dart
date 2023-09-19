@@ -10,6 +10,8 @@ const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
 class TwitchIrc {
+  bool _isConnected = false;
+
   ///
   /// Callback to register to which is called when a message is received.
   Function(String sender, String message)? messageCallback;
@@ -28,10 +30,13 @@ class TwitchIrc {
   ///
   /// Disconnect to Twitch IRC
   Future<void> disconnect() async {
+    if (!_isConnected) return;
+
     await _send('PART $streamerLogin');
 
     if (_socket == null) return;
     _socket!.close();
+    _isConnected = false;
   }
 
   /// ATTRIBUTES
@@ -62,6 +67,8 @@ class TwitchIrc {
   /// Send a message to Twitch IRC. If connection failed it tries another time.
   ///
   Future<void> _send(String command) async {
+    if (!_isConnected) return;
+
     try {
       _socket!.send('$command\n');
     } on SocketException {
@@ -110,6 +117,7 @@ class TwitchIrc {
   ///
   /// Connect to the actual IRC channel
   void _connectToTwitchIrc() {
+    _isConnected = true;
     _send('PASS oauth:$_oauthKey');
     _send('NICK $streamerLogin');
     _send('JOIN #$streamerLogin');
@@ -128,6 +136,7 @@ class TwitchIrc {
     }
 
     if (fullMessage == 'PING :tmi.twitch.tv') {
+      if (!_isConnected) return;
       // Keep connexion alive
       log(fullMessage);
       _send('PONG :tmi.twitch.tv');
