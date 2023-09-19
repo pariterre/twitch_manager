@@ -23,8 +23,12 @@ class TwitchAuthenticator {
     streamerOauthKey = await storage.read(key: 'streamerOauthKey$saveKey');
     chatbotOauthKey = await storage.read(key: 'chatbotOauthKey$saveKey');
 
-    streamerOauthKey = streamerOauthKey!.isEmpty ? null : streamerOauthKey;
-    chatbotOauthKey = chatbotOauthKey!.isEmpty ? null : chatbotOauthKey;
+    streamerOauthKey = streamerOauthKey != null && streamerOauthKey!.isEmpty
+        ? null
+        : streamerOauthKey;
+    chatbotOauthKey = chatbotOauthKey != null && chatbotOauthKey!.isEmpty
+        ? null
+        : chatbotOauthKey;
   }
 
   Future<void> clearHistory() async {
