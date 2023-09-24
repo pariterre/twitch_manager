@@ -14,6 +14,13 @@ import 'twitch_mock_options.dart';
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
 
+List<String> _removeBlacklisted(
+    Iterable<String> names, List<String>? blacklist) {
+  return names
+      .where((e) => blacklist == null || !blacklist.contains(e))
+      .toList();
+}
+
 ///
 /// Class that holds a response from Twitch API, this is to easy the communication
 /// between internal parts of the API
@@ -103,7 +110,6 @@ class TwitchApi {
         requestType: 'users', parameters: {'id': userId.toString()});
     if (response == null) return null; // There was an error
 
-    // Extract the usernames and removed the blacklisted
     return response.data[0]['login'];
   }
 
@@ -114,7 +120,6 @@ class TwitchApi {
         requestType: 'users', parameters: {'id': userId.toString()});
     if (response == null) return null; // There was an error
 
-    // Extract the usernames and removed the blacklisted
     return response.data[0]['display_name'];
   }
 
@@ -149,16 +154,8 @@ class TwitchApi {
     if (response == null) return null; // There was an error
 
     // Extract the usernames and removed the blacklisted
-    return response.data
-        .map<String?>((e) {
-          final username = e['user_name'];
-          return blacklist != null && blacklist.contains(username)
-              ? null
-              : username;
-        })
-        .where((e) => e != null)
-        .toList()
-        .cast<String>();
+    return _removeBlacklisted(
+        response.data.map<String>((e) => e['user_name']), blacklist);
   }
 
   ////// CHANNEL RELATED API //////
@@ -197,7 +194,10 @@ class TwitchApi {
 
   ///
   /// Get the list of current followers of the channel.
-  Future<List<String>?> fetchFollowers() async {
+  /// [includeStreamer] If the streamer should be counted as follower too
+  /// The [blacklist] ignore some followers (ignoring bots for instance).
+  Future<List<String>?> fetchFollowers(
+      {bool includeStreamer = false, List<String>? blacklist}) async {
     final List<String> users = [];
     String? cursor;
     do {
@@ -218,8 +218,9 @@ class TwitchApi {
       cursor = response.cursor;
     } while (true);
 
-    // Extract the usernames and removed the blacklisted
-    return users;
+    if (includeStreamer) users.add((await displayName(streamerId))!);
+
+    return _removeBlacklisted(users, blacklist);
   }
 
   ////// INTERNAL //////
@@ -437,7 +438,6 @@ class TwitchApiMock extends TwitchApi {
 
   @override
   Future<String?> login(int userId) async {
-    // Extract the usernames and removed the blacklisted
     return 'login_$userId';
   }
 
@@ -449,7 +449,6 @@ class TwitchApiMock extends TwitchApi {
   ////// CHAT RELATED API //////
   @override
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
-    // Extract the usernames and removed the blacklisted
     final List<String> out = [];
     for (final follower in mockOptions.followers) {
       out.add(follower);
@@ -457,7 +456,7 @@ class TwitchApiMock extends TwitchApi {
     for (final moderator in mockOptions.moderators) {
       if (!out.contains(moderator)) out.add(moderator);
     }
-    return out;
+    return _removeBlacklisted(out, blacklist);
   }
 
   ////// CHANNEL RELATED API //////
@@ -474,12 +473,13 @@ class TwitchApiMock extends TwitchApi {
   }
 
   @override
-  Future<List<String>?> fetchFollowers() async {
+  Future<List<String>?> fetchFollowers(
+      {bool includeStreamer = false, List<String>? blacklist}) async {
     final List<String> out = [];
     for (final follower in mockOptions.followers) {
       out.add(follower);
     }
-    return out;
+    return _removeBlacklisted(out, blacklist);
   }
 
   ////// INTERNAL //////
