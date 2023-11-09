@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-import '../twitch_app_info.dart';
-import 'twitch_api.dart';
+import 'package:twitch_manager/models/twitch_api.dart';
+import 'package:twitch_manager/twitch_app_info.dart';
 
 class TwitchAuthenticator {
   ///

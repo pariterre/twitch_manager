@@ -1,4 +1,4 @@
-import 'twitch_scope.dart';
+import 'package:twitch_manager/twitch_scope.dart';
 
 class TwitchAppInfo {
   ///

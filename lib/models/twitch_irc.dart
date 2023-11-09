@@ -1,9 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
-
-import 'twitch_authenticator.dart';
 
 // Define some constant from Twitch itself
 const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
