@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-
-import '../twitch_app_info.dart';
-import 'twitch_api.dart';
-import 'twitch_authenticator.dart';
-import 'twitch_irc.dart';
-import 'twitch_mock_options.dart';
+import 'package:twitch_manager/models/twitch_api.dart';
+import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_events.dart';
+import 'package:twitch_manager/models/twitch_irc.dart';
+import 'package:twitch_manager/models/twitch_mock_options.dart';
+import 'package:twitch_manager/twitch_app_info.dart';
 
 ///
 /// Finalizer of the IRC, so it frees the Socket
@@ -41,6 +41,15 @@ class TwitchManager {
     return _api!;
   }
 
+  ///
+  /// Get a reference to the event API
+  TwitchEvent get event {
+    if (!_isConnected) {
+      throw 'event necessitate the user to be connected';
+    }
+    return _event!;
+  }
+
   /// Main constructor for the TwitchManager.
   /// [appInfo] is all the required information of the current app.
   /// [reload] load (or not) a previous session.
@@ -60,12 +69,18 @@ class TwitchManager {
     }
 
     final manager = TwitchManager._(appInfo, authenticator);
+
+    // Connect to the irc channel
     if (authenticator.streamerOauthKey != null) {
       await manager.connectStreamer(onRequestBrowsing: null);
     }
     if (authenticator.chatbotOauthKey != null) {
       await manager.connectChatbot(onRequestBrowsing: null);
     }
+
+    // Despite being called by the streamer and bot, just make sure by calling
+    // it again here (mostly for connecting twitch events)
+    await manager._connectToTwitchBackend();
 
     return manager;
   }
@@ -95,7 +110,8 @@ class TwitchManager {
   ///
   /// Disconnect irc and clean the saved OAUTH keys
   Future<void> disconnect() async {
-    _irc?.disconnect();
+    await _irc?.disconnect();
+    await _event?.disconnect();
     await _authenticator?.disconnect();
   }
 
@@ -105,6 +121,7 @@ class TwitchManager {
   final TwitchAuthenticator? _authenticator;
   TwitchIrc? _irc;
   TwitchApi? _api;
+  TwitchEvent? _event;
   bool _isConnected = false;
 
   ///
@@ -116,6 +133,7 @@ class TwitchManager {
   ///
   Future<void> _connectToTwitchBackend() async {
     if (!_authenticator!.isStreamerConnected) return;
+
     // Connect the API
     _api ??= await TwitchApi.factory(
         appInfo: _appInfo, authenticator: _authenticator!);
@@ -130,6 +148,9 @@ class TwitchManager {
           streamerLogin: streamerLogin, authenticator: _authenticator!);
       if (!kIsWeb) _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
     }
+
+    // Connect to the TwitchEvent
+    _event ??= await TwitchEvent.factory(appInfo: _appInfo);
 
     // Mark the Manager as being ready
     _isConnected = true;
