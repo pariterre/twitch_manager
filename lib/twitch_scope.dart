@@ -1,7 +1,7 @@
 enum ScopeType {
   chat,
   api,
-  event;
+  events;
 }
 
 ///
@@ -44,7 +44,7 @@ enum TwitchScope {
       case TwitchScope.readFollowers:
         return ScopeType.api;
       case TwitchScope.rewardRedemption:
-        return ScopeType.event;
+        return ScopeType.events;
     }
   }
 }

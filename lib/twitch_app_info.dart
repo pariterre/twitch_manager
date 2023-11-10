@@ -39,7 +39,7 @@ class TwitchAppInfo {
   ///
   /// If the app needs to subscribe to Twitch events. This is automatically set
   /// to true as soon as there is any TwitchScope that has a TwitchType.event
-  final bool hasEvent;
+  final bool hasEvents;
 
   ///
   /// Main constructor
@@ -51,7 +51,7 @@ class TwitchAppInfo {
       this.useAuthenticationService = true,
       this.authenticationServiceAddress})
       : hasChatbot = scope.any((e) => e.scopeType == ScopeType.chat),
-        hasEvent = scope.any((e) => e.scopeType == ScopeType.event) {
+        hasEvents = scope.any((e) => e.scopeType == ScopeType.events) {
     if (useAuthenticationService) {
       if (authenticationServiceAddress == null) {
         throw 'If [useAuthenticationService] is set to true, then [authenticationServiceAddress] must be set.';

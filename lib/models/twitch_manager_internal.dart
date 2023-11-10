@@ -48,17 +48,17 @@ class TwitchManager {
   }
 
   ///
-  /// Get a reference to the event API
-  TwitchEvent get event {
-    if (!_appInfo.hasEvent) {
-      throw 'The app must define at least one TwitchScope with a ScopeType.event '
-          'to use the event.';
+  /// Get a reference to the events API
+  TwitchEvents get events {
+    if (!_appInfo.hasEvents) {
+      throw 'The app must define at least one TwitchScope with a ScopeType.events '
+          'to use the events.';
     }
 
     if (!_isConnected) {
-      throw 'event necessitate the user to be connected';
+      throw 'events necessitate the user to be connected';
     }
-    return _event!;
+    return _events!;
   }
 
   /// Main constructor for the TwitchManager.
@@ -122,7 +122,7 @@ class TwitchManager {
   /// Disconnect and clean the saved OAUTH keys
   Future<void> disconnect() async {
     await _chat?.disconnect();
-    await _event?.disconnect();
+    await _events?.disconnect();
     await _authenticator.disconnect();
   }
 
@@ -132,7 +132,7 @@ class TwitchManager {
   final TwitchAuthenticator _authenticator;
   TwitchChat? _chat;
   TwitchApi? _api;
-  TwitchEvent? _event;
+  TwitchEvents? _events;
   bool _isConnected = false;
 
   ///
@@ -153,9 +153,9 @@ class TwitchManager {
     if (streamerLogin == null) return;
 
     // Connect to the TwitchEvent
-    if (_appInfo.hasEvent) {
-      // Define the _event only once
-      _event ??= await TwitchEvent.factory(
+    if (_appInfo.hasEvents) {
+      // Define the _events only once
+      _events ??= await TwitchEvents.factory(
           appInfo: _appInfo, authenticator: _authenticator, api: _api!);
     }
 
@@ -201,11 +201,11 @@ class TwitchManagerMock extends TwitchManager {
   }
 
   @override
-  TwitchEventMock get event {
+  TwitchEventsMock get events {
     if (!_isConnected) {
-      throw 'event necessitate the user to be connected';
+      throw 'events necessitate the user to be connected';
     }
-    return _event! as TwitchEventMock;
+    return _events! as TwitchEventsMock;
   }
 
   /// Main constructor for the TwitchManager.
@@ -268,8 +268,8 @@ class TwitchManagerMock extends TwitchManager {
       _finalizerTwitchChat.attach(_chat!, _chat!, detach: _chat);
     }
 
-    // Connect to the TwitchEvent
-    _event ??= await TwitchEventMock.factory(
+    // Connect to the TwitchEvents
+    _events ??= await TwitchEventsMock.factory(
         appInfo: _appInfo,
         authenticator: _authenticator as TwitchAuthenticatorMock,
         api: api);

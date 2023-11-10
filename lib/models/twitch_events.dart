@@ -10,7 +10,7 @@ import 'package:twitch_manager/twitch_app_info.dart';
 import 'package:twitch_manager/twitch_scope.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 
-const _twitchEventUri = 'wss://eventsub.wss.twitch.tv/ws';
+const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
 const _twitchHelixUri = 'https://api.twitch.tv/helix/eventsub/subscriptions';
 
 class TwitchEventResponse {
@@ -72,38 +72,47 @@ extension ScopeSubscription on TwitchScope {
   }
 }
 
-class TwitchEvent {
+class TwitchEvents {
   ///
-  /// The constructor for the Twitch Event
+  /// The constructor for the TwitchEvents
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchEvent> factory({
+  static Future<TwitchEvents> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
     required TwitchApi api,
   }) async {
-    final twitchEvent = TwitchEvent._(appInfo, authenticator, api);
+    final twitchEvents = TwitchEvents._(appInfo, authenticator, api);
 
     // Communication procedure
-    twitchEvent._channel = ws.WebSocket(Uri.parse(_twitchEventUri));
-    twitchEvent._channel!.messages
-        .listen((message) => twitchEvent._responseFromSubscription(message));
+    twitchEvents._channel = ws.WebSocket(Uri.parse(_twitchEventsUri));
+    twitchEvents._channel!.messages
+        .listen((message) => twitchEvents._responseFromSubscription(message));
 
     // Wait until response is received
-    while (twitchEvent._sessionId == null) {
+    while (twitchEvents._sessionId == null) {
       await Future.delayed(const Duration(milliseconds: 50));
     }
 
     // Send the subscription request
     for (final eventScope
-        in appInfo.scope.where((e) => e.scopeType == ScopeType.event)) {
-      twitchEvent._sendPostSubscribtionRequest(eventScope);
+        in appInfo.scope.where((e) => e.scopeType == ScopeType.events)) {
+      twitchEvents._sendPostSubscribtionRequest(eventScope);
     }
 
-    // Return the fully functionnal TwitchEvent
-    return twitchEvent;
+    // Return the fully functionnal TwitchEvents
+    return twitchEvents;
   }
 
+  ///
+  /// Subscribe to a specific events
+  void addListener(
+      String id, void Function(TwitchEventResponse events) callback) {
+    _eventListeners.add(id, callback);
+  }
+
+  ///
+  /// Unsubscribe to all events and close connexion
   Future<void> disconnect() async {
     for (int i = 0; i < _subscriptionIds.length; i++) {
       _sendDeleteSubscribtionRequest(i);
@@ -129,7 +138,7 @@ class TwitchEvent {
 
   ///
   /// Private constructor
-  TwitchEvent._(
+  TwitchEvents._(
     this._appInfo,
     this._authenticator,
     this._api,
@@ -143,7 +152,7 @@ class TwitchEvent {
     // If this is the first call, we need to get the session id then return
     if (_sessionId == null) {
       // This is the shakehand
-      dev.log('Connected to the Twitch Event API');
+      dev.log('Connected to the TwitchEvents API');
       _sessionId = map['payload']['session']['id'];
       return;
     }
@@ -161,8 +170,8 @@ class TwitchEvent {
   ///
   /// Send the actual Post request to Twitch
   Future<void> _sendPostSubscribtionRequest(TwitchScope scope) async {
-    if (scope.scopeType != ScopeType.event) {
-      throw 'The scope must be of type event';
+    if (scope.scopeType != ScopeType.events) {
+      throw 'The scope must be of type events';
     }
 
     // This method cannot be called if the session id is not set
@@ -215,24 +224,24 @@ class TwitchEvent {
   }
 }
 
-class TwitchEventMock extends TwitchEvent {
+class TwitchEventsMock extends TwitchEvents {
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchEventMock> factory({
+  static Future<TwitchEventsMock> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticatorMock authenticator,
     required TwitchApiMock api,
   }) async {
-    return TwitchEventMock._(appInfo, authenticator, api);
+    return TwitchEventsMock._(appInfo, authenticator, api);
   }
 
   ////// INTERNAL //////
 
   ///
   /// Private constructor
-  TwitchEventMock._(TwitchAppInfo appInfo,
+  TwitchEventsMock._(TwitchAppInfo appInfo,
       TwitchAuthenticatorMock authenticator, TwitchApiMock api)
       : super._(appInfo, authenticator, api);
 }
