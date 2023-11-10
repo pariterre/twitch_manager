@@ -7,7 +7,6 @@ import 'package:http/http.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
-import 'package:twitch_manager/twitch_scope.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
@@ -80,7 +79,7 @@ class TwitchApi {
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
         '&redirect_uri=${appInfo.redirectAddress}'
-        '&scope=${scope.map<String>((e) => e.text()).join('+')}'
+        '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
     onRequestBrowsing(address);
 
@@ -228,18 +227,18 @@ class TwitchApi {
   /// ATTRIBUTES
   final TwitchAppInfo _appInfo;
   late final int streamerId; // It is set in the factory
-  final TwitchAuthenticator? _authenticator;
+  final TwitchAuthenticator _authenticator;
 
   ///
   /// Private constructor
   TwitchApi._(this._appInfo, this._authenticator);
 
   ///
-  /// Post an actual GET request to Twitch
+  /// Send an actual GET request to Twitch
   Future<_TwitchResponse?> _sendGetRequest(
       {required String requestType, Map<String, String?>? parameters}) async {
     // Stop now if we are disconnected
-    if (_authenticator!.streamerOauthKey == null) return null;
+    if (_authenticator.streamerOauthKey == null) return null;
 
     var params = '';
 
@@ -254,7 +253,7 @@ class TwitchApi {
           '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
       headers: <String, String>{
         HttpHeaders.authorizationHeader:
-            'Bearer ${_authenticator!.streamerOauthKey}',
+            'Bearer ${_authenticator.streamerOauthKey}',
         'Client-Id': _appInfo.twitchAppId,
       },
     );
@@ -421,14 +420,15 @@ class TwitchApiMock extends TwitchApi {
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
-  /// [authenticator] holds the OAuth key to communicate with the API
+  /// [mockOptions] are the options to use for the mock
   static Future<TwitchApiMock> factory({
     required TwitchAppInfo appInfo,
+    required TwitchAuthenticatorMock authenticator,
     required TwitchMockOptions mockOptions,
   }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApiMock._(appInfo, mockOptions);
+    final api = TwitchApiMock._(appInfo, authenticator, mockOptions);
     api.streamerId = 1234567890;
     return api;
   }
@@ -485,6 +485,7 @@ class TwitchApiMock extends TwitchApi {
 
   ///
   /// Private constructor
-  TwitchApiMock._(TwitchAppInfo appInfo, this.mockOptions)
-      : super._(appInfo, null);
+  TwitchApiMock._(TwitchAppInfo appInfo,
+      TwitchAuthenticatorMock twitchAuthenticator, this.mockOptions)
+      : super._(appInfo, twitchAuthenticator);
 }

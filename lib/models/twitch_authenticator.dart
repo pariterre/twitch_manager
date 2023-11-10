@@ -191,3 +191,29 @@ class TwitchAuthenticator {
     return true;
   }
 }
+
+class TwitchAuthenticatorMock extends TwitchAuthenticator {
+  TwitchAuthenticatorMock({String? saveKey}) : super(saveKey: saveKey);
+
+  @override
+  Future<bool> connectStreamer({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String address)? onRequestBrowsing,
+    bool tryNewOauthKey = true,
+  }) async {
+    streamerOauthKey = 'streamerOauthKey';
+    _isStreamerConnected = true;
+    return true;
+  }
+
+  @override
+  Future<bool> connectChatbot({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String address)? onRequestBrowsing,
+    bool tryNewOauthKey = true,
+  }) async {
+    chatbotOauthKey = 'chatbotOauthKey';
+    _isChatbotConnected = true;
+    return true;
+  }
+}

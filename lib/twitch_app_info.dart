@@ -33,8 +33,13 @@ class TwitchAppInfo {
 
   ///
   /// If the app needs a chat bot. This is automatically set to true as soon as
-  /// TwitchScope.chatEdit is required
+  /// there is any TwitchScope that has a TwitchType.chat defined
   final bool hasChatbot;
+
+  ///
+  /// If the app needs to subscribe to Twitch events. This is automatically set
+  /// to true as soon as there is any TwitchScope that has a TwitchType.event
+  final bool hasEvent;
 
   ///
   /// Main constructor
@@ -45,8 +50,8 @@ class TwitchAppInfo {
       required this.scope,
       this.useAuthenticationService = true,
       this.authenticationServiceAddress})
-      : hasChatbot = scope.contains(TwitchScope.chatEdit) ||
-            scope.contains(TwitchScope.chatRead) {
+      : hasChatbot = scope.any((e) => e.scopeType == ScopeType.chat),
+        hasEvent = scope.any((e) => e.scopeType == ScopeType.event) {
     if (useAuthenticationService) {
       if (authenticationServiceAddress == null) {
         throw 'If [useAuthenticationService] is set to true, then [authenticationServiceAddress] must be set.';

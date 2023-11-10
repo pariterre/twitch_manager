@@ -22,7 +22,6 @@ void main() async {
                 TwitchScope.chatEdit,
                 TwitchScope.chatters,
                 TwitchScope.readFollowers,
-                TwitchScope.readSubscribers,
               ],
               redirectAddress: 'http://localhost:3000',
               useAuthenticationService: false,

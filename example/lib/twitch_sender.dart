@@ -9,7 +9,7 @@ class TwitchSender {
   String message;
   bool get isReadyToSend => message != '';
 
-  void sendText() => twitchManager.irc.send(message);
+  void sendText() => twitchManager.chat.send(message);
 }
 
 class ReoccurringTwitchSender extends TwitchSender {

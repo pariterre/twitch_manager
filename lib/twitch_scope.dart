@@ -1,3 +1,9 @@
+enum ScopeType {
+  chat,
+  api,
+  event;
+}
+
 ///
 /// The access right provided to the app by the streamer
 enum TwitchScope {
@@ -6,13 +12,12 @@ enum TwitchScope {
   chatters,
 
   readModerator,
-
   readFollowers,
-  readSubscribers
-}
 
-extension TwitchScopeStringify on TwitchScope {
-  String text() {
+  rewardRedemption;
+
+  @override
+  String toString() {
     switch (this) {
       case TwitchScope.chatRead:
         return 'chat:read';
@@ -24,8 +29,22 @@ extension TwitchScopeStringify on TwitchScope {
         return 'moderation:read';
       case TwitchScope.readFollowers:
         return 'moderator:read:followers';
-      case TwitchScope.readSubscribers:
-        return 'channel:read:subscriptions';
+      case TwitchScope.rewardRedemption:
+        return 'channel:read:redemptions';
+    }
+  }
+
+  ScopeType get scopeType {
+    switch (this) {
+      case TwitchScope.chatRead:
+      case TwitchScope.chatEdit:
+      case TwitchScope.chatters:
+        return ScopeType.chat;
+      case TwitchScope.readModerator:
+      case TwitchScope.readFollowers:
+        return ScopeType.api;
+      case TwitchScope.rewardRedemption:
+        return ScopeType.event;
     }
   }
 }

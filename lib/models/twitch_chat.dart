@@ -2,23 +2,52 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 // Define some constant from Twitch itself
 const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
-class TwitchIrc {
+class TwitchChat {
   bool _isConnected = false;
 
   ///
-  /// Callback to register to which is called when a message is received.
-  Function(String sender, String message)? messageCallback;
+  /// List of active listeners to notify if a chat message is received.
+  final _messagesListeners =
+      TwitchGenericListener<void Function(String sender, String message)>();
 
   ///
-  /// Callback to register to which is called when any communication which is
-  /// not a message from a user to the chat is received
-  Function(String message)? twitchCommunicationCallback;
+  /// Add a listener to _messages.addListener
+  void addListener(
+      String id, void Function(String sender, String message) callback) {
+    _messagesListeners.add(id, callback);
+  }
+
+  ///
+  /// Remove a listener from the list of active listeners
+  void removeListener(String id) {
+    _messagesListeners.dispose(id);
+  }
+
+  ///
+  /// List of active listeners to notify if a communication is received which is
+  /// not a chat message (probably an error message from Twitch)
+  final _twitchCommunicationListeners =
+      TwitchGenericListener<void Function(String message)>();
+
+  ///
+  /// Add a listener to _twitchCommunication.addListener
+  void addCommunicationListener(
+      String id, void Function(String message) callback) {
+    _twitchCommunicationListeners.add(id, callback);
+  }
+
+  ///
+  /// Remove a listener from the list of active listeners
+  void removeCommunicationListener(String id) {
+    _twitchCommunicationListeners.dispose(id);
+  }
 
   ///
   /// Send a [message] to the chat
@@ -27,8 +56,12 @@ class TwitchIrc {
   }
 
   ///
-  /// Disconnect to Twitch IRC
+  /// Disconnect to Twitch IRC channel
   Future<void> disconnect() async {
+    // Remove the active listeners
+    _messagesListeners.disposeAll();
+    _twitchCommunicationListeners.disposeAll();
+
     if (!_isConnected) return;
 
     await _send('PART $streamerLogin');
@@ -39,32 +72,30 @@ class TwitchIrc {
   }
 
   /// ATTRIBUTES
-  final TwitchAuthenticator? _authenticator;
+  final TwitchAuthenticator _authenticator;
   final String streamerLogin;
   String get _oauthKey =>
-      _authenticator!.chatbotOauthKey ?? _authenticator!.streamerOauthKey!;
+      _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
   ws.WebSocket? _socket;
 
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrc> factory(
+  static Future<TwitchChat> factory(
       {required String streamerLogin,
       required TwitchAuthenticator authenticator}) async {
-    return TwitchIrc._(
+    return TwitchChat._(
         streamerLogin, await _getConnectedSocket(), authenticator);
   }
 
   ///
   /// Private constructor
-  ///
-  TwitchIrc._(this.streamerLogin, this._socket, this._authenticator) {
+  TwitchChat._(this.streamerLogin, this._socket, this._authenticator) {
     _connect();
   }
 
   ///
-  /// Send a message to Twitch IRC. If connection failed it tries another time.
-  ///
+  /// Send a message to the Twitch IRC. If connection failed it tries another time.
   Future<void> _send(String command) async {
     if (!_isConnected) return;
 
@@ -148,9 +179,8 @@ class TwitchIrc {
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
       log(fullMessage);
-      if (twitchCommunicationCallback != null) {
-        twitchCommunicationCallback!(fullMessage);
-      }
+      _twitchCommunicationListeners.listeners
+          .forEach((key, callback) => callback(fullMessage));
       return;
     }
 
@@ -158,24 +188,29 @@ class TwitchIrc {
     final sender = match.group(1)!;
     final message = match.group(2)!;
     log('Message received:\n$sender: $message');
-    if (messageCallback != null) messageCallback!(sender, message);
+    _messagesListeners.listeners
+        .forEach((key, callback) => callback(sender, message));
   }
 }
 
-class TwitchIrcMock extends TwitchIrc {
+class TwitchChatMock extends TwitchChat {
   @override
   String get _oauthKey => 'chatbotOauthKey';
 
   ///
   /// Main constructor
   ///
-  static Future<TwitchIrcMock> factory({required String streamerLogin}) async =>
-      TwitchIrcMock._(streamerLogin);
+  static Future<TwitchChatMock> factory({
+    required String streamerLogin,
+    required TwitchAuthenticatorMock authenticator,
+  }) async =>
+      TwitchChatMock._(streamerLogin, authenticator);
 
   ///
   /// Private constructor
   ///
-  TwitchIrcMock._(String streamerLogin) : super._(streamerLogin, null, null);
+  TwitchChatMock._(String streamerLogin, TwitchAuthenticatorMock authenticator)
+      : super._(streamerLogin, null, authenticator);
 
   @override
   void _connect() async {

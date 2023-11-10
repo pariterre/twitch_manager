@@ -104,7 +104,7 @@ class _ChatterBoxState extends State<_ChatterBox> {
 
   void _sendMessage(TextEditingController controller) {
     if (controller.text == '') return;
-    widget.manager.irc
+    widget.manager.chat
         .send(controller.text, username: widget.usernames[_currentSender]);
   }
 

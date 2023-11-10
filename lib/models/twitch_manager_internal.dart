@@ -2,34 +2,40 @@ import 'package:flutter/foundation.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
-import 'package:twitch_manager/models/twitch_irc.dart';
+import 'package:twitch_manager/models/twitch_chat.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
 
 ///
-/// Finalizer of the IRC, so it frees the Socket
-final Finalizer<TwitchIrc> _finalizerIrc = Finalizer((irc) => irc.disconnect());
+/// Finalizer of the chat, so it frees the Socket
+final Finalizer<TwitchChat> _finalizerTwitchChat =
+    Finalizer((twitchChat) => twitchChat.disconnect());
 
 class TwitchManager {
   ///
   /// If the streamer is connected
-  bool get isStreamerConnected => _authenticator!.isStreamerConnected;
+  bool get isStreamerConnected => _authenticator.isStreamerConnected;
 
   ///
   /// If the streamer is connected
-  bool get isChatbotConnected => _authenticator!.isChatbotConnected;
+  bool get isChatbotConnected => _authenticator.isChatbotConnected;
 
   ///
-  /// If all the necessary users are connected and the API and IRC are initialized
+  /// If all the necessary users are connected and the API and chat are initialized
   bool get isConnected => _isConnected;
 
   ///
-  /// Get a reference to the twitch IRC
-  TwitchIrc get irc {
-    if (!_isConnected) {
-      throw 'irc necessitate the user to be connected';
+  /// Get a reference to the twitchChat
+  TwitchChat get chat {
+    if (!_appInfo.hasChatbot) {
+      throw 'The app must define at least one TwitchScope with a ScopeType.chat '
+          'to use the chat.';
     }
-    return _irc!;
+
+    if (!_isConnected) {
+      throw 'Twitch chat necessitate the user to be connected';
+    }
+    return _chat!;
   }
 
   ///
@@ -44,6 +50,11 @@ class TwitchManager {
   ///
   /// Get a reference to the event API
   TwitchEvent get event {
+    if (!_appInfo.hasEvent) {
+      throw 'The app must define at least one TwitchScope with a ScopeType.event '
+          'to use the event.';
+    }
+
     if (!_isConnected) {
       throw 'event necessitate the user to be connected';
     }
@@ -70,7 +81,7 @@ class TwitchManager {
 
     final manager = TwitchManager._(appInfo, authenticator);
 
-    // Connect to the irc channel
+    // Connect to the chat
     if (authenticator.streamerOauthKey != null) {
       await manager.connectStreamer(onRequestBrowsing: null);
     }
@@ -91,7 +102,7 @@ class TwitchManager {
   Future<void> connectStreamer({
     required Future<void> Function(String address)? onRequestBrowsing,
   }) async {
-    await _authenticator!.connectStreamer(
+    await _authenticator.connectStreamer(
         appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
   }
@@ -102,24 +113,24 @@ class TwitchManager {
   Future<void> connectChatbot({
     required Future<void> Function(String address)? onRequestBrowsing,
   }) async {
-    await _authenticator!.connectChatbot(
+    await _authenticator.connectChatbot(
         appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
   }
 
   ///
-  /// Disconnect irc and clean the saved OAUTH keys
+  /// Disconnect and clean the saved OAUTH keys
   Future<void> disconnect() async {
-    await _irc?.disconnect();
+    await _chat?.disconnect();
     await _event?.disconnect();
-    await _authenticator?.disconnect();
+    await _authenticator.disconnect();
   }
 
   ///
   /// ATTRIBUTES
   final TwitchAppInfo _appInfo;
-  final TwitchAuthenticator? _authenticator;
-  TwitchIrc? _irc;
+  final TwitchAuthenticator _authenticator;
+  TwitchChat? _chat;
   TwitchApi? _api;
   TwitchEvent? _event;
   bool _isConnected = false;
@@ -132,27 +143,34 @@ class TwitchManager {
   /// Initialize the connexion with twitch for all the relevent users
   ///
   Future<void> _connectToTwitchBackend() async {
-    if (!_authenticator!.isStreamerConnected) return;
+    if (!_authenticator.isStreamerConnected) return;
 
     // Connect the API
     _api ??= await TwitchApi.factory(
-        appInfo: _appInfo, authenticator: _authenticator!);
+        appInfo: _appInfo, authenticator: _authenticator);
 
     final streamerLogin = await _api!.login(_api!.streamerId);
     if (streamerLogin == null) return;
 
-    // Connect the IRC
-    if (_appInfo.hasChatbot) {
-      if (!_authenticator!.isChatbotConnected) return; // Failed
-      _irc = await TwitchIrc.factory(
-          streamerLogin: streamerLogin, authenticator: _authenticator!);
-      if (!kIsWeb) _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
+    // Connect to the TwitchEvent
+    if (_appInfo.hasEvent) {
+      // Define the _event only once
+      _event ??= await TwitchEvent.factory(
+          appInfo: _appInfo, authenticator: _authenticator, api: _api!);
     }
 
-    // Connect to the TwitchEvent
-    _event ??= await TwitchEvent.factory(appInfo: _appInfo);
+    // Connect the TwitchChat
+    if (_appInfo.hasChatbot) {
+      // If we are not ready yet, just return now
+      if (!_authenticator.isChatbotConnected) return;
 
-    // Mark the Manager as being ready
+      _chat = await TwitchChat.factory(
+          streamerLogin: streamerLogin, authenticator: _authenticator);
+
+      if (!kIsWeb) _finalizerTwitchChat.attach(_chat!, _chat!, detach: _chat);
+    }
+
+    // Mark the Manager as being fully ready
     _isConnected = true;
   }
 }
@@ -167,22 +185,27 @@ class TwitchManagerMock extends TwitchManager {
   bool get isChatbotConnected => true;
 
   @override
-  bool get isConnected => true;
-
-  @override
-  TwitchIrcMock get irc {
+  TwitchChatMock get chat {
     if (!_isConnected) {
-      throw 'irc necessitate the user to be connected';
+      throw 'Twitch chat necessitate the user to be connected';
     }
-    return _irc! as TwitchIrcMock;
+    return _chat! as TwitchChatMock;
   }
 
   @override
-  TwitchApi get api {
+  TwitchApiMock get api {
     if (!_isConnected) {
       throw 'api necessitate the user to be connected';
     }
-    return _api!;
+    return _api! as TwitchApiMock;
+  }
+
+  @override
+  TwitchEventMock get event {
+    if (!_isConnected) {
+      throw 'event necessitate the user to be connected';
+    }
+    return _event! as TwitchEventMock;
   }
 
   /// Main constructor for the TwitchManager.
@@ -219,7 +242,7 @@ class TwitchManagerMock extends TwitchManager {
   ///
   /// Main constructor of the Twitch Manager
   TwitchManagerMock._(TwitchAppInfo appInfo, this.mockOptions)
-      : super._(appInfo, null) {
+      : super._(appInfo, TwitchAuthenticatorMock()) {
     _connectToTwitchBackend();
   }
 
@@ -230,16 +253,26 @@ class TwitchManagerMock extends TwitchManager {
   Future<void> _connectToTwitchBackend() async {
     // Connect the API
     _api ??= await TwitchApiMock.factory(
-        appInfo: _appInfo, mockOptions: mockOptions);
+        appInfo: _appInfo,
+        authenticator: _authenticator as TwitchAuthenticatorMock,
+        mockOptions: mockOptions);
 
     final streamerLogin = await _api!.login(_api!.streamerId);
     if (streamerLogin == null) return;
 
-    // Connect the IRC
-    _irc = await TwitchIrcMock.factory(streamerLogin: streamerLogin);
+    // Connect to the chat
+    _chat = await TwitchChatMock.factory(
+        streamerLogin: streamerLogin,
+        authenticator: _authenticator as TwitchAuthenticatorMock);
     if (!kIsWeb) {
-      _finalizerIrc.attach(_irc!, _irc!, detach: _irc);
+      _finalizerTwitchChat.attach(_chat!, _chat!, detach: _chat);
     }
+
+    // Connect to the TwitchEvent
+    _event ??= await TwitchEventMock.factory(
+        appInfo: _appInfo,
+        authenticator: _authenticator as TwitchAuthenticatorMock,
+        api: api);
 
     // Mark the Manager as being ready
     _isConnected = true;

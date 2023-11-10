@@ -16,10 +16,12 @@ class TwitchChatBotScreen extends StatelessWidget {
   /// how to get information from the API and send a message to the chat.
   ///
   void greatings(TwitchManager twitchManager) async {
+    if (!twitchManager.isConnected) return;
+
     final chatters =
         await twitchManager.api.fetchChatters(blacklist: ['StreamElements']);
     final message = 'Bonjour à tous ${chatters!.map((e) => '@$e')}';
-    twitchManager.irc.send(message);
+    twitchManager.chat.send(message);
   }
 
   @override
