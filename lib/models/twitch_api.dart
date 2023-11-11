@@ -415,20 +415,20 @@ class TwitchApi {
 }
 
 class TwitchApiMock extends TwitchApi {
-  TwitchMockOptions mockOptions;
+  TwitchDebugPanelOptions debugPanelOptions;
 
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
-  /// [mockOptions] are the options to use for the mock
+  /// [debugPanelOptions] are the options to use for the mock
   static Future<TwitchApiMock> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticatorMock authenticator,
-    required TwitchMockOptions mockOptions,
+    required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApiMock._(appInfo, authenticator, mockOptions);
+    final api = TwitchApiMock._(appInfo, authenticator, debugPanelOptions);
     api.streamerId = 1234567890;
     return api;
   }
@@ -448,23 +448,18 @@ class TwitchApiMock extends TwitchApi {
   ////// CHAT RELATED API //////
   @override
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
-    final List<String> out = [];
-    for (final follower in mockOptions.followers) {
-      out.add(follower);
-    }
-    for (final moderator in mockOptions.moderators) {
-      if (!out.contains(moderator)) out.add(moderator);
-    }
+    final List<String> out =
+        debugPanelOptions.chatters.map((e) => e.displayName).toList();
     return _removeBlacklisted(out, blacklist);
   }
 
   ////// CHANNEL RELATED API //////
   @override
   Future<List<String>?> fetchModerators({bool includeStreamer = false}) async {
-    final List<String> out = [];
-    for (final moderator in mockOptions.moderators) {
-      out.add(moderator);
-    }
+    final List<String> out = debugPanelOptions.chatters
+        .where((chatter) => chatter.isModerator)
+        .map((e) => e.displayName)
+        .toList();
 
     if (includeStreamer) out.add((await login(streamerId))!);
 
@@ -474,10 +469,10 @@ class TwitchApiMock extends TwitchApi {
   @override
   Future<List<String>?> fetchFollowers(
       {bool includeStreamer = false, List<String>? blacklist}) async {
-    final List<String> out = [];
-    for (final follower in mockOptions.followers) {
-      out.add(follower);
-    }
+    final List<String> out = debugPanelOptions.chatters
+        .where((e) => includeStreamer ? true : !e.isStreamer)
+        .map((e) => e.displayName)
+        .toList();
     return _removeBlacklisted(out, blacklist);
   }
 
@@ -486,6 +481,6 @@ class TwitchApiMock extends TwitchApi {
   ///
   /// Private constructor
   TwitchApiMock._(TwitchAppInfo appInfo,
-      TwitchAuthenticatorMock twitchAuthenticator, this.mockOptions)
+      TwitchAuthenticatorMock twitchAuthenticator, this.debugPanelOptions)
       : super._(appInfo, twitchAuthenticator);
 }

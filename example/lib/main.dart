@@ -8,8 +8,17 @@ void main() async {
     initialRoute: TwitchAuthenticationScreen.route,
     routes: {
       TwitchAuthenticationScreen.route: (ctx) => TwitchAuthenticationScreen(
-            mockOptions: const TwitchMockOptions(
-              isActive: true,
+            debugPanelOptions: TwitchDebugPanelOptions(
+              chatters: [
+                TwitchChatterMock(displayName: 'Streamer', isModerator: true),
+                TwitchChatterMock(displayName: 'Moderator', isModerator: true),
+                TwitchChatterMock(displayName: 'Viewer'),
+              ],
+              chatMessages: [
+                'Hello World!',
+                'This is a test message',
+                'This is a test message 2',
+              ],
             ),
             onFinishedConnexion: (manager) => Navigator.of(ctx)
                 .pushReplacementNamed(TwitchChatBotScreen.route,

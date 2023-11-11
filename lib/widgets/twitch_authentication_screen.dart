@@ -17,7 +17,8 @@ enum _ConnexionStatus {
 /// is to pop the window or push another one);
 /// [reload] is directly passed to [TwitchManager.factory];
 /// [saveKey] is directly passed to [TwitchManager.factory];
-/// [mockOptions] is all the confirmation for TwitchMocker if it should be used;
+/// [isMockActive] determines if the mock is active or not;
+/// [debugPanelOptions] is used to prefill the debug panel if it is activated;
 class TwitchAuthenticationScreen extends StatefulWidget {
   const TwitchAuthenticationScreen({
     super.key,
@@ -25,10 +26,12 @@ class TwitchAuthenticationScreen extends StatefulWidget {
     required this.onFinishedConnexion,
     this.reload = true,
     this.saveKey,
-    this.mockOptions,
+    this.isMockActive = false,
+    this.debugPanelOptions,
   });
 
-  final TwitchMockOptions? mockOptions;
+  final TwitchDebugPanelOptions? debugPanelOptions;
+  final bool isMockActive;
 
   static const route = '/twitch-authentication';
   final Function(TwitchManager) onFinishedConnexion;
@@ -48,9 +51,10 @@ class _TwitchAuthenticationScreenState
   String? _redirectAddress;
   TwitchManager? _manager;
   late Future<TwitchManager> factoryManager =
-      widget.mockOptions != null && widget.mockOptions!.isActive
+      widget.debugPanelOptions != null && widget.isMockActive
           ? TwitchManagerMock.factory(
-              appInfo: widget.appInfo, mockOptions: widget.mockOptions!)
+              appInfo: widget.appInfo,
+              debugPanelOptions: widget.debugPanelOptions!)
           : TwitchManager.factory(
               appInfo: widget.appInfo,
               reload: widget.reload,

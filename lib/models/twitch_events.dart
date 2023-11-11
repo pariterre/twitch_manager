@@ -20,7 +20,7 @@ class TwitchEventResponse {
   final int cost;
   final String message;
 
-  TwitchEventResponse({
+  const TwitchEventResponse({
     required this.requestingId,
     required this.requestingUser,
     required this.rewardRedemption,
@@ -104,6 +104,9 @@ class TwitchEvents {
     return twitchEvents;
   }
 
+  ////// PUBLIC //////
+  bool get isConnected => _isConnected;
+
   ///
   /// Subscribe to a specific events
   void addListener(
@@ -130,6 +133,7 @@ class TwitchEvents {
 
   ///
   /// ATTRIBUTES
+  bool _isConnected = false;
   final TwitchApi _api;
   final TwitchAppInfo _appInfo;
   final TwitchAuthenticator _authenticator;
@@ -196,10 +200,12 @@ class TwitchEvents {
         responseDecoded['data'][0]['status'] == 'enabled') {
       // Success
       _subscriptionIds.add(responseDecoded['data'][0]['id']);
+      _isConnected = true;
       return;
     } else {
       // Failed
       dev.log(responseDecoded.toString());
+      _isConnected = false;
       return;
     }
   }
@@ -243,5 +249,7 @@ class TwitchEventsMock extends TwitchEvents {
   /// Private constructor
   TwitchEventsMock._(TwitchAppInfo appInfo,
       TwitchAuthenticatorMock authenticator, TwitchApiMock api)
-      : super._(appInfo, authenticator, api);
+      : super._(appInfo, authenticator, api) {
+    _isConnected;
+  }
 }
