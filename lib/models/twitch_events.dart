@@ -6,8 +6,7 @@ import 'package:http/http.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
-import 'package:twitch_manager/twitch_scope.dart';
+import 'package:twitch_manager/twitch_manager.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
@@ -239,17 +238,28 @@ class TwitchEventsMock extends TwitchEvents {
     required TwitchAppInfo appInfo,
     required TwitchAuthenticatorMock authenticator,
     required TwitchApiMock api,
+    required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
-    return TwitchEventsMock._(appInfo, authenticator, api);
+    return TwitchEventsMock._(appInfo, authenticator, api, debugPanelOptions);
   }
+
+  ////// PUBLIC //////
+
+  // Simulate a reward redemption
+  void simulateRewardRedemption(TwitchEventMock event) =>
+      _eventListeners.listeners.forEach((key, callback) => callback(event));
 
   ////// INTERNAL //////
 
   ///
   /// Private constructor
-  TwitchEventsMock._(TwitchAppInfo appInfo,
-      TwitchAuthenticatorMock authenticator, TwitchApiMock api)
-      : super._(appInfo, authenticator, api) {
+  TwitchEventsMock._(
+    TwitchAppInfo appInfo,
+    TwitchAuthenticatorMock authenticator,
+    TwitchApiMock api,
+    TwitchDebugPanelOptions debugPanelOptions,
+  ) : super._(appInfo, authenticator, api) {
+    debugPanelOptions.simulateRewardRedemption = simulateRewardRedemption;
     _isConnected;
   }
 }

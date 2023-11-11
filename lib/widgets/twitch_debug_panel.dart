@@ -71,11 +71,11 @@ class _TwitchDebugPanelState extends State<TwitchDebugPanel> {
                         debugPanelOptions: debugPanelOptions,
                         maxWidth: widget.width),
                     const SizedBox(height: 8),
-                    // _EventBox(
-                    //     manager: widget.manager as TwitchManagerMock,
-                    //     events: debugPanelOptions.events,
-                    //     usernames: debugPanelOptions.followers,
-                    //     maxWidth: widget.width)
+                    _EventBox(
+                      manager: widget.manager as TwitchManagerMock,
+                      debugPanelOptions: debugPanelOptions,
+                      maxWidth: widget.width,
+                    )
                   ],
                 ),
               ),
@@ -334,14 +334,12 @@ class _ChatBoxState extends State<_ChatBox> {
 class _EventBox extends StatefulWidget {
   const _EventBox({
     required this.manager,
-    required this.events,
-    required this.usernames,
+    required this.debugPanelOptions,
     required this.maxWidth,
   });
 
   final TwitchManagerMock manager;
-  final List<TwitchEventMock> events;
-  final List<String> usernames;
+  final TwitchDebugPanelOptions debugPanelOptions;
   final double maxWidth;
 
   @override
@@ -349,14 +347,42 @@ class _EventBox extends StatefulWidget {
 }
 
 class _EventBoxState extends State<_EventBox> {
-  int _currentSender = 0;
-  final _senderFocus = FocusNode();
-  final _messageController = TextEditingController();
+  late final _controller = TextEditingController();
+  int _currentRedempter = 0;
+  bool _isRedempting = false;
+  final _focusNode = FocusNode();
 
-  void _sendMessage(TextEditingController controller) {
-    if (controller.text == '') return;
-    widget.manager.chat
-        .send(controller.text, username: widget.usernames[_currentSender]);
+  void _redemptReward(String rewardRedemptionTitle) {
+    if (rewardRedemptionTitle == '') return;
+
+    if (widget.debugPanelOptions.simulateRewardRedemption == null) return;
+
+    if (!widget.debugPanelOptions.redemptionRewardEvents
+        .any((e) => e.rewardRedemption == rewardRedemptionTitle)) {
+      _controller.text = 'Reward not in the list';
+      Future.delayed(const Duration(seconds: 1, milliseconds: 500)).then((_) {
+        _controller.text = '';
+        _isRedempting = false;
+        setState(() {});
+      });
+      _isRedempting = true;
+      setState(() {});
+      return;
+    }
+
+    // Simulate the reward redemption
+    final reward = widget.debugPanelOptions.redemptionRewardEvents.firstWhere(
+        (element) => element.rewardRedemption == rewardRedemptionTitle);
+    widget.debugPanelOptions.simulateRewardRedemption!(reward);
+
+    Future.delayed(const Duration(seconds: 1, milliseconds: 500)).then((_) {
+      _isRedempting = false;
+      _controller.text = '';
+      setState(() {});
+    });
+    _isRedempting = true;
+    _controller.text = 'Redempting reward...';
+    setState(() {});
   }
 
   @override
@@ -369,24 +395,26 @@ class _EventBoxState extends State<_EventBox> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Redeem a reward as ${widget.usernames[_currentSender]} ',
+            Text(
+                'Redempt a reward as ${widget.debugPanelOptions.chatters[_currentRedempter].displayName} ',
                 style: const TextStyle(color: Colors.white)),
             SizedBox(
               width: 40,
               child: SubmenuButton(
-                focusNode: _senderFocus,
-                menuChildren: widget.usernames
+                focusNode: _focusNode,
+                menuChildren: widget.debugPanelOptions.chatters
                     .asMap()
                     .keys
                     .map((index) => InkWell(
                           onTap: () {
-                            _currentSender = index;
-                            if (_senderFocus.hasFocus) _senderFocus.nextFocus();
+                            _currentRedempter = index;
+                            if (_focusNode.hasFocus) _focusNode.nextFocus();
                             setState(() {});
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Text(widget.usernames[index]),
+                            child: Text(widget
+                                .debugPanelOptions.chatters[index].displayName),
                           ),
                         ))
                     .toList(),
@@ -395,34 +423,22 @@ class _EventBoxState extends State<_EventBox> {
             )
           ],
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(5)),
-              child: DropdownMenu(
-                width: widget.maxWidth - 3 * 8 - 70,
-                controller: _messageController,
-                dropdownMenuEntries: widget.events
-                    .map((e) =>
-                        DropdownMenuEntry(label: e.rewardRedemption, value: e))
-                    .toList(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 70,
-              child: ElevatedButton(
-                  onPressed: () => _sendMessage(_messageController),
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                  child: const Text(
-                    'Send',
-                    style: TextStyle(color: Colors.black),
-                  )),
-            ),
-          ],
+        Container(
+          decoration: BoxDecoration(
+              color: _isRedempting
+                  ? const Color.fromARGB(255, 222, 222, 222)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(5)),
+          child: DropdownMenu(
+            enabled: !_isRedempting,
+            controller: _controller,
+            onSelected: (value) => _redemptReward(value!),
+            width: widget.maxWidth - 3 * 8 - 70,
+            dropdownMenuEntries: widget.debugPanelOptions.redemptionRewardEvents
+                .map((e) => DropdownMenuEntry(
+                    label: e.rewardRedemption, value: e.rewardRedemption))
+                .toList(),
+          ),
         ),
       ],
     );

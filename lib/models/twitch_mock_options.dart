@@ -34,6 +34,9 @@ class TwitchDebugPanelOptions {
   /// A list of reward redemptions that can be redeemed
   final List<TwitchEventMock> redemptionRewardEvents;
 
+  /// A callback to the TwitchEventMock so we can simulate a reward redemption
+  void Function(TwitchEventMock)? simulateRewardRedemption;
+
   /// Constructor, note that we make a copy of the lists to drop any const
   /// lists that may be passed in
   TwitchDebugPanelOptions({
