@@ -13,13 +13,13 @@ const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
 const _twitchHelixUri = 'https://api.twitch.tv/helix/eventsub/subscriptions';
 
 class TwitchEventResponse {
-  final String requestingId;
-  final String requestingUser;
-  final String rewardRedemption;
-  final int cost;
-  final String message;
+  String requestingId;
+  String requestingUser;
+  String rewardRedemption;
+  int cost;
+  String message;
 
-  const TwitchEventResponse({
+  TwitchEventResponse({
     required this.requestingId,
     required this.requestingUser,
     required this.rewardRedemption,

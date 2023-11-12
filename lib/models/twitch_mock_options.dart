@@ -13,7 +13,7 @@ class TwitchChatterMock {
 }
 
 class TwitchEventMock extends TwitchEventResponse {
-  const TwitchEventMock({
+  TwitchEventMock({
     super.requestingId = '123456789',
     super.requestingUser = 'MockUser',
     required super.rewardRedemption,
