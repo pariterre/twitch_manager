@@ -65,25 +65,39 @@ class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(height: 8),
-                        _ChatterBox(
-                            manager: widget.manager as TwitchManagerMock,
-                            debugPanelOptions: debugPanelOptions,
-                            maxWidth: widget.width,
-                            onChanged: () => setState(() {})),
-                        const SizedBox(height: 8),
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        _ChatBox(
-                            manager: widget.manager as TwitchManagerMock,
-                            debugPanelOptions: debugPanelOptions,
-                            maxWidth: widget.width),
-                        const SizedBox(height: 8),
-                        _EventBox(
-                          manager: widget.manager as TwitchManagerMock,
-                          debugPanelOptions: debugPanelOptions,
-                          maxWidth: widget.width,
-                        )
+                        if (widget.manager.isChatbotConnected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ChatterBox(
+                                    manager:
+                                        widget.manager as TwitchManagerMock,
+                                    debugPanelOptions: debugPanelOptions,
+                                    maxWidth: widget.width,
+                                    onChanged: () => setState(() {})),
+                                const SizedBox(height: 8),
+                                const Divider(),
+                                const SizedBox(height: 8),
+                                _ChatBox(
+                                    manager:
+                                        widget.manager as TwitchManagerMock,
+                                    debugPanelOptions: debugPanelOptions,
+                                    maxWidth: widget.width),
+                              ],
+                            ),
+                          ),
+                        if (widget.manager.isEventConnected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: _EventBox(
+                              manager: widget.manager as TwitchManagerMock,
+                              debugPanelOptions: debugPanelOptions,
+                              maxWidth: widget.width,
+                            ),
+                          )
                       ],
                     ),
                   ),
@@ -318,7 +332,8 @@ class _ChatBoxState extends State<_ChatBox> {
                 dropdownMenuEntries: widget.debugPanelOptions.chatMessages
                     .map((e) => DropdownMenuEntry(label: e, value: e))
                     .toList(),
-                onSelected: (value) => _sendMessage(value!),
+                onSelected: (value) =>
+                    _sendMessage(value ?? _messageController.text),
               ),
             ),
             const SizedBox(width: 8),
