@@ -19,14 +19,20 @@ class TwitchChat {
 
   ///
   /// Add a listener to _messages.addListener
-  void addListener(
-      String id, void Function(String sender, String message) callback) {
+  /// [id] is the unique identifier of the listener. If none is sent then a
+  /// default string is used. Using a default value prevents from registering
+  /// more thane one listener. The reason is the id must be sent back to
+  /// [dispose] to remove the listener from the list of active listeners.
+  void onMessageReceived(void Function(String sender, String message) callback,
+      {String id = 'common'}) {
     _messagesListeners.add(id, callback);
   }
 
   ///
   /// Remove a listener from the list of active listeners
-  void removeListener(String id) {
+  /// [id] is the unique identifier of the listener. If none is sent then the
+  /// default value is used.
+  void dispose([String id = 'common']) {
     _messagesListeners.dispose(id);
   }
 

@@ -7,84 +7,92 @@ import 'package:twitch_manager/widgets/animated_expanding_card.dart';
 ///
 /// This is a debug panel, it must be placed in a Stack on the top Screen.
 /// It creates a draggable panel.
-class TwitchDebugPanel extends StatefulWidget {
-  const TwitchDebugPanel({
+class TwitchDebugOverlay extends StatefulWidget {
+  const TwitchDebugOverlay({
     super.key,
     required this.manager,
     this.maxHeight = 500,
     this.width = 350,
     this.startingPosition = const Offset(0, 0),
+    required this.child,
   });
 
   final double maxHeight;
   final double width;
   final TwitchManager manager;
   final Offset startingPosition;
+  final Widget child;
 
   @override
-  State<TwitchDebugPanel> createState() => _TwitchDebugPanelState();
+  State<TwitchDebugOverlay> createState() => _TwitchDebugOverlayState();
 }
 
-class _TwitchDebugPanelState extends State<TwitchDebugPanel> {
+class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
   var _twitchDragOffset = const Offset(0, 0);
   late var _currentTwitchPosition = widget.startingPosition;
   @override
   Widget build(BuildContext context) {
-    if (widget.manager.runtimeType != TwitchManagerMock) return Container();
+    if (widget.manager.runtimeType != TwitchManagerMock) return widget.child;
     final debugPanelOptions =
         (widget.manager as TwitchManagerMock).debugPanelOptions;
 
-    return Positioned(
-      left: _currentTwitchPosition.dx,
-      top: _currentTwitchPosition.dy,
-      child: GestureDetector(
-        onPanStart: (details) =>
-            _twitchDragOffset = details.globalPosition - _currentTwitchPosition,
-        onPanUpdate: (details) => setState(() => _currentTwitchPosition =
-            details.globalPosition - _twitchDragOffset),
-        child: Card(
-          color: Colors.transparent,
-          elevation: 10,
-          child: Container(
-            width: widget.width,
-            constraints: BoxConstraints(maxHeight: widget.maxHeight),
-            decoration: BoxDecoration(
-                color: Colors.purple, borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.all(8),
-            child: SingleChildScrollView(
-              child: AnimatedExpandingCard(
-                initialExpandedState: true,
-                header: const _Header(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 8),
-                    _ChatterBox(
-                        manager: widget.manager as TwitchManagerMock,
-                        debugPanelOptions: debugPanelOptions,
-                        maxWidth: widget.width,
-                        onChanged: () => setState(() {})),
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    _ChatBox(
-                        manager: widget.manager as TwitchManagerMock,
-                        debugPanelOptions: debugPanelOptions,
-                        maxWidth: widget.width),
-                    const SizedBox(height: 8),
-                    _EventBox(
-                      manager: widget.manager as TwitchManagerMock,
-                      debugPanelOptions: debugPanelOptions,
-                      maxWidth: widget.width,
-                    )
-                  ],
+    return Stack(
+      children: [
+        widget.child,
+        Positioned(
+          left: _currentTwitchPosition.dx,
+          top: _currentTwitchPosition.dy,
+          child: GestureDetector(
+            onPanStart: (details) => _twitchDragOffset =
+                details.globalPosition - _currentTwitchPosition,
+            onPanUpdate: (details) => setState(() => _currentTwitchPosition =
+                details.globalPosition - _twitchDragOffset),
+            child: Card(
+              color: Colors.transparent,
+              elevation: 10,
+              child: Container(
+                width: widget.width,
+                constraints: BoxConstraints(maxHeight: widget.maxHeight),
+                decoration: BoxDecoration(
+                    color: Colors.purple,
+                    borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.all(8),
+                child: SingleChildScrollView(
+                  child: AnimatedExpandingCard(
+                    initialExpandedState: true,
+                    header: const _Header(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        _ChatterBox(
+                            manager: widget.manager as TwitchManagerMock,
+                            debugPanelOptions: debugPanelOptions,
+                            maxWidth: widget.width,
+                            onChanged: () => setState(() {})),
+                        const SizedBox(height: 8),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        _ChatBox(
+                            manager: widget.manager as TwitchManagerMock,
+                            debugPanelOptions: debugPanelOptions,
+                            maxWidth: widget.width),
+                        const SizedBox(height: 8),
+                        _EventBox(
+                          manager: widget.manager as TwitchManagerMock,
+                          debugPanelOptions: debugPanelOptions,
+                          maxWidth: widget.width,
+                        )
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

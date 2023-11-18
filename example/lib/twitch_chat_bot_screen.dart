@@ -41,25 +41,23 @@ class TwitchChatBotScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Chatting interface')),
       body: SingleChildScrollView(
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Chat API',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      )),
-                  TextSender(twitchManager, labelText: 'Send a message'),
-                  const Divider(),
-                  ...reoccurringSender
-                ],
-              ),
+        child: TwitchDebugOverlay(
+          manager: twitchManager,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Chat API',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    )),
+                TextSender(twitchManager, labelText: 'Send a message'),
+                const Divider(),
+                ...reoccurringSender
+              ],
             ),
-            TwitchDebugPanel(manager: twitchManager)
-          ],
+          ),
         ),
       ),
     );
