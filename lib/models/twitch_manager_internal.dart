@@ -31,7 +31,7 @@ class TwitchManager {
   ///
   /// Get a reference to the twitchChat
   TwitchChat get chat {
-    if (!_appInfo.hasChatbot) {
+    if (!_appInfo.needChat) {
       throw 'The app must define at least one TwitchScope with a ScopeType.chat '
           'to use the chat.';
     }
@@ -164,7 +164,7 @@ class TwitchManager {
     }
 
     // Connect the TwitchChat
-    if (_appInfo.hasChatbot) {
+    if (_appInfo.needChat) {
       // If we are not ready yet, just return now
       if (!_authenticator.isChatbotConnected) return;
 

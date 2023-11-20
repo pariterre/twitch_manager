@@ -33,8 +33,16 @@ class TwitchAppInfo {
 
   ///
   /// If the app needs a chat bot. This is automatically set to true as soon as
-  /// there is any TwitchScope that has a TwitchType.chat defined
+  /// there is any TwitchScope that is [TwitchScope.chatEdit] defined
   final bool hasChatbot;
+
+  ///
+  /// If the app needs to read the chat. This is automatically set to true as
+  /// soon as there is any TwitchScope that has a TwitchType.chat. This is
+  /// required to use the chat. [hasChatbot] is always true if this is true.
+  /// The reason hasChatbot is separated from hasChatRead is because [needChat]
+  /// does not necessarily imply edit rights to the chat
+  final bool needChat;
 
   ///
   /// If the app needs to subscribe to Twitch events. This is automatically set
@@ -50,7 +58,8 @@ class TwitchAppInfo {
       required this.scope,
       this.useAuthenticationService = true,
       this.authenticationServiceAddress})
-      : hasChatbot = scope.any((e) => e.scopeType == ScopeType.chat),
+      : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
+        needChat = scope.any((e) => e.scopeType == ScopeType.chat),
         hasEvents = scope.any((e) => e.scopeType == ScopeType.events) {
     if (useAuthenticationService) {
       if (authenticationServiceAddress == null) {

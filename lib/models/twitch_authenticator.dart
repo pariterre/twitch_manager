@@ -59,7 +59,14 @@ class TwitchAuthenticator {
       setOauthKey: (value) => streamerOauthKey = value,
     );
 
+    if (appInfo.needChat && !appInfo.hasChatbot) {
+      // If we need the chat, but not the chatbot, then we connect the streamer
+      // to the chat
+      _isChatbotConnected = true;
+    }
+
     _saveSessions(appInfo: appInfo);
+
     return _isStreamerConnected;
   }
 
