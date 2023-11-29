@@ -327,7 +327,7 @@ class _ChatBoxState extends State<_ChatBox> {
                   borderRadius: BorderRadius.circular(5)),
               child: DropdownMenu(
                 enabled: !_isSending,
-                width: widget.maxWidth - 3 * 8 - 70,
+                width: widget.maxWidth - 3 * 8 - 80,
                 controller: _messageController,
                 dropdownMenuEntries: widget.debugPanelOptions.chatMessages
                     .map((e) => DropdownMenuEntry(label: e, value: e))
@@ -338,7 +338,7 @@ class _ChatBoxState extends State<_ChatBox> {
             ),
             const SizedBox(width: 8),
             SizedBox(
-              width: 70,
+              width: 80,
               child: ElevatedButton(
                   onPressed: _isSending
                       ? () {}
