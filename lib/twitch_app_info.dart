@@ -11,23 +11,6 @@ class TwitchAppInfo {
   final String twitchAppId;
 
   ///
-  /// The redirect address specified to Twitch. See the extension parameters
-  /// in dev.twitch.tv
-  final String redirectAddress;
-
-  ///
-  /// If the authentication should be done via a service [true] or a
-  /// local server [false]. Local server is incompatible with web apps, on the
-  /// other hand, it does not require any service to authenticate.
-  /// The code for the service sits at
-  /// `$TWITCH_MANAGER_ROOT/ressources/authentication_service`
-  final bool useAuthenticationService;
-
-  ///
-  /// If [useAuthenticationService], then this address must be provided.
-  final String? authenticationServiceAddress;
-
-  ///
   /// The scope of the rights required for the app to work
   final List<TwitchScope> scope;
 
@@ -52,19 +35,8 @@ class TwitchAppInfo {
   ///
   /// Main constructor
   TwitchAppInfo(
-      {required this.appName,
-      required this.twitchAppId,
-      required this.redirectAddress,
-      required this.scope,
-      this.useAuthenticationService = true,
-      this.authenticationServiceAddress})
+      {required this.appName, required this.twitchAppId, required this.scope})
       : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
         needChat = scope.any((e) => e.scopeType == ScopeType.chat),
-        hasEvents = scope.any((e) => e.scopeType == ScopeType.events) {
-    if (useAuthenticationService) {
-      if (authenticationServiceAddress == null) {
-        throw 'If [useAuthenticationService] is set to true, then [authenticationServiceAddress] must be set.';
-      }
-    }
-  }
+        hasEvents = scope.any((e) => e.scopeType == ScopeType.events);
 }

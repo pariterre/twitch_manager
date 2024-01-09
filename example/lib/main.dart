@@ -8,6 +8,7 @@ void main() async {
     initialRoute: TwitchAuthenticationScreen.route,
     routes: {
       TwitchAuthenticationScreen.route: (ctx) => TwitchAuthenticationScreen(
+            isMockActive: true,
             debugPanelOptions: TwitchDebugPanelOptions(
               chatters: [
                 TwitchChatterMock(displayName: 'Streamer', isModerator: true),
@@ -32,10 +33,6 @@ void main() async {
                 TwitchScope.chatters,
                 TwitchScope.readFollowers,
               ],
-              redirectAddress: 'http://localhost:3000',
-              useAuthenticationService: false,
-              // The following line must be uncommented if [useAuthenticationService] is true
-              // authenticationServiceAddress: 'ws://localhost:3002',
             ),
             reload: false,
           ),

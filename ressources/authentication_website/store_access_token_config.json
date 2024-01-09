@@ -1,0 +1,7 @@
+{
+    "servername": "ADDRESS_TO_DATABASE",
+    "username": "USERNAME_WITH_SET_ACCESS",
+    "password": "PASSWORD",
+    "dbname": "DB_NAME",
+    "dbtable": "DB_TABLE_NAME"
+}

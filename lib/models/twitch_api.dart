@@ -3,14 +3,19 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
-import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
+
+///
+/// The redirect address specified to Twitch. See the extension parameters
+/// in dev.twitch.tv
+String get _redirectAddress =>
+    'https://pariterre.net/twitch_authentication/twitch.html';
 
 List<String> _removeBlacklisted(
     Iterable<String> names, List<String>? blacklist) {
@@ -51,7 +56,7 @@ class TwitchApi {
   /// https://dev.twitch.tv/docs/authentication/validate-tokens/
   static Future<bool> validateOauthToken(
       {required TwitchAppInfo appInfo, required String oauthKey}) async {
-    final response = await get(
+    final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
@@ -59,6 +64,26 @@ class TwitchApi {
     );
 
     return _checkIfTokenIsValid(response);
+  }
+
+  ///
+  /// Generate a random state token that is 16 digits long with some constraints
+  static String _generateStateToken() {
+    String stateToken = '';
+    for (var i = 0; i < 15; i++) {
+      stateToken += Random().nextInt(10).toString();
+    }
+
+    // Change the 6th digit to a 4 and the 12th to a 2
+    stateToken = stateToken.replaceRange(5, 6, '4');
+    stateToken = stateToken.replaceRange(11, 12, '2');
+
+    // Add a final number checksum that makes the sum of all the digits is 8
+    final sum =
+        stateToken.split('').map((e) => int.parse(e)).reduce((a, b) => a + b);
+    stateToken += ((1 - sum % 7) % 7).toString();
+
+    return stateToken;
   }
 
   ///
@@ -71,34 +96,19 @@ class TwitchApi {
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
   }) async {
-    // Create the authentication link
-    String stateToken = Random().nextInt(0x7fffffff).toString();
+    final stateToken = _generateStateToken();
 
     final scope = appInfo.scope;
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
-        '&redirect_uri=${appInfo.redirectAddress}'
+        '&redirect_uri=$_redirectAddress'
         '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
     onRequestBrowsing(address);
 
     // Send link to user and wait for the user to accept
-    final response = await (appInfo.useAuthenticationService
-        ? _authenticateFromAuthenticationService(
-            appInfo: appInfo, stateToken: stateToken)
-        : _authenticateLocal(stateToken));
-
-    // Parse the answer
-    final re = RegExp(r'^' +
-        appInfo.redirectAddress +
-        r'/#access_token=([a-zA-Z0-9]*)&.*state=([0-9]*).*$');
-    final match = re.firstMatch(response);
-
-    if (match!.group(2)! != stateToken) {
-      throw 'State token not equal, this connexion may be compromised';
-    }
-    return match.group(1)!;
+    return await _getAuthenticationToken(stateToken: stateToken);
   }
 
   ///
@@ -248,7 +258,7 @@ class TwitchApi {
       params = params.substring(0, params.length - 1); // Remove to final '&'
     }
 
-    final response = await get(
+    final response = await http.get(
       Uri.parse(
           '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
       headers: <String, String>{
@@ -276,7 +286,7 @@ class TwitchApi {
   ///
   /// Fetch the user id from its [oauthKey]
   Future<int> _userId(String oauthKey) async {
-    final response = await get(
+    final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
@@ -290,112 +300,22 @@ class TwitchApi {
   /// Call the Twitch API to Authenticate the user.
   /// The [redirectAddress] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
-  static Future<String> _authenticateLocal(String address) async {
-    // In the success page, we have to fetch the address and POST it to ourselves
-    // since it is not possible otherwise to get it
-
-    final successWebsite = '<!DOCTYPE html>'
-        '<html><body>'
-        'You can close this page'
-        '<script>'
-        'var xhr = new XMLHttpRequest();'
-        'xhr.open("POST", \'$address\', true);'
-        'xhr.setRequestHeader(\'Content-Type\', \'application/json\');'
-        'xhr.send(JSON.stringify({\'token\': window.location.href}));'
-        '</script>'
-        '</body></html>';
-
-    // Communication procedure
-    String? twitchResponse;
-    void twitchResponseCallback(Socket client) {
-      client.listen((data) async {
-        // Parse the twitch answer
-        final answerAsString = String.fromCharCodes(data).trim().split('\r\n');
-
-        if (answerAsString.first == 'GET / HTTP/1.1') {
-          // Send the success page to browser
-          client.write('HTTP/1.1 200 OK\nContent-Type: text\n'
-              'Content-Length: ${successWebsite.length}\n'
-              '\n'
-              '$successWebsite');
-          return;
-        } else {
-          // Otherwise it is a POST we sent ourselves in the success page
-          // For some reason, this function is call sometimes more than once
-          twitchResponse ??= jsonDecode(answerAsString.last)['token']!;
-        }
-
-        client.close();
-        return;
-      });
-    }
-
-    final server = await ServerSocket.bind('localhost', 3000);
-    server.listen(twitchResponseCallback);
-
-    while (twitchResponse == null) {
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-
-    server.close();
-
-    return twitchResponse!;
-  }
-
-  ///
-  /// Call the Twitch API to Authenticate the user.
-  /// The [redirectAddress] should match the configured one in the extension
-  /// dev panel of dev.twitch.tv.
   /// This method has the same purpose of _authenticate but is targetted to use
   /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
-  static Future<String> _authenticateFromAuthenticationService(
-      {required String stateToken, required TwitchAppInfo appInfo}) async {
-    String? twitchResponse;
-
-    ///
-    /// This function mirrors the _communicateWithClient of "twitch_authentication_service".
-    String? communicateWithServer(ws.WebSocket socket, message) {
-      final map = jsonDecode(message);
-
-      final status = map?['status'];
-      if (status == null) {
-        throw 'Wrong status, please contact the project owner for an update';
-      }
-
-      if (status == 'waitingForStateToken') {
-        final protocol = map?['protocolVersion'];
-        if (protocol == null) {
-          throw 'Wrong protocol, please contact the project owner for an update';
-        } else if (protocol != '1.0.0') {
-          throw 'Unrecognized protocol, please contact the project owner for an update';
+  static Future<String> _getAuthenticationToken(
+      {required String stateToken}) async {
+    while (true) {
+      final response = await http.get(Uri.parse(
+          'https://pariterre.net/twitch_authentication/get_access_token.php?state=$stateToken'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data.containsKey('token') && data['token'] != 'error') {
+          return data['token'];
         }
-
-        socket.send(json.encode({'stateToken': stateToken}));
-        return null;
       }
-
-      if (status == 'readyToSendResponse') {
-        return map?['twitchResponse'];
-      }
-
-      return null;
-    }
-
-    // Communication procedure
-    final channel =
-        ws.WebSocket(Uri.parse(appInfo.authenticationServiceAddress!));
-    await channel.connection.firstWhere((state) => state is ws.Connected);
-
-    channel.messages.listen(
-        (message) => twitchResponse = communicateWithServer(channel, message));
-    while (twitchResponse == null) {
       await Future.delayed(const Duration(milliseconds: 500));
     }
-
-    channel.send(json.encode({'status': 'thanks'}));
-    channel.close();
-    return twitchResponse!;
   }
 
   ///
@@ -403,7 +323,7 @@ class TwitchApi {
   /// that the token is now invalid.
   /// Returns true if it is, otherwise it returns false.
   ///
-  static Future<bool> _checkIfTokenIsValid(Response response) async {
+  static Future<bool> _checkIfTokenIsValid(http.Response response) async {
     final responseDecoded = await jsonDecode(response.body) as Map;
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {

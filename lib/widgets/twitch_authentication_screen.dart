@@ -97,14 +97,11 @@ class _TwitchAuthenticationScreenState
 
   Future<void> _onRequestBrowsing(String address) async {
     _redirectAddress = address;
-    setState(() {
-      _status = _ConnexionStatus.waitForTwitchValidation;
-    });
+    _status = _ConnexionStatus.waitForTwitchValidation;
+    setState(() {});
 
-    await launchUrl(
-      Uri.parse(_redirectAddress!),
-      mode: LaunchMode.inAppWebView,
-    );
+    await launchUrl(Uri.parse(_redirectAddress!),
+        mode: LaunchMode.inAppWebView);
   }
 
   Widget _buildWaitingMessage(String message) {

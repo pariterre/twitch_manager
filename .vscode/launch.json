@@ -10,13 +10,6 @@
             "request": "launch",
             "type": "dart",
             "args": ["--web-browser-flag=--disable-web-security"]
-        },
-        {
-            "name": "Authentication service",
-            "cwd": "ressources/authentication_service",
-            "request": "launch",
-            "type": "dart",
-            "program": "bin/authentication_service.dart",
         }
     ]
 }
