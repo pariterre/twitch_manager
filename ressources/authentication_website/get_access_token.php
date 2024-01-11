@@ -1,4 +1,9 @@
 <?php 
+  header('Content-Type: application/json');
+  header('Access-Control-Allow-Origin: *');
+  header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+  header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
   // Make sure all the error message are the same to limit the amount of information one can gathers from calling the API
   $errorMessage = "An error occur, please retry...";
 
