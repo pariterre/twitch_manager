@@ -11,6 +11,15 @@ class TwitchAppInfo {
   final String twitchAppId;
 
   ///
+  /// The domain to which the user will be redirected after
+  /// accepting the connection on Twitch. This should match the one configured
+  /// in the extension dev panel of dev.twitch.tv and all the files from
+  /// ressources/authentication_website should be available at that domain.
+  /// [redirectDomain] should not contain any protocol (i.e. https://). https is
+  /// automatically added.
+  final String redirectDomain;
+
+  ///
   /// The scope of the rights required for the app to work
   final List<TwitchScope> scope;
 
@@ -34,9 +43,12 @@ class TwitchAppInfo {
 
   ///
   /// Main constructor
-  TwitchAppInfo(
-      {required this.appName, required this.twitchAppId, required this.scope})
-      : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
+  TwitchAppInfo({
+    required this.appName,
+    required this.twitchAppId,
+    required this.redirectDomain,
+    required this.scope,
+  })  : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
         needChat = scope.any((e) => e.scopeType == ScopeType.chat),
         hasEvents = scope.any((e) => e.scopeType == ScopeType.events);
 }

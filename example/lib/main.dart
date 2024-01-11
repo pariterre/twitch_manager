@@ -27,6 +27,7 @@ void main() async {
             appInfo: TwitchAppInfo(
               appName: 'My Lovely App',
               twitchAppId: 'YOUR_APP_ID_HERE',
+              redirectDomain: 'YOUR_REDIRECT_DOMAIN_HERE',
               scope: const [
                 TwitchScope.chatRead,
                 TwitchScope.chatEdit,

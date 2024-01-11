@@ -11,12 +11,6 @@ import 'package:twitch_manager/twitch_app_info.dart';
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
 
-///
-/// The redirect address specified to Twitch. See the extension parameters
-/// in dev.twitch.tv
-String get _redirectAddress =>
-    'https://twitchauthentication.pariterre.net/request_token.html';
-
 List<String> _removeBlacklisted(
     Iterable<String> names, List<String>? blacklist) {
   return names
@@ -91,7 +85,6 @@ class TwitchApi {
   /// [appInfo] holds all the necessary information to connect.
   /// [onRequestBrowsing] is the callback to show which address the user must
   /// browse.
-  ///
   static Future<String> getNewOauth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
@@ -102,13 +95,14 @@ class TwitchApi {
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
-        '&redirect_uri=$_redirectAddress'
+        '&redirect_uri=https://${appInfo.redirectDomain}/request_token.html'
         '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
     onRequestBrowsing(address);
 
     // Send link to user and wait for the user to accept
-    return await _getAuthenticationToken(stateToken: stateToken);
+    return await _getAuthenticationToken(
+        stateToken: stateToken, redirectDomain: appInfo.redirectDomain);
   }
 
   ///
@@ -298,17 +292,17 @@ class TwitchApi {
 
   ///
   /// Call the Twitch API to Authenticate the user.
-  /// The [redirectAddress] should match the configured one in the extension
+  /// The [redirectDomain] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
   /// This method has the same purpose of _authenticate but is targetted to use
   /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
   static Future<String> _getAuthenticationToken(
-      {required String stateToken}) async {
+      {required String stateToken, required String redirectDomain}) async {
     while (true) {
       final response = await http.get(
-        Uri.https('twitchauthentication.pariterre.net', '/get_access_token.php',
-            {'state': stateToken}),
+        Uri.https(
+            redirectDomain, '/get_access_token.php', {'state': stateToken}),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
