@@ -19,7 +19,7 @@ class TwitchDebugOverlay extends StatefulWidget {
 
   final double maxHeight;
   final double width;
-  final TwitchManager manager;
+  final TwitchManager? manager;
   final Offset startingPosition;
   final Widget child;
 
@@ -32,7 +32,8 @@ class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
   late var _currentTwitchPosition = widget.startingPosition;
   @override
   Widget build(BuildContext context) {
-    if (widget.manager.runtimeType != TwitchManagerMock) return widget.child;
+    if (widget.manager == null ||
+        widget.manager.runtimeType != TwitchManagerMock) return widget.child;
     final debugPanelOptions =
         (widget.manager as TwitchManagerMock).debugPanelOptions;
 
@@ -65,7 +66,7 @@ class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.manager.isChatbotConnected)
+                        if (widget.manager!.isChatbotConnected)
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Column(
@@ -89,7 +90,7 @@ class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
                               ],
                             ),
                           ),
-                        if (widget.manager.isEventConnected)
+                        if (widget.manager!.isEventConnected)
                           Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: _EventBox(

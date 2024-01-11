@@ -15,7 +15,7 @@ const _twitchHelixUri = 'https://api.twitch.tv/helix';
 /// The redirect address specified to Twitch. See the extension parameters
 /// in dev.twitch.tv
 String get _redirectAddress =>
-    'https://pariterre.net/twitch_authentication/twitch.html';
+    'https://twitchauthentication.pariterre.net/request_token.html';
 
 List<String> _removeBlacklisted(
     Iterable<String> names, List<String>? blacklist) {
@@ -306,8 +306,10 @@ class TwitchApi {
   static Future<String> _getAuthenticationToken(
       {required String stateToken}) async {
     while (true) {
-      final response = await http.get(Uri.parse(
-          'https://pariterre.net/twitch_authentication/get_access_token.php?state=$stateToken'));
+      final response = await http.get(
+        Uri.https('twitchauthentication.pariterre.net', '/get_access_token.php',
+            {'state': stateToken}),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data.containsKey('token') && data['token'] != 'error') {
