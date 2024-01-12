@@ -300,10 +300,8 @@ class TwitchApi {
   static Future<String> _getAuthenticationToken(
       {required String stateToken, required String redirectDomain}) async {
     while (true) {
-      final response = await http.get(
-        Uri.https(
-            redirectDomain, '/get_access_token.php', {'state': stateToken}),
-      );
+      final response = await http.get(Uri.https(
+          redirectDomain, '/get_access_token.php', {'state': stateToken}));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data.containsKey('token') && data['token'] != 'error') {
