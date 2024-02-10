@@ -171,7 +171,7 @@ class TwitchManager {
       _chat = await TwitchChat.factory(
           streamerLogin: streamerLogin, authenticator: _authenticator);
 
-      if (!kIsWeb) _finalizerTwitchChat.attach(_chat!, _chat!, detach: _chat);
+      if (!kIsWeb) _finalizerTwitchChat.attach(this, _chat!, detach: this);
     }
 
     // Mark the Manager as being fully ready
@@ -269,7 +269,7 @@ class TwitchManagerMock extends TwitchManager {
         streamerLogin: streamerLogin,
         authenticator: _authenticator as TwitchAuthenticatorMock);
     if (!kIsWeb) {
-      _finalizerTwitchChat.attach(_chat!, _chat!, detach: _chat);
+      _finalizerTwitchChat.attach(this, _chat!, detach: this);
     }
 
     // Connect to the TwitchEvents
