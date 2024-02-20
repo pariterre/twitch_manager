@@ -219,9 +219,10 @@ class TwitchManagerMock extends TwitchManager {
   /// [debugPanelOptions] is all the user defined options for the mocking
   static Future<TwitchManagerMock> factory({
     required TwitchAppInfo appInfo,
-    required TwitchDebugPanelOptions debugPanelOptions,
+    TwitchDebugPanelOptions? debugPanelOptions,
   }) async {
-    return TwitchManagerMock._(appInfo, debugPanelOptions);
+    return TwitchManagerMock._(
+        appInfo, debugPanelOptions ?? TwitchDebugPanelOptions());
   }
 
   @override

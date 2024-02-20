@@ -50,15 +50,13 @@ class _TwitchAuthenticationScreenState
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
   TwitchManager? _manager;
-  late Future<TwitchManager> factoryManager =
-      widget.debugPanelOptions != null && widget.isMockActive
-          ? TwitchManagerMock.factory(
-              appInfo: widget.appInfo,
-              debugPanelOptions: widget.debugPanelOptions!)
-          : TwitchManager.factory(
-              appInfo: widget.appInfo,
-              reload: widget.reload,
-              saveKey: widget.saveKey);
+  late Future<TwitchManager> factoryManager = widget.isMockActive
+      ? TwitchManagerMock.factory(
+          appInfo: widget.appInfo, debugPanelOptions: widget.debugPanelOptions)
+      : TwitchManager.factory(
+          appInfo: widget.appInfo,
+          reload: widget.reload,
+          saveKey: widget.saveKey);
 
   Future<void> _connectStreamer() async {
     if (_manager == null) return;

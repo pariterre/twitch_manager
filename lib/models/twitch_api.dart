@@ -359,6 +359,11 @@ class TwitchApiMock extends TwitchApi {
     return 'display_name_$userId';
   }
 
+  @override
+  Future<bool?> isUserLive(int userId) async {
+    return true;
+  }
+
   ////// CHAT RELATED API //////
   @override
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
