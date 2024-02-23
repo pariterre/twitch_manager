@@ -254,11 +254,11 @@ class TwitchEventsMock extends TwitchEvents {
   ///
   /// Private constructor
   TwitchEventsMock._(
-    TwitchAppInfo appInfo,
-    TwitchAuthenticatorMock authenticator,
-    TwitchApiMock api,
+    super.appInfo,
+    TwitchAuthenticatorMock super.authenticator,
+    TwitchApiMock super.api,
     TwitchDebugPanelOptions debugPanelOptions,
-  ) : super._(appInfo, authenticator, api) {
+  ) : super._() {
     debugPanelOptions.simulateRewardRedemption = simulateRewardRedemption;
     _isConnected;
   }

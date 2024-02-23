@@ -399,7 +399,7 @@ class TwitchApiMock extends TwitchApi {
 
   ///
   /// Private constructor
-  TwitchApiMock._(TwitchAppInfo appInfo,
-      TwitchAuthenticatorMock twitchAuthenticator, this.debugPanelOptions)
-      : super._(appInfo, twitchAuthenticator);
+  TwitchApiMock._(super.appInfo,
+      TwitchAuthenticatorMock super.twitchAuthenticator, this.debugPanelOptions)
+      : super._();
 }

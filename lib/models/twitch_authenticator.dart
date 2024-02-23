@@ -199,7 +199,7 @@ class TwitchAuthenticator {
 }
 
 class TwitchAuthenticatorMock extends TwitchAuthenticator {
-  TwitchAuthenticatorMock({String? saveKey}) : super(saveKey: saveKey);
+  TwitchAuthenticatorMock({super.saveKey = null});
 
   @override
   Future<bool> connectStreamer({
