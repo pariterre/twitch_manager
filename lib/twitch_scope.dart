@@ -38,8 +38,8 @@ enum TwitchScope {
     switch (this) {
       case TwitchScope.chatRead:
       case TwitchScope.chatEdit:
-      case TwitchScope.chatters:
         return ScopeType.chat;
+      case TwitchScope.chatters:
       case TwitchScope.readModerator:
       case TwitchScope.readFollowers:
         return ScopeType.api;
