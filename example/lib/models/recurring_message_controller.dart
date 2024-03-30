@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:example/main.dart';
 
-class ReccurringMessageSender {
-  ReccurringMessageSender();
+class ReccurringMessageController {
+  ReccurringMessageController();
 
   String message = '';
 
@@ -11,10 +11,12 @@ class ReccurringMessageSender {
   bool get isStarted => _isStarted;
 
   Duration _interval = Duration.zero;
+  Duration get interval => _interval;
   set interval(Duration value) =>
       _interval = value.inSeconds > 0 ? value : Duration.zero;
 
   Duration _delay = Duration.zero;
+  Duration get delay => _delay;
   set delay(Duration value) =>
       _delay = value.inSeconds > 0 ? value : Duration.zero;
 

@@ -1,3 +1,7 @@
+import 'package:example/models/command_controller.dart';
+import 'package:example/models/instant_message_controller.dart';
+import 'package:example/models/recurring_message_controller.dart';
+import 'package:example/widgets/twitch_command_formfield.dart';
 import 'package:example/widgets/twitch_message_formfield.dart';
 import 'package:example/widgets/twitch_recurring_message_formfield.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +19,10 @@ class TwitchChatBotScreen extends StatefulWidget {
 }
 
 class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
-  int _lastMessageId = 0;
-  final List<int> _recurringMessageIds = [];
+  final InstantMessageController _instantMessageController =
+      InstantMessageController();
+  final List<ReccurringMessageController> _recurringMessageControllers = [];
+  final List<CommandController> _commandControllers = [];
 
   ///
   /// This sends a message to the chat greating everyone in the chat except for
@@ -80,18 +86,9 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
               ),
             )));
 
+    TwitchManagerSingleton.onMessageReceived = _onMessageReceived;
+
     _greatingChatters();
-    setState(() {});
-  }
-
-  void _addReccurringMessage() {
-    _recurringMessageIds.add(_lastMessageId + 1);
-    _lastMessageId++;
-    setState(() {});
-  }
-
-  void _removeReccurringMessage(int id) {
-    _recurringMessageIds.remove(id);
     setState(() {});
   }
 
@@ -110,52 +107,108 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 12),
-                Text('Connexion',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                if (TwitchManagerSingleton.instance == null)
-                  TwitchConnectButton(
-                    twitchManager: TwitchManagerSingleton.instance,
-                    onPressed: _connectToTwitch,
-                  ),
-                if (TwitchManagerSingleton.instance != null)
-                  const Text('Connected to Twitch'),
-                const SizedBox(height: 12),
+                ..._buildConnexion(),
                 const Divider(),
-                const SizedBox(height: 12),
-                Text('Send an instant message',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                const TwitchMessageFormField(
-                  message: 'The message to send',
-                ),
-                const SizedBox(height: 12),
+                ..._buildInstantMessage(),
                 const Divider(),
-                const SizedBox(height: 12),
-                Text('Send recurring messages',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                ..._recurringMessageIds.map(
-                  (id) => Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: TwitchRecurringMessageFormField(
-                        key: ValueKey(id),
-                        message: 'The recurring message to send',
-                        onDelete: () => _removeReccurringMessage(id)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _addReccurringMessage,
-                  child: const Text('Add message'),
-                ),
+                ..._buildRecurringMessage(),
+                const Divider(),
+                ..._buildCommand(),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  List<Widget> _buildConnexion() {
+    return [
+      const SizedBox(height: 12),
+      Text('Connexion', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 8),
+      if (TwitchManagerSingleton.instance == null)
+        TwitchConnectButton(
+          twitchManager: TwitchManagerSingleton.instance,
+          onPressed: _connectToTwitch,
+        ),
+      if (TwitchManagerSingleton.instance != null)
+        const Text('Connected to Twitch'),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildInstantMessage() {
+    return [
+      const SizedBox(height: 12),
+      Text('Send an instant message',
+          style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 8),
+      TwitchMessageFormField(
+          controller: _instantMessageController, hint: 'The message to send'),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildRecurringMessage() {
+    return [
+      const SizedBox(height: 12),
+      Text('Recurring messages', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 8),
+      ..._recurringMessageControllers.map(
+        (controller) => Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TwitchRecurringMessageFormField(
+              controller: controller,
+              key: ObjectKey(controller),
+              hint: 'The recurring message to send',
+              onDelete: () => setState(
+                  () => _recurringMessageControllers.remove(controller))),
+        ),
+      ),
+      const SizedBox(height: 8),
+      ElevatedButton(
+        onPressed: () => setState(() =>
+            _recurringMessageControllers.add(ReccurringMessageController())),
+        child: const Text('Add message'),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  void _onMessageReceived(String sender, String message) {
+    for (final controller in _commandControllers) {
+      if (controller.command == message) {
+        TwitchManagerSingleton.send(controller.answer);
+      }
+    }
+  }
+
+  List<Widget> _buildCommand() {
+    return [
+      const SizedBox(height: 12),
+      Text('Chatbot commands', style: Theme.of(context).textTheme.titleLarge),
+      const SizedBox(height: 8),
+      ..._commandControllers.map(
+        (controller) => Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TwitchCommandFormField(
+              controller: controller,
+              key: ObjectKey(controller),
+              hintCommand: 'The command to listen to',
+              hintAnswer: 'The message to answer',
+              onDelete: () =>
+                  setState(() => _commandControllers.remove(controller))),
+        ),
+      ),
+      const SizedBox(height: 8),
+      ElevatedButton(
+        onPressed: () =>
+            setState(() => _commandControllers.add(CommandController())),
+        child: const Text('Add command'),
+      ),
+      const SizedBox(height: 12),
+    ];
   }
 }
 
@@ -178,6 +231,13 @@ class TwitchManagerSingleton {
       instance?.chat.send(message);
 
   ///
+  /// Callback for when a message is received
+  Function(String sender, String message)? _onMessageReceivedCallback;
+  static set onMessageReceived(
+          Function(String sender, String message) callback) =>
+      _singleton._onMessageReceivedCallback = callback;
+
+  ///
   /// Check if the TwitchManager is connected
   static bool get isConnected => _singleton._manager?.isConnected ?? false;
 
@@ -185,8 +245,15 @@ class TwitchManagerSingleton {
   /// Setup a singleton for the TwitchManager
   static TwitchManager? get instance => _singleton._manager;
 
-  static void initialize(TwitchManager manager) =>
-      _singleton._manager = manager;
+  static void initialize(TwitchManager manager) {
+    _singleton._manager = manager;
+    _singleton._manager!.chat
+        .onMessageReceived((String sender, String message) {
+      if (_singleton._onMessageReceivedCallback != null) {
+        _singleton._onMessageReceivedCallback!(sender, message);
+      }
+    });
+  }
 
   ///
   /// Internal

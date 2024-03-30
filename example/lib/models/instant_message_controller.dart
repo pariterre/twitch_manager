@@ -1,7 +1,7 @@
 import 'package:example/main.dart';
 
-class MessageSender {
-  MessageSender();
+class InstantMessageController {
+  InstantMessageController();
 
   String message = '';
   bool get isReadyToSend => TwitchManagerSingleton.isConnected && message != '';

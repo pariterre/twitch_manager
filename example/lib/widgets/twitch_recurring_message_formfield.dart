@@ -1,12 +1,16 @@
-import 'package:example/models/recurring_message_sender.dart';
+import 'package:example/models/recurring_message_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class TwitchRecurringMessageFormField extends StatefulWidget {
   const TwitchRecurringMessageFormField(
-      {super.key, required this.message, required this.onDelete});
+      {super.key,
+      required this.controller,
+      required this.hint,
+      required this.onDelete});
 
-  final String message;
+  final ReccurringMessageController controller;
+  final String hint;
   final void Function() onDelete;
 
   @override
@@ -16,28 +20,29 @@ class TwitchRecurringMessageFormField extends StatefulWidget {
 
 class _TwitchRecurringMessageFormFieldState
     extends State<TwitchRecurringMessageFormField> {
-  final _sender = ReccurringMessageSender();
-
   void _setInterval(String value) {
     int? time = int.tryParse(value);
-    _sender.interval = time == null ? Duration.zero : Duration(seconds: time);
+    widget.controller.interval =
+        time == null ? Duration.zero : Duration(minutes: time);
     setState(() {});
   }
 
   void _setDelay(String value) {
     int? time = int.tryParse(value);
-    _sender.delay = time == null ? Duration.zero : Duration(seconds: time);
+    widget.controller.delay =
+        time == null ? Duration.zero : Duration(minutes: time);
   }
 
   ElevatedButton _buildStartButton() {
-    if (_sender.isStarted) {
+    if (widget.controller.isStarted) {
       return ElevatedButton(
-          onPressed: () => setState(() => _sender.stopStreamingText()),
+          onPressed: () =>
+              setState(() => widget.controller.stopStreamingText()),
           child: const Text('Stop'));
     } else {
       return ElevatedButton(
-          onPressed: _sender.isReadyToSend
-              ? () => setState(() => _sender.startStreamingText())
+          onPressed: widget.controller.isReadyToSend
+              ? () => setState(() => widget.controller.startStreamingText())
               : null,
           child: const Text('Start'));
     }
@@ -45,7 +50,7 @@ class _TwitchRecurringMessageFormFieldState
 
   @override
   Widget build(BuildContext context) {
-    final canEdit = !_sender.isStarted;
+    final canEdit = !widget.controller.isStarted;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -54,20 +59,22 @@ class _TwitchRecurringMessageFormFieldState
           padding: const EdgeInsets.only(right: 8.0),
           child: SizedBox(
               width: 300,
-              child: TextField(
+              child: TextFormField(
+                initialValue: widget.controller.message,
                 enabled: canEdit,
-                onChanged: (value) => setState(() => _sender.message = value),
+                onChanged: (value) =>
+                    setState(() => widget.controller.message = value),
                 style: TextStyle(color: canEdit ? Colors.black : Colors.grey),
                 decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: widget.message),
+                    border: const OutlineInputBorder(), labelText: widget.hint),
               )),
         ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: SizedBox(
               width: 70,
-              child: TextField(
+              child: TextFormField(
+                initialValue: widget.controller.interval.inMinutes.toString(),
                 enabled: canEdit,
                 style: TextStyle(color: canEdit ? Colors.black : Colors.grey),
                 inputFormatters: <TextInputFormatter>[
@@ -82,7 +89,8 @@ class _TwitchRecurringMessageFormFieldState
           padding: const EdgeInsets.only(right: 8.0),
           child: SizedBox(
               width: 70,
-              child: TextField(
+              child: TextFormField(
+                initialValue: widget.controller.delay.inMinutes.toString(),
                 enabled: canEdit,
                 style: TextStyle(color: canEdit ? Colors.black : Colors.grey),
                 inputFormatters: <TextInputFormatter>[
@@ -95,10 +103,10 @@ class _TwitchRecurringMessageFormFieldState
         ),
         _buildStartButton(),
         IconButton(
-            onPressed: _sender.isStarted ? null : widget.onDelete,
+            onPressed: widget.controller.isStarted ? null : widget.onDelete,
             icon: Icon(
               Icons.delete,
-              color: _sender.isStarted ? Colors.grey : Colors.red,
+              color: widget.controller.isStarted ? Colors.grey : Colors.red,
             ))
       ],
     );

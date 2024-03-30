@@ -1,22 +1,24 @@
-import 'package:example/models/message_sender.dart';
+import 'package:example/models/instant_message_controller.dart';
 import 'package:flutter/material.dart';
 
 class TwitchMessageFormField extends StatefulWidget {
-  const TwitchMessageFormField({super.key, required this.message});
+  const TwitchMessageFormField(
+      {super.key, required this.controller, required this.hint});
 
-  final String message;
+  final String hint;
+  final InstantMessageController controller;
 
   @override
   State<TwitchMessageFormField> createState() => _TwitchMessageFormFieldState();
 }
 
 class _TwitchMessageFormFieldState extends State<TwitchMessageFormField> {
-  final _sender = MessageSender();
   final _textController = TextEditingController();
 
   void _sendMessage() {
-    _sender.sendText();
-    _textController.text = '';
+    widget.controller.sendText();
+    widget.controller.message = '';
+    _textController.clear();
     setState(() {});
   }
 
@@ -32,15 +34,15 @@ class _TwitchMessageFormFieldState extends State<TwitchMessageFormField> {
               child: TextField(
                 enabled: true,
                 controller: _textController,
-                onChanged: (value) => setState(() => _sender.message = value),
+                onChanged: (value) =>
+                    setState(() => widget.controller.message = value),
                 style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: widget.message),
+                    border: const OutlineInputBorder(), labelText: widget.hint),
               )),
         ),
         ElevatedButton(
-            onPressed: _sender.isReadyToSend ? _sendMessage : null,
+            onPressed: widget.controller.isReadyToSend ? _sendMessage : null,
             child: const Text('Send now')),
       ],
     );
