@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -142,19 +143,43 @@ class _TwitchAuthenticationDialogState
                 decoration: TextDecoration.underline),
           ),
           const SizedBox(height: 36),
-          ElevatedButton(
-            onPressed: () async => await launchUrl(
-              Uri.parse(_redirectAddress!),
-              mode: LaunchMode.inAppWebView,
-            ),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                'Or click here',
-                style: TextStyle(color: Colors.black, fontSize: 28),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  await Clipboard.setData(
+                      ClipboardData(text: _redirectAddress!));
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Copied to your clipboard !')));
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Copy to clipboard',
+                    style: TextStyle(color: Colors.black, fontSize: 28),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: () async => await launchUrl(
+                  Uri.parse(_redirectAddress!),
+                  mode: LaunchMode.inAppWebView,
+                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Open in browser',
+                    style: TextStyle(color: Colors.black, fontSize: 28),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
