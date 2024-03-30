@@ -57,9 +57,8 @@ class TwitchChat {
 
   ///
   /// Send a [message] to the chat
-  void send(String message) {
-    _send('PRIVMSG #$streamerLogin :$message');
-  }
+  Future<void> send(String message) async =>
+      await _send('PRIVMSG #$streamerLogin :$message');
 
   ///
   /// Disconnect to Twitch IRC channel
@@ -109,7 +108,7 @@ class TwitchChat {
       _socket!.send('$command\n');
     } on SocketException {
       _socket = await _getConnectedSocket();
-      _send(command);
+      await _send(command);
       return;
     }
   }
@@ -147,16 +146,16 @@ class TwitchChat {
       _connect();
       return;
     }
-    _connectToTwitchIrc();
+    await _connectToTwitchIrc();
   }
 
   ///
   /// Connect to the actual IRC channel
-  void _connectToTwitchIrc() {
+  Future<void> _connectToTwitchIrc() async {
     _isConnected = true;
-    _send('PASS oauth:$_oauthKey');
-    _send('NICK $streamerLogin');
-    _send('JOIN #$streamerLogin');
+    await _send('PASS oauth:$_oauthKey');
+    await _send('NICK $streamerLogin');
+    await _send('JOIN #$streamerLogin');
   }
 
   ///
@@ -224,11 +223,11 @@ class TwitchChatMock extends TwitchChat {
   }
 
   @override
-  void send(String message, {String? username}) {
+  Future<void> send(String message, {String? username}) async {
     // Normal behavior is that streamer sends a message, specifying a username
     // overrides this and mock a sent message from that user name
     final sender = username ?? streamerLogin;
-    _send('PRIVMSG #$sender :$message');
+    await _send('PRIVMSG #$sender :$message');
   }
 
   @override
