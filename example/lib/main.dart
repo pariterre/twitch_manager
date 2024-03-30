@@ -24,6 +24,8 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
   final List<ReccurringMessageController> _recurringMessageControllers = [];
   final List<CommandController> _commandControllers = [];
 
+  final List<String> _followers = [];
+
   ///
   /// This sends a message to the chat greating everyone in the chat except for
   /// StreamElements which was blacklisted. This can be used as an example on
@@ -75,7 +77,8 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
                   TwitchChatterMock(displayName: 'Streamer', isModerator: true),
                   TwitchChatterMock(
                       displayName: 'Moderator', isModerator: true),
-                  TwitchChatterMock(displayName: 'Viewer'),
+                  TwitchChatterMock(displayName: 'Follower'),
+                  TwitchChatterMock(displayName: 'Viewer', isFollower: false),
                 ],
                 // Prewritten message to send to the chat
                 chatMessages: [
@@ -87,6 +90,11 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
             )));
 
     TwitchManagerSingleton.onMessageReceived = _onMessageReceived;
+
+    _followers.addAll(
+        (await TwitchManagerSingleton.fetchFollowers(includeStreamer: true))
+                ?.toList() ??
+            []);
 
     _greatingChatters();
     setState(() {});
@@ -177,6 +185,8 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
   }
 
   void _onMessageReceived(String sender, String message) {
+    if (!_followers.contains(sender)) return;
+
     for (final controller in _commandControllers) {
       if (controller.command == message) {
         TwitchManagerSingleton.send(controller.answer);
@@ -224,6 +234,12 @@ class TwitchManagerSingleton {
   static Future<List<String>?> fetchChatters(
           {required List<String> blacklist}) async =>
       await instance?.api.fetchChatters(blacklist: blacklist);
+
+  ///
+  /// Fetch the followers of the streamer
+  static Future<List<String>?> fetchFollowers(
+          {required bool includeStreamer}) async =>
+      await instance?.api.fetchFollowers(includeStreamer: includeStreamer);
 
   ///
   /// Send a message to the chat

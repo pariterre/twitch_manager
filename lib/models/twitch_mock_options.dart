@@ -4,11 +4,13 @@ class TwitchChatterMock {
   String displayName;
   bool isStreamer;
   bool isModerator;
+  bool isFollower;
 
   TwitchChatterMock({
     required this.displayName,
     this.isModerator = false,
     this.isStreamer = false,
+    this.isFollower = true,
   });
 }
 

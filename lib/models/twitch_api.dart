@@ -389,7 +389,7 @@ class TwitchApiMock extends TwitchApi {
   Future<List<String>?> fetchFollowers(
       {bool includeStreamer = false, List<String>? blacklist}) async {
     final List<String> out = debugPanelOptions.chatters
-        .where((e) => includeStreamer ? true : !e.isStreamer)
+        .where((e) => e.isFollower && (includeStreamer ? true : !e.isStreamer))
         .map((e) => e.displayName)
         .toList();
     return _removeBlacklisted(out, blacklist);
