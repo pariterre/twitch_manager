@@ -95,14 +95,14 @@ class TwitchApi {
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
-        '&redirect_uri=https://${appInfo.redirectDomain}/request_token.html'
+        '&redirect_uri=https://${appInfo.redirectUri}/request_token.html'
         '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
     onRequestBrowsing(address);
 
     // Send link to user and wait for the user to accept
     return await _getAuthenticationToken(
-        stateToken: stateToken, redirectDomain: appInfo.redirectDomain);
+        stateToken: stateToken, redirectUri: appInfo.redirectUri);
   }
 
   ///
@@ -292,16 +292,16 @@ class TwitchApi {
 
   ///
   /// Call the Twitch API to Authenticate the user.
-  /// The [redirectDomain] should match the configured one in the extension
+  /// The [redirectUri] should match the configured one in the extension
   /// dev panel of dev.twitch.tv.
   /// This method has the same purpose of _authenticate but is targetted to use
   /// the service. Doing so, we don't need Socket anymore, but only
   /// websockets, allowing for web interface to be used
   static Future<String> _getAuthenticationToken(
-      {required String stateToken, required String redirectDomain}) async {
+      {required String stateToken, required String redirectUri}) async {
     while (true) {
       final response = await http.get(Uri.https(
-          redirectDomain, '/get_access_token.php', {'state': stateToken}));
+          redirectUri, '/get_access_token.php', {'state': stateToken}));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data.containsKey('token') && data['token'] != 'error') {

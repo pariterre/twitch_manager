@@ -13,17 +13,17 @@ enum _ConnexionStatus {
 ///
 /// This is the main window to call to connect to twitch. [appInfo] is all the
 /// information to connect to  twitch;
-/// [onFinishedConnexion] is the callback when connexion is done (typically, it
+/// [onConnexionEstablished] is the callback when connexion is done (typically, it
 /// is to pop the window or push another one);
 /// [reload] is directly passed to [TwitchManager.factory];
 /// [saveKey] is directly passed to [TwitchManager.factory];
 /// [isMockActive] determines if the mock is active or not;
 /// [debugPanelOptions] is used to prefill the debug panel if it is activated;
-class TwitchAuthenticationScreen extends StatefulWidget {
-  const TwitchAuthenticationScreen({
+class TwitchAuthenticationDialog extends StatefulWidget {
+  const TwitchAuthenticationDialog({
     super.key,
     required this.appInfo,
-    required this.onFinishedConnexion,
+    required this.onConnexionEstablished,
     this.reload = true,
     this.saveKey,
     this.isMockActive = false,
@@ -34,19 +34,19 @@ class TwitchAuthenticationScreen extends StatefulWidget {
   final bool isMockActive;
 
   static const route = '/twitch-authentication';
-  final Function(TwitchManager) onFinishedConnexion;
+  final Function(TwitchManager) onConnexionEstablished;
 
   final TwitchAppInfo appInfo;
   final bool reload;
   final String? saveKey;
 
   @override
-  State<TwitchAuthenticationScreen> createState() =>
-      _TwitchAuthenticationScreenState();
+  State<TwitchAuthenticationDialog> createState() =>
+      _TwitchAuthenticationDialogState();
 }
 
-class _TwitchAuthenticationScreenState
-    extends State<TwitchAuthenticationScreen> {
+class _TwitchAuthenticationDialogState
+    extends State<TwitchAuthenticationDialog> {
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
   TwitchManager? _manager;
@@ -89,7 +89,7 @@ class _TwitchAuthenticationScreenState
 
     // If we get here, we are done authenticating
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      widget.onFinishedConnexion(_manager!);
+      widget.onConnexionEstablished(_manager!);
     });
   }
 

@@ -14,7 +14,7 @@
       let state = '';
       let accessToken = '';
 
-      // Loop through parameters to find access_token
+      // Loop through parameters to find state and access_token
       for (let i = 0; i < hashParams.length; i++) {
         const param = hashParams[i].split('=');
         if(param[0] === 'state'){
