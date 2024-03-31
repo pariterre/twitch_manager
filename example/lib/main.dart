@@ -263,8 +263,8 @@ class TwitchManagerSingleton {
 
   static void initialize(TwitchManager manager) {
     _singleton._manager = manager;
-    _singleton._manager!.chat
-        .onMessageReceived((String sender, String message) {
+    _singleton._manager!.chat.onMessageReceived
+        .startListening((String sender, String message) {
       if (_singleton._onMessageReceivedCallback != null) {
         _singleton._onMessageReceivedCallback!(sender, message);
       }

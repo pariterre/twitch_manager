@@ -13,45 +13,15 @@ class TwitchChat {
   bool _isConnected = false;
 
   ///
-  /// List of active listeners to notify if a chat message is received.
-  final _messagesListeners =
+  /// Access the listener to the chat messages.
+  final onMessageReceived =
       TwitchGenericListener<void Function(String sender, String message)>();
-
-  ///
-  /// Add a listener to _messages.addListener
-  /// [id] is the unique identifier of the listener. If none is sent then a
-  /// default string is used. Using a default value prevents from registering
-  /// more thane one listener. The reason is the id must be sent back to
-  /// [dispose] to remove the listener from the list of active listeners.
-  void onMessageReceived(Function(String sender, String message) callback) {
-    _messagesListeners.startListening(callback);
-  }
-
-  ///
-  /// Remove a listener from the list of active listeners
-  /// [id] is the unique identifier of the listener. If none is sent then the
-  /// default value is used.
-  void dispose(Function(String sender, String message) callback) {
-    _messagesListeners.stopListening(callback);
-  }
 
   ///
   /// List of active listeners to notify if a communication is received which is
   /// not a chat message (probably an error message from Twitch)
-  final _twitchCommunicationListeners =
+  final onInternalMessageReceived =
       TwitchGenericListener<Function(String message)>();
-
-  ///
-  /// Add a listener to _twitchCommunication.addListener
-  void addCommunicationListener(Function(String message) callback) {
-    _twitchCommunicationListeners.startListening(callback);
-  }
-
-  ///
-  /// Remove a listener from the list of active listeners
-  void removeCommunicationListener(Function(String message) callback) {
-    _twitchCommunicationListeners.stopListening(callback);
-  }
 
   ///
   /// Send a [message] to the chat
@@ -62,8 +32,8 @@ class TwitchChat {
   /// Disconnect to Twitch IRC channel
   Future<void> disconnect() async {
     // Remove the active listeners
-    _messagesListeners.clearListeners();
-    _twitchCommunicationListeners.clearListeners();
+    onMessageReceived.clearListeners();
+    onInternalMessageReceived.clearListeners();
 
     if (!_isConnected) return;
 
@@ -182,8 +152,7 @@ class TwitchChat {
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
       log(fullMessage);
-      _twitchCommunicationListeners
-          .forEach((callback) => callback(fullMessage));
+      onInternalMessageReceived.forEach((callback) => callback(fullMessage));
       return;
     }
 
@@ -191,7 +160,7 @@ class TwitchChat {
     final sender = match.group(1)!;
     final message = match.group(2)!;
     log('Message received:\n$sender: $message');
-    _messagesListeners.forEach((callback) => callback(sender, message));
+    onMessageReceived.forEach((callback) => callback(sender, message));
   }
 }
 
