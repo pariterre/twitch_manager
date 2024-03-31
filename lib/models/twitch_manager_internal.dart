@@ -129,17 +129,15 @@ class TwitchManager {
     await _chat?.disconnect();
     await _events?.disconnect();
     await _authenticator.disconnect();
-    _onDisconnect.forEach((callback) => callback());
+
+    // Notify the user that the manager has disconnected
+    onHasDisconnected.forEach((callback) => callback());
   }
 
   ///
   /// Callbacks to inform the user when something changes internally
   ///
-
-  final _onDisconnect = TwitchGenericListener();
-  void registerToOnDisconnect(void Function() callback) {
-    _onDisconnect.add(callback);
-  }
+  final onHasDisconnected = TwitchGenericListener();
 
   ///
   /// ATTRIBUTES

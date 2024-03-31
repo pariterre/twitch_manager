@@ -109,7 +109,7 @@ class TwitchEvents {
   ///
   /// Subscribe to a specific events
   void addListener(Function(TwitchEventResponse events) callback) {
-    _eventListeners.add(callback);
+    _eventListeners.startListening(callback);
   }
 
   ///
@@ -120,7 +120,7 @@ class TwitchEvents {
     }
     _subscriptionIds.clear();
 
-    _eventListeners.disposeAll();
+    _eventListeners.clearListeners();
     _channel?.close();
   }
 

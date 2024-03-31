@@ -24,7 +24,7 @@ class TwitchChat {
   /// more thane one listener. The reason is the id must be sent back to
   /// [dispose] to remove the listener from the list of active listeners.
   void onMessageReceived(Function(String sender, String message) callback) {
-    _messagesListeners.add(callback);
+    _messagesListeners.startListening(callback);
   }
 
   ///
@@ -32,7 +32,7 @@ class TwitchChat {
   /// [id] is the unique identifier of the listener. If none is sent then the
   /// default value is used.
   void dispose(Function(String sender, String message) callback) {
-    _messagesListeners.remove(callback);
+    _messagesListeners.stopListening(callback);
   }
 
   ///
@@ -44,13 +44,13 @@ class TwitchChat {
   ///
   /// Add a listener to _twitchCommunication.addListener
   void addCommunicationListener(Function(String message) callback) {
-    _twitchCommunicationListeners.add(callback);
+    _twitchCommunicationListeners.startListening(callback);
   }
 
   ///
   /// Remove a listener from the list of active listeners
   void removeCommunicationListener(Function(String message) callback) {
-    _twitchCommunicationListeners.remove(callback);
+    _twitchCommunicationListeners.stopListening(callback);
   }
 
   ///
@@ -62,8 +62,8 @@ class TwitchChat {
   /// Disconnect to Twitch IRC channel
   Future<void> disconnect() async {
     // Remove the active listeners
-    _messagesListeners.disposeAll();
-    _twitchCommunicationListeners.disposeAll();
+    _messagesListeners.clearListeners();
+    _twitchCommunicationListeners.clearListeners();
 
     if (!_isConnected) return;
 
