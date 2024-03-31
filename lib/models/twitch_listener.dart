@@ -1,25 +1,29 @@
 class TwitchGenericListener<T extends Function> {
   ///
   /// Start listening.
-  void add(String id, T callback) {
-    listeners[id] = callback;
+  void add(T callback) {
+    _listeners.add(callback);
   }
 
   ///
   /// Stop listening.
-  void dispose(String id) {
-    listeners.remove(id);
+  void remove(T callback) {
+    _listeners.remove(callback);
   }
 
   ///
   /// Stop all listeners.
   void disposeAll() {
-    listeners.clear();
+    _listeners.clear();
+  }
+
+  ///
+  /// Notify all listeners.
+  void forEach(void Function(T) callback) {
+    _listeners.forEach(callback);
   }
 
   ///
   /// List of active listeners to notify.
-  final Map<String, T> listeners = {};
-
-  TwitchGenericListener();
+  final List<T> _listeners = [];
 }

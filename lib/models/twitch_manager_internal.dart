@@ -3,6 +3,7 @@ import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_chat.dart';
+import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
 
@@ -29,7 +30,7 @@ class TwitchManager {
   bool get isEventConnected => _events?.isConnected ?? false;
 
   ///
-  /// Get a reference to the twitchChat
+  /// Get a reference to the twitch chat
   TwitchChat get chat {
     if (!_appInfo.needChat) {
       throw 'The app must define at least one TwitchScope with a ScopeType.chat '
@@ -128,6 +129,16 @@ class TwitchManager {
     await _chat?.disconnect();
     await _events?.disconnect();
     await _authenticator.disconnect();
+    _onDisconnect.forEach((callback) => callback());
+  }
+
+  ///
+  /// Callbacks to inform the user when something changes internally
+  ///
+
+  final _onDisconnect = TwitchGenericListener();
+  void registerToOnDisconnect(void Function() callback) {
+    _onDisconnect.add(callback);
   }
 
   ///

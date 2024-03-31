@@ -23,36 +23,34 @@ class TwitchChat {
   /// default string is used. Using a default value prevents from registering
   /// more thane one listener. The reason is the id must be sent back to
   /// [dispose] to remove the listener from the list of active listeners.
-  void onMessageReceived(void Function(String sender, String message) callback,
-      {String id = 'common'}) {
-    _messagesListeners.add(id, callback);
+  void onMessageReceived(Function(String sender, String message) callback) {
+    _messagesListeners.add(callback);
   }
 
   ///
   /// Remove a listener from the list of active listeners
   /// [id] is the unique identifier of the listener. If none is sent then the
   /// default value is used.
-  void dispose([String id = 'common']) {
-    _messagesListeners.dispose(id);
+  void dispose(Function(String sender, String message) callback) {
+    _messagesListeners.remove(callback);
   }
 
   ///
   /// List of active listeners to notify if a communication is received which is
   /// not a chat message (probably an error message from Twitch)
   final _twitchCommunicationListeners =
-      TwitchGenericListener<void Function(String message)>();
+      TwitchGenericListener<Function(String message)>();
 
   ///
   /// Add a listener to _twitchCommunication.addListener
-  void addCommunicationListener(
-      String id, void Function(String message) callback) {
-    _twitchCommunicationListeners.add(id, callback);
+  void addCommunicationListener(Function(String message) callback) {
+    _twitchCommunicationListeners.add(callback);
   }
 
   ///
   /// Remove a listener from the list of active listeners
-  void removeCommunicationListener(String id) {
-    _twitchCommunicationListeners.dispose(id);
+  void removeCommunicationListener(Function(String message) callback) {
+    _twitchCommunicationListeners.remove(callback);
   }
 
   ///
@@ -184,8 +182,8 @@ class TwitchChat {
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
       log(fullMessage);
-      _twitchCommunicationListeners.listeners
-          .forEach((key, callback) => callback(fullMessage));
+      _twitchCommunicationListeners
+          .forEach((callback) => callback(fullMessage));
       return;
     }
 
@@ -193,8 +191,7 @@ class TwitchChat {
     final sender = match.group(1)!;
     final message = match.group(2)!;
     log('Message received:\n$sender: $message');
-    _messagesListeners.listeners
-        .forEach((key, callback) => callback(sender, message));
+    _messagesListeners.forEach((callback) => callback(sender, message));
   }
 }
 

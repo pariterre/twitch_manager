@@ -108,9 +108,8 @@ class TwitchEvents {
 
   ///
   /// Subscribe to a specific events
-  void addListener(
-      String id, void Function(TwitchEventResponse events) callback) {
-    _eventListeners.add(id, callback);
+  void addListener(Function(TwitchEventResponse events) callback) {
+    _eventListeners.add(callback);
   }
 
   ///
@@ -167,7 +166,7 @@ class TwitchEvents {
     // log and notify the listeners
     final response = TwitchEventResponse.fromMap(map);
     dev.log(response.toString());
-    _eventListeners.listeners.forEach((key, callback) => callback(response));
+    _eventListeners.forEach((callback) => callback(response));
   }
 
   ///
@@ -247,7 +246,7 @@ class TwitchEventsMock extends TwitchEvents {
 
   // Simulate a reward redemption
   void simulateRewardRedemption(TwitchEventMock event) =>
-      _eventListeners.listeners.forEach((key, callback) => callback(event));
+      _eventListeners.forEach((callback) => callback(event));
 
   ////// INTERNAL //////
 
