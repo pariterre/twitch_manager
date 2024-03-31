@@ -95,7 +95,7 @@ class TwitchApi {
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
         '&client_id=${appInfo.twitchAppId}'
-        '&redirect_uri=https://${appInfo.redirectUri}/request_token.html'
+        '&redirect_uri=https://${appInfo.redirectUri}/twitch_redirect.html'
         '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
     onRequestBrowsing(address);
