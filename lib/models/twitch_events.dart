@@ -108,7 +108,7 @@ class TwitchEvents {
 
   ///
   /// Subscribe to a specific events
-  final eventListeners =
+  final onRewardRedeemed =
       TwitchGenericListener<void Function(TwitchEventResponse event)>();
 
   ///
@@ -119,7 +119,7 @@ class TwitchEvents {
     }
     _subscriptionIds.clear();
 
-    eventListeners.clearListeners();
+    onRewardRedeemed.clearListeners();
     _channel?.close();
 
     _isConnected = false;
@@ -165,7 +165,7 @@ class TwitchEvents {
     // log and notify the listeners
     final response = TwitchEventResponse.fromMap(map);
     dev.log(response.toString());
-    eventListeners.notifyListerners((callback) => callback(response));
+    onRewardRedeemed.notifyListerners((callback) => callback(response));
   }
 
   ///
@@ -245,7 +245,7 @@ class TwitchEventsMock extends TwitchEvents {
 
   // Simulate a reward redemption
   void simulateRewardRedemption(TwitchEventMock event) =>
-      eventListeners.notifyListerners((callback) => callback(event));
+      onRewardRedeemed.notifyListerners((callback) => callback(event));
 
   ////// INTERNAL //////
 
