@@ -14,14 +14,43 @@ class TwitchChatterMock {
   });
 }
 
-class TwitchEventMock extends TwitchEventResponse {
+class TwitchEventMock extends TwitchEvent {
   TwitchEventMock({
-    super.requestingId = '123456789',
+    super.requestingUserId = '123456789',
     super.requestingUser = 'MockUser',
-    required super.rewardRedemption,
     required super.cost,
     super.message = '',
   });
+}
+
+class TwitchRewardRedemptionMock extends TwitchRewardRedemption {
+  TwitchRewardRedemptionMock({
+    super.requestingUserId = '123456789',
+    super.requestingUser = 'MockUser',
+    super.message = '',
+    required super.rewardRedemptionId,
+    required super.rewardRedemption,
+    required super.cost,
+  });
+
+  @override
+  TwitchRewardRedemptionMock copyWith({
+    String? requestingUserId,
+    String? requestingUser,
+    int? cost,
+    String? message,
+    String? rewardRedemptionId,
+    String? rewardRedemption,
+  }) {
+    return TwitchRewardRedemptionMock(
+      requestingUserId: requestingUserId ?? this.requestingUserId,
+      requestingUser: requestingUser ?? this.requestingUser,
+      cost: cost ?? this.cost,
+      message: message ?? this.message,
+      rewardRedemptionId: rewardRedemptionId ?? this.rewardRedemptionId,
+      rewardRedemption: rewardRedemption ?? this.rewardRedemption,
+    );
+  }
 }
 
 ///
@@ -34,17 +63,17 @@ class TwitchDebugPanelOptions {
   final List<String> chatMessages;
 
   /// A list of reward redemptions that can be redeemed
-  final List<TwitchEventMock> redemptionRewardEvents;
+  final List<TwitchRewardRedemptionMock> redemptionRewardEvents;
 
   /// A callback to the TwitchEventMock so we can simulate a reward redemption
-  void Function(TwitchEventMock)? simulateRewardRedemption;
+  void Function(TwitchRewardRedemptionMock)? simulateRewardRedemption;
 
   /// Constructor, note that we make a copy of the lists to drop any const
   /// lists that may be passed in
   TwitchDebugPanelOptions({
     List<TwitchChatterMock>? chatters,
     List<String>? chatMessages,
-    List<TwitchEventMock>? redemptionRewardEvents,
+    List<TwitchRewardRedemptionMock>? redemptionRewardEvents,
   })  : chatters = chatters == null ? [] : [...chatters],
         chatMessages = chatMessages == null ? [] : [...chatMessages],
         redemptionRewardEvents =

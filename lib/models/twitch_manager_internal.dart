@@ -284,11 +284,13 @@ class TwitchManagerMock extends TwitchManager {
     }
 
     // Connect to the TwitchEvents
-    _events ??= await TwitchEventsMock.factory(
-        appInfo: _appInfo,
-        authenticator: _authenticator as TwitchAuthenticatorMock,
-        api: _api as TwitchApiMock,
-        debugPanelOptions: debugPanelOptions);
+    if (_appInfo.hasEvents) {
+      _events ??= await TwitchEventsMock.factory(
+          appInfo: _appInfo,
+          authenticator: _authenticator as TwitchAuthenticatorMock,
+          api: _api as TwitchApiMock,
+          debugPanelOptions: debugPanelOptions);
+    }
 
     // Mark the Manager as being ready
     _isConnected = true;

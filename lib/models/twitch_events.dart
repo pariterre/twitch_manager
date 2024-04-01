@@ -12,26 +12,23 @@ import 'package:web_socket_client/web_socket_client.dart' as ws;
 const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
 const _twitchHelixUri = 'https://api.twitch.tv/helix/eventsub/subscriptions';
 
-class TwitchEventResponse {
-  String requestingId;
-  String requestingUser;
-  String rewardRedemption;
-  int cost;
-  String message;
+class TwitchEvent {
+  final String requestingUserId;
+  final String requestingUser;
+  final int cost;
+  final String message;
 
-  TwitchEventResponse({
-    required this.requestingId,
+  TwitchEvent({
+    required this.requestingUserId,
     required this.requestingUser,
-    required this.rewardRedemption,
     required this.cost,
     required this.message,
   });
 
-  factory TwitchEventResponse.fromMap(Map<String, dynamic> map) {
-    return TwitchEventResponse(
-      requestingId: map['payload']['event']['user_id'],
+  factory TwitchEvent.fromMap(Map<String, dynamic> map) {
+    return TwitchEvent(
+      requestingUserId: map['payload']['event']['user_id'],
       requestingUser: map['payload']['event']['user_name'],
-      rewardRedemption: map['payload']['event']['reward']['title'],
       cost: map['payload']['event']['reward']['cost'],
       message: map['payload']['event']['user_input'],
     );
@@ -39,13 +36,82 @@ class TwitchEventResponse {
 
   @override
   String toString() {
-    String message =
-        '$requestingUser ($requestingId) has made a reward redemption for $cost: $rewardRedemption';
+    String message = 'Event from $requestingUser ($requestingUserId)';
     if (message.isNotEmpty) {
       message += ' with the added following message: $message';
     }
 
     return message;
+  }
+
+  TwitchEvent copyWith({
+    String? requestingUserId,
+    String? requestingUser,
+    int? cost,
+    String? message,
+  }) {
+    return TwitchEvent(
+      requestingUserId: requestingUserId ?? this.requestingUserId,
+      requestingUser: requestingUser ?? this.requestingUser,
+      cost: cost ?? this.cost,
+      message: message ?? this.message,
+    );
+  }
+}
+
+class TwitchRewardRedemption extends TwitchEvent {
+  TwitchRewardRedemption({
+    required super.requestingUserId,
+    required super.requestingUser,
+    required super.cost,
+    required super.message,
+    required this.rewardRedemptionId,
+    required this.rewardRedemption,
+  });
+
+  final String rewardRedemptionId;
+  final String rewardRedemption;
+
+  factory TwitchRewardRedemption.fromMap(Map<String, dynamic> map) {
+    final event = TwitchEvent.fromMap(map);
+    return TwitchRewardRedemption(
+      requestingUserId: event.requestingUserId,
+      requestingUser: event.requestingUser,
+      cost: event.cost,
+      message: event.message,
+      rewardRedemptionId: map['payload']['event']['reward']['id'],
+      rewardRedemption: map['payload']['event']['reward']['title'],
+    );
+  }
+
+  @override
+  String toString() {
+    String message =
+        '$requestingUser ($requestingUserId) has made a reward redemption for $cost: $rewardRedemption';
+    if (message.isNotEmpty) {
+      message += ' with the added following message: $message';
+    }
+
+    return message;
+  }
+
+  @override
+  TwitchRewardRedemption copyWith({
+    String? requestingUserId,
+    String? requestingUser,
+    int? cost,
+    String? message,
+    String? rewardRedemptionId,
+    String? rewardRedemption,
+  }) {
+    return TwitchRewardRedemption(
+      requestingUserId: requestingUserId ?? this.requestingUserId,
+      requestingUser: requestingUser ?? this.requestingUser,
+      cost: cost ?? this.cost,
+      message: message ?? this.message,
+      rewardRedemptionId: rewardRedemptionId ?? this.rewardRedemptionId,
+      rewardRedemption: rewardRedemption ?? this.rewardRedemption,
+    );
   }
 }
 
@@ -107,9 +173,9 @@ class TwitchEvents {
   bool get isConnected => _isConnected;
 
   ///
-  /// Subscribe to a specific events
+  /// Subscribe to a specific reward redemption event
   final onRewardRedeemed =
-      TwitchGenericListener<void Function(TwitchEventResponse event)>();
+      TwitchGenericListener<void Function(TwitchRewardRedemption event)>();
 
   ///
   /// Unsubscribe to all events and close connexion
@@ -163,9 +229,13 @@ class TwitchEvents {
 
     // If we get here, this is an actual response from Twitch. Let's parse it
     // log and notify the listeners
-    final response = TwitchEventResponse.fromMap(map);
-    dev.log(response.toString());
-    onRewardRedeemed.notifyListerners((callback) => callback(response));
+    if ((map['payload']['event'] as Map).containsKey('reward')) {
+      final response = TwitchRewardRedemption.fromMap(map);
+      onRewardRedeemed.notifyListerners((callback) => callback(response));
+    } else {
+      final response = TwitchEvent.fromMap(map);
+      dev.log(response.toString());
+    }
   }
 
   ///
@@ -244,7 +314,7 @@ class TwitchEventsMock extends TwitchEvents {
   ////// PUBLIC //////
 
   // Simulate a reward redemption
-  void simulateRewardRedemption(TwitchEventMock event) =>
+  void simulateRewardRedemption(TwitchRewardRedemptionMock event) =>
       onRewardRedeemed.notifyListerners((callback) => callback(event));
 
   ////// INTERNAL //////
@@ -258,6 +328,6 @@ class TwitchEventsMock extends TwitchEvents {
     TwitchDebugPanelOptions debugPanelOptions,
   ) : super._() {
     debugPanelOptions.simulateRewardRedemption = simulateRewardRedemption;
-    _isConnected;
+    _isConnected = true;
   }
 }
