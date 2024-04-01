@@ -136,9 +136,14 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
       Text('Connexion', style: Theme.of(context).textTheme.titleLarge),
       const SizedBox(height: 8),
       if (TwitchManagerSingleton.instance == null)
-        TwitchConnectButton(
-          twitchManager: TwitchManagerSingleton.instance,
+        ElevatedButton(
           onPressed: _connectToTwitch,
+          style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6441a5),
+              foregroundColor: Colors.white),
+          child: Text(TwitchManagerSingleton.isConnected
+              ? 'Disconnect from twitch'
+              : 'Connect to Twitch'),
         ),
       if (TwitchManagerSingleton.instance != null)
         const Text('Connected to Twitch'),

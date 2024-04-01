@@ -129,9 +129,10 @@ class TwitchManager {
     await _chat?.disconnect();
     await _events?.disconnect();
     await _authenticator.disconnect();
+    _isConnected = false;
 
     // Notify the user that the manager has disconnected
-    onHasDisconnected.forEach((callback) => callback());
+    onHasDisconnected.notifyListerners((callback) => callback());
   }
 
   ///

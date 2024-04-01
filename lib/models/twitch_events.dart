@@ -108,9 +108,8 @@ class TwitchEvents {
 
   ///
   /// Subscribe to a specific events
-  void addListener(Function(TwitchEventResponse events) callback) {
-    _eventListeners.startListening(callback);
-  }
+  final eventListeners =
+      TwitchGenericListener<void Function(TwitchEventResponse event)>();
 
   ///
   /// Unsubscribe to all events and close connexion
@@ -120,13 +119,13 @@ class TwitchEvents {
     }
     _subscriptionIds.clear();
 
-    _eventListeners.clearListeners();
+    eventListeners.clearListeners();
     _channel?.close();
+
+    _isConnected = false;
   }
 
   ////// INTERNAL //////
-  final _eventListeners =
-      TwitchGenericListener<void Function(TwitchEventResponse event)>();
   ws.WebSocket? _channel;
 
   ///
@@ -166,7 +165,7 @@ class TwitchEvents {
     // log and notify the listeners
     final response = TwitchEventResponse.fromMap(map);
     dev.log(response.toString());
-    _eventListeners.forEach((callback) => callback(response));
+    eventListeners.notifyListerners((callback) => callback(response));
   }
 
   ///
@@ -246,7 +245,7 @@ class TwitchEventsMock extends TwitchEvents {
 
   // Simulate a reward redemption
   void simulateRewardRedemption(TwitchEventMock event) =>
-      _eventListeners.forEach((callback) => callback(event));
+      eventListeners.notifyListerners((callback) => callback(event));
 
   ////// INTERNAL //////
 

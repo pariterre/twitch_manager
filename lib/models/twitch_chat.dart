@@ -38,9 +38,8 @@ class TwitchChat {
     if (!_isConnected) return;
 
     await _send('PART $streamerLogin');
+    if (_socket != null) _socket!.close();
 
-    if (_socket == null) return;
-    _socket!.close();
     _isConnected = false;
   }
 
@@ -152,7 +151,8 @@ class TwitchChat {
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
       log(fullMessage);
-      onInternalMessageReceived.forEach((callback) => callback(fullMessage));
+      onInternalMessageReceived
+          .notifyListerners((callback) => callback(fullMessage));
       return;
     }
 
@@ -160,7 +160,7 @@ class TwitchChat {
     final sender = match.group(1)!;
     final message = match.group(2)!;
     log('Message received:\n$sender: $message');
-    onMessageReceived.forEach((callback) => callback(sender, message));
+    onMessageReceived.notifyListerners((callback) => callback(sender, message));
   }
 }
 
