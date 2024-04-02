@@ -236,7 +236,6 @@ class TwitchApi {
   /// Returns the id of the reward redemption.
   Future<String?> createRewardRedemption(
       {required TwitchRewardRedemption reward}) async {
-    // TODO: Create the mock for createRewardRedemption
     final response = await _sendHttpRequest(HttpRequestMethod.post,
         suffix: 'channel_points/custom_rewards',
         parameters: {
@@ -258,7 +257,6 @@ class TwitchApi {
   /// Returns true if the update was successful.
   Future<bool> updateRewardRedemption(
       {required TwitchRewardRedemption reward}) async {
-    // TODO: Create the mock for updateRewardRedemption
     final response = await _sendHttpRequest(HttpRequestMethod.patch,
         suffix: 'channel_points/custom_rewards',
         parameters: {
@@ -278,7 +276,6 @@ class TwitchApi {
   /// Returns true if the update was successful.
   Future<bool> deleteRewardRedemption(
       {required TwitchRewardRedemption reward}) async {
-    // TODO: Create the mock for deleteRewardRedemption
     final response = await _sendHttpRequest(HttpRequestMethod.delete,
         suffix: 'channel_points/custom_rewards',
         parameters: {
@@ -290,11 +287,13 @@ class TwitchApi {
 
   ///
   /// Fulfills or cancels the reward redemption [reward] with the new status.
-  void updateRewardRedemptionStatus({
+  /// The [reward] should contain the [rewardRedemptionId].
+  /// The [status] should be either FULFILLED or CANCELED.
+  /// Returns true if the update was successful.
+  Future<bool> updateRewardRedemptionStatus({
     required TwitchRewardRedemption reward,
     required TwitchRewardRedemptionStatus status,
   }) async {
-    // TODO: Create the mock for updateRewardRedemptionStatus
     final response = await _sendHttpRequest(HttpRequestMethod.patch,
         suffix: 'channel_points/custom_rewards/redemptions',
         parameters: {
@@ -305,7 +304,7 @@ class TwitchApi {
         body: {
           'status': status.toString()
         });
-    if (response == null) return null; // There was an error
+    return response != null;
   }
 
   ////// INTERNAL //////
@@ -522,6 +521,69 @@ class TwitchApiMock extends TwitchApi {
         .map((e) => e.displayName)
         .toList();
     return _removeBlacklisted(out, blacklist);
+  }
+
+  ////// REWARD REDEMPTION RELATED API //////
+  final List<TwitchRewardRedemption> _rewardRedemptions = [];
+  @override
+  Future<String?> createRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    if (reward.cost < 1) return null;
+    if (reward.rewardRedemption.isEmpty) return null;
+    if (_rewardRedemptions
+        .any((e) => e.rewardRedemption == reward.rewardRedemption)) {
+      return null;
+    }
+
+    final id = 'reward_id_${reward.hashCode}';
+    _rewardRedemptions.add(reward.copyWith(rewardRedemptionId: id));
+    return id;
+  }
+
+  @override
+  Future<bool> updateRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    if (!_rewardRedemptions
+        .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
+      return false;
+    }
+    if (reward.cost < 1) return false;
+    if (reward.rewardRedemption.isEmpty) return false;
+    if (_rewardRedemptions.any((e) =>
+        e.rewardRedemptionId != reward.rewardRedemptionId &&
+        e.rewardRedemption == reward.rewardRedemption)) return false;
+
+    _rewardRedemptions
+        .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
+    _rewardRedemptions
+        .add(reward.copyWith(rewardRedemptionId: reward.rewardRedemptionId));
+    return true;
+  }
+
+  @override
+  Future<bool> deleteRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    if (!_rewardRedemptions
+        .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
+      return false;
+    }
+
+    _rewardRedemptions
+        .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
+    return true;
+  }
+
+  @override
+  Future<bool> updateRewardRedemptionStatus({
+    required TwitchRewardRedemption reward,
+    required TwitchRewardRedemptionStatus status,
+  }) async {
+    if (!_rewardRedemptions
+        .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
+      return false;
+    }
+
+    return true;
   }
 
   ////// INTERNAL //////

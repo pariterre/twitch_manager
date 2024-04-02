@@ -412,8 +412,9 @@ class _RedemptionRedeemBoxState extends State<_RedemptionRedeemBox> {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // TODO: Make this a droplist and remove the capability to set it from outside
             Text(
-                'Redempt a reward as ${widget.debugPanelOptions.chatters[_currentRedempter].displayName} ',
+                'Redeem a reward as ${widget.debugPanelOptions.chatters[_currentRedempter].displayName} ',
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
             SizedBox(
