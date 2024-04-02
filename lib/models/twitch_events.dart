@@ -13,23 +13,23 @@ const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
 const _twitchHelixUri = 'https://api.twitch.tv/helix/eventsub/subscriptions';
 
 class TwitchEvent {
+  final String eventId;
   final String requestingUserId;
   final String requestingUser;
-  final int cost;
   final String message;
 
   TwitchEvent({
+    required this.eventId,
     required this.requestingUserId,
     required this.requestingUser,
-    required this.cost,
     required this.message,
   });
 
   factory TwitchEvent.fromMap(Map<String, dynamic> map) {
     return TwitchEvent(
+      eventId: map['payload']['event']['id'],
       requestingUserId: map['payload']['event']['user_id'],
       requestingUser: map['payload']['event']['user_name'],
-      cost: map['payload']['event']['reward']['cost'],
       message: map['payload']['event']['user_input'],
     );
   }
@@ -45,39 +45,64 @@ class TwitchEvent {
   }
 
   TwitchEvent copyWith({
+    String? eventId,
     String? requestingUserId,
     String? requestingUser,
-    int? cost,
     String? message,
   }) {
     return TwitchEvent(
+      eventId: eventId ?? this.eventId,
       requestingUserId: requestingUserId ?? this.requestingUserId,
       requestingUser: requestingUser ?? this.requestingUser,
-      cost: cost ?? this.cost,
       message: message ?? this.message,
     );
   }
 }
 
+enum TwitchRewardRedemptionStatus {
+  fulfilled,
+  canceled;
+
+  @override
+  String toString() {
+    switch (this) {
+      case TwitchRewardRedemptionStatus.fulfilled:
+        return 'FULFILLED';
+      case TwitchRewardRedemptionStatus.canceled:
+        return 'CANCELED';
+    }
+  }
+}
+
 class TwitchRewardRedemption extends TwitchEvent {
   TwitchRewardRedemption({
-    required super.requestingUserId,
-    required super.requestingUser,
-    required super.cost,
-    required super.message,
     required this.rewardRedemptionId,
     required this.rewardRedemption,
+    required this.cost,
+    required super.eventId,
+    required super.requestingUserId,
+    required super.requestingUser,
+    required super.message,
   });
 
+  TwitchRewardRedemption.empty({
+    required this.rewardRedemption,
+    required this.cost,
+  })  : rewardRedemptionId = '',
+        super(
+            eventId: '', requestingUserId: '', requestingUser: '', message: '');
+
+  final int cost;
   final String rewardRedemptionId;
   final String rewardRedemption;
 
   factory TwitchRewardRedemption.fromMap(Map<String, dynamic> map) {
     final event = TwitchEvent.fromMap(map);
     return TwitchRewardRedemption(
+      eventId: event.eventId,
       requestingUserId: event.requestingUserId,
       requestingUser: event.requestingUser,
-      cost: event.cost,
+      cost: map['payload']['event']['reward']['cost'],
       message: event.message,
       rewardRedemptionId: map['payload']['event']['reward']['id'],
       rewardRedemption: map['payload']['event']['reward']['title'],
@@ -97,6 +122,7 @@ class TwitchRewardRedemption extends TwitchEvent {
 
   @override
   TwitchRewardRedemption copyWith({
+    String? eventId,
     String? requestingUserId,
     String? requestingUser,
     int? cost,
@@ -105,6 +131,7 @@ class TwitchRewardRedemption extends TwitchEvent {
     String? rewardRedemption,
   }) {
     return TwitchRewardRedemption(
+      eventId: eventId ?? this.eventId,
       requestingUserId: requestingUserId ?? this.requestingUserId,
       requestingUser: requestingUser ?? this.requestingUser,
       cost: cost ?? this.cost,
@@ -121,7 +148,7 @@ extension ScopeSubscription on TwitchScope {
     required String sessionId,
   }) {
     switch (this) {
-      case TwitchScope.rewardRedemption:
+      case TwitchScope.readRewardRedemption:
         return {
           'type': 'channel.channel_points_custom_reward_redemption.add',
           'version': '1',
@@ -173,9 +200,12 @@ class TwitchEvents {
   bool get isConnected => _isConnected;
 
   ///
-  /// Subscribe to a specific reward redemption event
+  /// Subscribe to a specific reward redemption event. When a reward is redeemed
+  /// the [onRewardRedeemed] callback will be called. If the reward is should
+  /// answered by the user, then they should call the [updateRewardRedemption]
+  /// of the api structure.
   final onRewardRedeemed =
-      TwitchGenericListener<void Function(TwitchRewardRedemption event)>();
+      TwitchGenericListener<void Function(TwitchRewardRedemption reward)>();
 
   ///
   /// Unsubscribe to all events and close connexion
@@ -225,11 +255,12 @@ class TwitchEvents {
     }
 
     // If the payload is empty, this is a keep alive response, so do nothing
-    if ((map['payload'] as Map).isEmpty) return;
+    final payload = map['payload'] as Map;
+    if (payload.isEmpty || !payload.containsKey('event')) return;
 
     // If we get here, this is an actual response from Twitch. Let's parse it
     // log and notify the listeners
-    if ((map['payload']['event'] as Map).containsKey('reward')) {
+    if ((payload['event'] as Map).containsKey('reward')) {
       final response = TwitchRewardRedemption.fromMap(map);
       onRewardRedeemed.notifyListerners((callback) => callback(response));
     } else {

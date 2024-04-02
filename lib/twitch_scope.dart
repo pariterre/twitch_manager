@@ -14,7 +14,8 @@ enum TwitchScope {
   readModerator,
   readFollowers,
 
-  rewardRedemption;
+  readRewardRedemption,
+  manageRewardRedemption;
 
   @override
   String toString() {
@@ -29,8 +30,10 @@ enum TwitchScope {
         return 'moderation:read';
       case TwitchScope.readFollowers:
         return 'moderator:read:followers';
-      case TwitchScope.rewardRedemption:
+      case TwitchScope.readRewardRedemption:
         return 'channel:read:redemptions';
+      case TwitchScope.manageRewardRedemption:
+        return 'channel:manage:redemptions';
     }
   }
 
@@ -42,8 +45,9 @@ enum TwitchScope {
       case TwitchScope.chatters:
       case TwitchScope.readModerator:
       case TwitchScope.readFollowers:
+      case TwitchScope.manageRewardRedemption:
         return ScopeType.api;
-      case TwitchScope.rewardRedemption:
+      case TwitchScope.readRewardRedemption:
         return ScopeType.events;
     }
   }

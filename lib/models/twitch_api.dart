@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
 
@@ -26,6 +27,8 @@ class _TwitchResponse {
   String? cursor;
   _TwitchResponse({required this.data, required this.cursor});
 }
+
+enum HttpRequestMethod { get, post, patch, delete }
 
 class TwitchApi {
   ///
@@ -108,8 +111,8 @@ class TwitchApi {
   ///
   /// Get the stream login of the user [userId].
   Future<String?> login(int userId) async {
-    final response = await _sendGetRequest(
-        requestType: 'users', parameters: {'id': userId.toString()});
+    final response = await _sendHttpRequest(HttpRequestMethod.get,
+        suffix: 'users', parameters: {'id': userId.toString()});
     if (response == null) return null; // There was an error
 
     return response.data[0]['login'];
@@ -118,8 +121,8 @@ class TwitchApi {
   ///
   /// Get the display name of the user [userId].
   Future<String?> displayName(int userId) async {
-    final response = await _sendGetRequest(
-        requestType: 'users', parameters: {'id': userId.toString()});
+    final response = await _sendHttpRequest(HttpRequestMethod.get,
+        suffix: 'users', parameters: {'id': userId.toString()});
     if (response == null) return null; // There was an error
 
     return response.data[0]['display_name'];
@@ -131,8 +134,8 @@ class TwitchApi {
   /// live (even though, for some reason the key "type" is "live" when the user
   /// is actually live).
   Future<bool?> isUserLive(int userId) async {
-    final response = await _sendGetRequest(
-        requestType: 'streams', parameters: {'user_id': userId.toString()});
+    final response = await _sendHttpRequest(HttpRequestMethod.get,
+        suffix: 'streams', parameters: {'user_id': userId.toString()});
     if (response == null) {
       return null; // There was an error
     }
@@ -147,8 +150,8 @@ class TwitchApi {
   /// Get the list of current chatters.
   /// The [blacklist] ignore some chatters (ignoring bots for instance).
   Future<List<String>?> fetchChatters({List<String>? blacklist}) async {
-    final response = await _sendGetRequest(
-        requestType: 'chat/chatters',
+    final response = await _sendHttpRequest(HttpRequestMethod.get,
+        suffix: 'chat/chatters',
         parameters: {
           'broadcaster_id': streamerId.toString(),
           'moderator_id': streamerId.toString()
@@ -177,8 +180,8 @@ class TwitchApi {
       };
       if (cursor != null) parameters['after'] = cursor;
 
-      final response = await _sendGetRequest(
-          requestType: 'moderation/moderators', parameters: parameters);
+      final response = await _sendHttpRequest(HttpRequestMethod.get,
+          suffix: 'moderation/moderators', parameters: parameters);
       if (response == null) return null; // There was an error
 
       // Copy answer to the output variable
@@ -209,8 +212,8 @@ class TwitchApi {
       };
       if (cursor != null) parameters['after'] = cursor;
 
-      final response = await _sendGetRequest(
-          requestType: 'channels/followers', parameters: parameters);
+      final response = await _sendHttpRequest(HttpRequestMethod.get,
+          suffix: 'channels/followers', parameters: parameters);
       if (response == null) return null; // There was an error
 
       // Copy answer to the output variable
@@ -223,6 +226,86 @@ class TwitchApi {
     if (includeStreamer) users.add((await displayName(streamerId))!);
 
     return _removeBlacklisted(users, blacklist);
+  }
+
+  ////// REWARD REDEMPTION RELATED API //////
+
+  ///
+  /// Create a new reward redemption for the streamer. The [reward] should
+  /// contain the title of the reward and the cost in channel points.
+  /// Returns the id of the reward redemption.
+  Future<String?> createRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    // TODO: Create the mock for createRewardRedemption
+    final response = await _sendHttpRequest(HttpRequestMethod.post,
+        suffix: 'channel_points/custom_rewards',
+        parameters: {
+          'broadcaster_id': streamerId.toString()
+        },
+        body: {
+          'title': reward.rewardRedemption,
+          'cost': reward.cost.toString(),
+        });
+    if (response == null) return null; // There was an error
+
+    return response.data[0]['id'];
+  }
+
+  ///
+  /// Updates the reward redemption [reward] with the new information.
+  /// The [reward] should contain the [rewardRedemptionId],
+  /// the new title and cost.
+  /// Returns true if the update was successful.
+  Future<bool> updateRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    // TODO: Create the mock for updateRewardRedemption
+    final response = await _sendHttpRequest(HttpRequestMethod.patch,
+        suffix: 'channel_points/custom_rewards',
+        parameters: {
+          'id': reward.rewardRedemptionId,
+          'broadcaster_id': streamerId.toString(),
+        },
+        body: {
+          'title': reward.rewardRedemption,
+          'cost': reward.cost.toString(),
+        });
+    return response != null;
+  }
+
+  ///
+  /// Delete the reward redemption [reward].
+  /// The [reward] should contain the [rewardRedemptionId],
+  /// Returns true if the update was successful.
+  Future<bool> deleteRewardRedemption(
+      {required TwitchRewardRedemption reward}) async {
+    // TODO: Create the mock for deleteRewardRedemption
+    final response = await _sendHttpRequest(HttpRequestMethod.delete,
+        suffix: 'channel_points/custom_rewards',
+        parameters: {
+          'id': reward.rewardRedemptionId,
+          'broadcaster_id': streamerId.toString(),
+        });
+    return response != null;
+  }
+
+  ///
+  /// Fulfills or cancels the reward redemption [reward] with the new status.
+  void updateRewardRedemptionStatus({
+    required TwitchRewardRedemption reward,
+    required TwitchRewardRedemptionStatus status,
+  }) async {
+    // TODO: Create the mock for updateRewardRedemptionStatus
+    final response = await _sendHttpRequest(HttpRequestMethod.patch,
+        suffix: 'channel_points/custom_rewards/redemptions',
+        parameters: {
+          'id': reward.eventId,
+          'broadcaster_id': streamerId.toString(),
+          'reward_id': reward.rewardRedemptionId,
+        },
+        body: {
+          'status': status.toString()
+        });
+    if (response == null) return null; // There was an error
   }
 
   ////// INTERNAL //////
@@ -238,9 +321,11 @@ class TwitchApi {
   TwitchApi._(this._appInfo, this._authenticator);
 
   ///
-  /// Send an actual GET request to Twitch
-  Future<_TwitchResponse?> _sendGetRequest(
-      {required String requestType, Map<String, String?>? parameters}) async {
+  /// Send an actual HTTP request to Twitch
+  Future<_TwitchResponse?> _sendHttpRequest(HttpRequestMethod method,
+      {required String suffix,
+      Map<String, String?>? parameters,
+      Map<String, String>? body}) async {
     // Stop now if we are disconnected
     if (_authenticator.streamerOauthKey == null) return null;
 
@@ -252,18 +337,62 @@ class TwitchApi {
       params = params.substring(0, params.length - 1); // Remove to final '&'
     }
 
-    final response = await http.get(
-      Uri.parse(
-          '$_twitchHelixUri/$requestType${params.isEmpty ? '' : '?$params'}'),
-      headers: <String, String>{
-        HttpHeaders.authorizationHeader:
-            'Bearer ${_authenticator.streamerOauthKey}',
-        'Client-Id': _appInfo.twitchAppId,
-      },
-    );
+    http.Response response;
+    switch (method) {
+      case HttpRequestMethod.get:
+        // Get request
+        response = await http.get(
+            Uri.parse(
+                '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
+            headers: <String, String>{
+              HttpHeaders.authorizationHeader:
+                  'Bearer ${_authenticator.streamerOauthKey}',
+              'Client-Id': _appInfo.twitchAppId,
+              HttpHeaders.contentTypeHeader: 'application/json',
+            });
+        break;
+      case HttpRequestMethod.post:
+        // Post request
+        response = await http.post(
+            Uri.parse(
+                '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
+            headers: <String, String>{
+              HttpHeaders.authorizationHeader:
+                  'Bearer ${_authenticator.streamerOauthKey}',
+              'Client-Id': _appInfo.twitchAppId,
+              HttpHeaders.contentTypeHeader: 'application/json',
+            },
+            body: jsonEncode(body));
+        break;
+      case HttpRequestMethod.patch:
+        // Patch request
+        response = await http.patch(
+            Uri.parse(
+                '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
+            headers: <String, String>{
+              HttpHeaders.authorizationHeader:
+                  'Bearer ${_authenticator.streamerOauthKey}',
+              'Client-Id': _appInfo.twitchAppId,
+              HttpHeaders.contentTypeHeader: 'application/json',
+            },
+            body: jsonEncode(body));
+        break;
+      case HttpRequestMethod.delete:
+        // Delete request
+        response = await http.delete(
+            Uri.parse(
+                '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
+            headers: <String, String>{
+              HttpHeaders.authorizationHeader:
+                  'Bearer ${_authenticator.streamerOauthKey}',
+              'Client-Id': _appInfo.twitchAppId,
+            });
+        if (response.body.contains('error')) return null;
+        return _TwitchResponse(data: [], cursor: null);
+    }
 
     // Make sure the token is still valid before continuing
-    if (!await _checkIfTokenIsValid(response)) return null;
+    if (!_checkIfTokenIsValid(response)) return null;
 
     // Prepare the answer to be returned
     final responseDecoded = await jsonDecode(response.body) as Map;
@@ -317,8 +446,8 @@ class TwitchApi {
   /// that the token is now invalid.
   /// Returns true if it is, otherwise it returns false.
   ///
-  static Future<bool> _checkIfTokenIsValid(http.Response response) async {
-    final responseDecoded = await jsonDecode(response.body) as Map;
+  static bool _checkIfTokenIsValid(http.Response response) {
+    final responseDecoded = jsonDecode(response.body) as Map;
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {
       dev.log('ERROR: ${responseDecoded['message']}');

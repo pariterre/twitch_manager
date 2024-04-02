@@ -16,15 +16,16 @@ class TwitchChatterMock {
 
 class TwitchEventMock extends TwitchEvent {
   TwitchEventMock({
+    super.eventId = '0987654321',
     super.requestingUserId = '123456789',
     super.requestingUser = 'MockUser',
-    required super.cost,
     super.message = '',
   });
 }
 
 class TwitchRewardRedemptionMock extends TwitchRewardRedemption {
   TwitchRewardRedemptionMock({
+    super.eventId = '0987654321',
     super.requestingUserId = '123456789',
     super.requestingUser = 'MockUser',
     super.message = '',
@@ -35,6 +36,7 @@ class TwitchRewardRedemptionMock extends TwitchRewardRedemption {
 
   @override
   TwitchRewardRedemptionMock copyWith({
+    String? eventId,
     String? requestingUserId,
     String? requestingUser,
     int? cost,
@@ -43,6 +45,7 @@ class TwitchRewardRedemptionMock extends TwitchRewardRedemption {
     String? rewardRedemption,
   }) {
     return TwitchRewardRedemptionMock(
+      eventId: eventId ?? this.eventId,
       requestingUserId: requestingUserId ?? this.requestingUserId,
       requestingUser: requestingUser ?? this.requestingUser,
       cost: cost ?? this.cost,
