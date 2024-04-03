@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_manager_internal.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/widgets/animated_expanding_card.dart';
@@ -272,76 +273,80 @@ class _ChatBoxState extends State<_ChatBox> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Wrap(
-                children: [
-                  Text('Send message as $_currentChatterName ',
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                  if (widget
-                      .debugPanelOptions.chatters[_currentSender].isModerator)
-                    const Text('(moderator)',
-                        style: TextStyle(color: Colors.white)),
-                ],
+    return AnimatedExpandingCard(
+      header: const Text('Chat',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      initialExpandedState: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Wrap(
+                  children: [
+                    Text('Send message as $_currentChatterName ',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                    if (widget
+                        .debugPanelOptions.chatters[_currentSender].isModerator)
+                      const Text('(moderator)',
+                          style: TextStyle(color: Colors.white)),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(
-              width: 40,
-              child: SubmenuButton(
-                focusNode: _senderFocus,
-                menuChildren: widget.debugPanelOptions.chatters
-                    .asMap()
-                    .keys
-                    .map((index) => InkWell(
-                          onTap: () {
-                            _currentSender = index;
-                            if (_senderFocus.hasFocus) _senderFocus.nextFocus();
-                            setState(() {});
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(widget
-                                .debugPanelOptions.chatters[index].displayName),
-                          ),
-                        ))
-                    .toList(),
-                child: const Icon(Icons.arrow_drop_down),
+              SizedBox(
+                width: 40,
+                child: SubmenuButton(
+                  focusNode: _senderFocus,
+                  menuChildren: widget.debugPanelOptions.chatters
+                      .asMap()
+                      .keys
+                      .map((index) => InkWell(
+                            onTap: () {
+                              _currentSender = index;
+                              if (_senderFocus.hasFocus) {
+                                _senderFocus.nextFocus();
+                              }
+                              setState(() {});
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(widget.debugPanelOptions
+                                  .chatters[index].displayName),
+                            ),
+                          ))
+                      .toList(),
+                  child: const Icon(Icons.arrow_drop_down),
+                ),
+              )
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                    color: _isSending
+                        ? const Color.fromARGB(255, 222, 222, 222)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(5)),
+                child: DropdownMenu(
+                  enabled: !_isSending,
+                  width: widget.maxWidth - 3 * 8 - 80,
+                  controller: _messageController,
+                  dropdownMenuEntries: widget.debugPanelOptions.chatMessages
+                      .map((e) => DropdownMenuEntry(label: e, value: e))
+                      .toList(),
+                  onSelected: (value) =>
+                      _sendMessage(value ?? _messageController.text),
+                ),
               ),
-            )
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                  color: _isSending
-                      ? const Color.fromARGB(255, 222, 222, 222)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(5)),
-              child: DropdownMenu(
-                enabled: !_isSending,
-                width: widget.maxWidth - 3 * 8 - 80,
-                controller: _messageController,
-                dropdownMenuEntries: widget.debugPanelOptions.chatMessages
-                    .map((e) => DropdownMenuEntry(label: e, value: e))
-                    .toList(),
-                onSelected: (value) =>
-                    _sendMessage(value ?? _messageController.text),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 80,
-              child: ElevatedButton(
+              const SizedBox(width: 8),
+              ElevatedButton(
                   onPressed: _isSending
                       ? () {}
                       : () => _sendMessage(_messageController.text),
@@ -353,10 +358,10 @@ class _ChatBoxState extends State<_ChatBox> {
                     _isSending ? 'Done!' : 'Send',
                     style: const TextStyle(color: Colors.black),
                   )),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -377,189 +382,311 @@ class _RedemptionRedeemBox extends StatefulWidget {
 }
 
 class _RedemptionRedeemBoxState extends State<_RedemptionRedeemBox> {
-  late final _controller = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    widget.manager.api.onRewardRedemptionsChanged.startListening(refresh);
+  }
+
+  @override
+  void dispose() {
+    widget.manager.api.onRewardRedemptionsChanged.stopListening(refresh);
+    super.dispose();
+  }
+
+  void refresh(
+          {required TwitchRewardRedemption reward, required bool wasDeleted}) =>
+      setState(() {});
+
   int _currentRedempter = 0;
-  TwitchRewardRedemptionMock? _isRedempting;
+  TwitchRewardRedemption? _isRedempting;
   final _focusNode = FocusNode();
 
-  void _redemptReward(TwitchRewardRedemptionMock reward) {
+  void _redeemReward(TwitchRewardRedemption reward) {
     if (widget.debugPanelOptions.simulateRewardRedemption == null) return;
 
     // Simulate the reward redemption
-    _controller.text = 'Redempting reward...';
     final redeemed = reward.copyWith(
         requestingUser:
             widget.debugPanelOptions.chatters[_currentRedempter].displayName);
     widget.debugPanelOptions.simulateRewardRedemption!(redeemed);
 
-    Future.delayed(const Duration(seconds: 1, milliseconds: 500)).then((_) {
-      _isRedempting = null;
-      _controller.text = '';
-      setState(() {});
-    });
     _isRedempting = reward;
-
     setState(() {});
+
+    Future.delayed(const Duration(seconds: 1, milliseconds: 500))
+        .then((_) => setState(() => _isRedempting = null));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // TODO: Make this a droplist and remove the capability to set it from outside
-            Text(
-                'Redeem a reward as ${widget.debugPanelOptions.chatters[_currentRedempter].displayName} ',
-                style: const TextStyle(
+    return AnimatedExpandingCard(
+      header: const Text('Redemption',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                  '    Redeem a reward as ${widget.debugPanelOptions.chatters[_currentRedempter].displayName} ',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              SizedBox(
+                width: 40,
+                child: SubmenuButton(
+                  focusNode: _focusNode,
+                  menuChildren: widget.debugPanelOptions.chatters
+                      .asMap()
+                      .keys
+                      .map((index) => InkWell(
+                            onTap: () {
+                              _currentRedempter = index;
+                              if (_focusNode.hasFocus) _focusNode.nextFocus();
+                              setState(() {});
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(widget.debugPanelOptions
+                                  .chatters[index].displayName),
+                            ),
+                          ))
+                      .toList(),
+                  child: const Icon(Icons.arrow_drop_down),
+                ),
+              )
+            ],
+          ),
+          AnimatedExpandingCard(
+            header: const Text('    Defined in the app',
+                style: TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(
-              width: 40,
-              child: SubmenuButton(
-                focusNode: _focusNode,
-                menuChildren: widget.debugPanelOptions.chatters
-                    .asMap()
-                    .keys
-                    .map((index) => InkWell(
-                          onTap: () {
-                            _currentRedempter = index;
-                            if (_focusNode.hasFocus) _focusNode.nextFocus();
-                            setState(() {});
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(widget
-                                .debugPanelOptions.chatters[index].displayName),
-                          ),
-                        ))
-                    .toList(),
-                child: const Icon(Icons.arrow_drop_down),
-              ),
-            )
-          ],
-        ),
-        Column(
-          children: widget.debugPanelOptions.redemptionRewardEvents
-              .asMap()
-              .keys
-              .map((index) {
-            final reward =
-                widget.debugPanelOptions.redemptionRewardEvents[index];
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.manager.api.rewardRedemptions.isEmpty)
+                    const Text('No rewards defined',
+                        style: TextStyle(color: Colors.white)),
+                  if (widget.manager.api.rewardRedemptions.isNotEmpty)
+                    ...widget.manager.api.rewardRedemptions
+                        .asMap()
+                        .keys
+                        .map((index) {
+                      final reward =
+                          widget.manager.api.rewardRedemptions[index];
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24.0),
+                      return Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Column(children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(reward.rewardRedemption,
+                                      style:
+                                          const TextStyle(color: Colors.white)),
+                                ),
+                                Text(reward.cost.toString(),
+                                    style:
+                                        const TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Add a textformfield to edit the cost
+                            Row(children: [
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: _isRedempting == reward
+                                          ? const Color.fromARGB(
+                                              255, 222, 222, 222)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(5)),
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                        labelText: 'Message',
+                                        labelStyle:
+                                            TextStyle(color: Colors.black)),
+                                    initialValue: reward.message.toString(),
+                                    onChanged: (value) => widget.manager.api
+                                            .rewardRedemptions[index] =
+                                        reward.copyWith(message: value),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                  onPressed: _isRedempting == reward
+                                      ? () {}
+                                      : () => _redeemReward(reward),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: _isRedempting == reward
+                                          ? const Color.fromARGB(
+                                              255, 222, 222, 222)
+                                          : Colors.white),
+                                  child: Text(
+                                    _isRedempting == reward
+                                        ? 'Done!'
+                                        : 'Redempt',
+                                    style: const TextStyle(color: Colors.black),
+                                  )),
+                            ]),
+                          ]));
+                    }),
+                ],
+              ),
+            ),
+          ),
+          const Divider(),
+          AnimatedExpandingCard(
+            header: const Text('    Defined in Twitch',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: _isRedempting == reward
-                                  ? const Color.fromARGB(255, 222, 222, 222)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(5)),
-                          child: TextFormField(
-                            initialValue: reward.rewardRedemption,
-                            onChanged: (value) => widget.debugPanelOptions
-                                    .redemptionRewardEvents[index] =
-                                reward.copyWith(rewardRedemption: value),
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: widget.debugPanelOptions.redemptionRewardEvents
+                        .asMap()
+                        .keys
+                        .map((index) {
+                      final reward = widget
+                          .debugPanelOptions.redemptionRewardEvents[index];
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 24.0),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: _isRedempting == reward
+                                            ? const Color.fromARGB(
+                                                255, 222, 222, 222)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: TextFormField(
+                                      initialValue: reward.rewardRedemption,
+                                      onChanged: (value) => widget
+                                              .debugPanelOptions
+                                              .redemptionRewardEvents[index] =
+                                          reward.copyWith(
+                                              rewardRedemption: value),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 90,
+                                  decoration: BoxDecoration(
+                                      color: _isRedempting == reward
+                                          ? const Color.fromARGB(
+                                              255, 222, 222, 222)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(5)),
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(
+                                        labelText: 'Cost',
+                                        labelStyle:
+                                            TextStyle(color: Colors.black)),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly
+                                    ],
+                                    initialValue: reward.cost.toString(),
+                                    onChanged: (value) => widget
+                                            .debugPanelOptions
+                                            .redemptionRewardEvents[index] =
+                                        reward.copyWith(cost: int.parse(value)),
+                                  ),
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Add a textformfield to edit the cost
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: _isRedempting == reward
+                                            ? const Color.fromARGB(
+                                                255, 222, 222, 222)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(5)),
+                                    child: TextFormField(
+                                      decoration: const InputDecoration(
+                                          labelText: 'Message',
+                                          labelStyle:
+                                              TextStyle(color: Colors.black)),
+                                      initialValue: reward.message.toString(),
+                                      onChanged: (value) => widget
+                                              .debugPanelOptions
+                                              .redemptionRewardEvents[index] =
+                                          reward.copyWith(message: value),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                    onPressed: _isRedempting == reward
+                                        ? () {}
+                                        : () => _redeemReward(reward),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: _isRedempting == reward
+                                            ? const Color.fromARGB(
+                                                255, 222, 222, 222)
+                                            : Colors.white),
+                                    child: Text(
+                                      _isRedempting == reward
+                                          ? 'Done!'
+                                          : 'Redempt',
+                                      style:
+                                          const TextStyle(color: Colors.black),
+                                    )),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 90,
-                        child: ElevatedButton(
-                            onPressed: _isRedempting == reward
-                                ? () {}
-                                : () => _redemptReward(reward),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: _isRedempting == reward
-                                    ? const Color.fromARGB(255, 222, 222, 222)
-                                    : Colors.white),
-                            child: Text(
-                              _isRedempting == reward ? 'Done!' : 'Redempt',
-                              style: const TextStyle(color: Colors.black),
-                            )),
-                      )
-                    ],
+                      );
+                    }).toList(),
                   ),
-                  const SizedBox(height: 8),
-                  // Add a textformfield to edit the cost
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 90,
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: _isRedempting == reward
-                                  ? const Color.fromARGB(255, 222, 222, 222)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(5)),
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                                labelText: 'Cost',
-                                labelStyle: TextStyle(color: Colors.black)),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                            initialValue: reward.cost.toString(),
-                            onChanged: (value) => widget.debugPanelOptions
-                                    .redemptionRewardEvents[index] =
-                                reward.copyWith(cost: int.parse(value)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: _isRedempting == reward
-                                  ? const Color.fromARGB(255, 222, 222, 222)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(5)),
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                                labelText: 'Message',
-                                labelStyle: TextStyle(color: Colors.black)),
-                            initialValue: reward.message.toString(),
-                            onChanged: (value) => widget.debugPanelOptions
-                                    .redemptionRewardEvents[index] =
-                                reward.copyWith(message: value),
-                          ),
-                        ),
-                      )
-                    ],
+                  Center(
+                    child: ElevatedButton(
+                        onPressed: () {
+                          widget.debugPanelOptions.redemptionRewardEvents.add(
+                              TwitchRewardRedemptionMock(
+                                  rewardRedemptionId: '12345',
+                                  rewardRedemption: 'New reward',
+                                  cost: 0));
+                          setState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white),
+                        child: const Text(
+                          'Add reward',
+                          style: TextStyle(color: Colors.black),
+                        )),
                   ),
                 ],
               ),
-            );
-          }).toList(),
-        ),
-        Center(
-          child: ElevatedButton(
-              onPressed: () {
-                widget.debugPanelOptions.redemptionRewardEvents.add(
-                    TwitchRewardRedemptionMock(
-                        rewardRedemptionId: '12345',
-                        rewardRedemption: 'New reward',
-                        cost: 0));
-                setState(() {});
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-              child: const Text(
-                'Add reward',
-                style: TextStyle(color: Colors.black),
-              )),
-        ),
-      ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
+import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
 
@@ -525,6 +526,16 @@ class TwitchApiMock extends TwitchApi {
 
   ////// REWARD REDEMPTION RELATED API //////
   final List<TwitchRewardRedemption> _rewardRedemptions = [];
+  List<TwitchRewardRedemption> get rewardRedemptions => _rewardRedemptions;
+
+  ///
+  /// The listener for the reward redemptions. This is for debugging purposes
+  /// only. This method is not part of the Twitch API.
+  final onRewardRedemptionsChanged = TwitchGenericListener<
+      Function(
+          {required TwitchRewardRedemption reward,
+          required bool wasDeleted})>();
+
   @override
   Future<String?> createRewardRedemption(
       {required TwitchRewardRedemption reward}) async {
@@ -537,6 +548,9 @@ class TwitchApiMock extends TwitchApi {
 
     final id = 'reward_id_${reward.hashCode}';
     _rewardRedemptions.add(reward.copyWith(rewardRedemptionId: id));
+
+    onRewardRedemptionsChanged.notifyListerners(
+        (listener) => listener(reward: reward, wasDeleted: false));
     return id;
   }
 
@@ -557,6 +571,9 @@ class TwitchApiMock extends TwitchApi {
         .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
     _rewardRedemptions
         .add(reward.copyWith(rewardRedemptionId: reward.rewardRedemptionId));
+
+    onRewardRedemptionsChanged.notifyListerners(
+        (listener) => listener(reward: reward, wasDeleted: false));
     return true;
   }
 
@@ -570,6 +587,9 @@ class TwitchApiMock extends TwitchApi {
 
     _rewardRedemptions
         .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
+
+    onRewardRedemptionsChanged.notifyListerners(
+        (listener) => listener(reward: reward, wasDeleted: true));
     return true;
   }
 

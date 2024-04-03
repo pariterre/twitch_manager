@@ -85,7 +85,7 @@ class TwitchRewardRedemption extends TwitchEvent {
     required super.message,
   });
 
-  TwitchRewardRedemption.empty({
+  TwitchRewardRedemption.minimal({
     required this.rewardRedemption,
     required this.cost,
   })  : rewardRedemptionId = '',
@@ -345,7 +345,7 @@ class TwitchEventsMock extends TwitchEvents {
   ////// PUBLIC //////
 
   // Simulate a reward redemption
-  void simulateRewardRedemption(TwitchRewardRedemptionMock event) =>
+  void simulateRewardRedemption(TwitchRewardRedemption event) =>
       onRewardRedeemed.notifyListerners((callback) => callback(event));
 
   ////// INTERNAL //////

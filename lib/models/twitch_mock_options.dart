@@ -66,17 +66,17 @@ class TwitchDebugPanelOptions {
   final List<String> chatMessages;
 
   /// A list of reward redemptions that can be redeemed
-  final List<TwitchRewardRedemptionMock> redemptionRewardEvents;
+  final List<TwitchRewardRedemption> redemptionRewardEvents;
 
   /// A callback to the TwitchEventMock so we can simulate a reward redemption
-  void Function(TwitchRewardRedemptionMock)? simulateRewardRedemption;
+  void Function(TwitchRewardRedemption)? simulateRewardRedemption;
 
   /// Constructor, note that we make a copy of the lists to drop any const
   /// lists that may be passed in
   TwitchDebugPanelOptions({
     List<TwitchChatterMock>? chatters,
     List<String>? chatMessages,
-    List<TwitchRewardRedemptionMock>? redemptionRewardEvents,
+    List<TwitchRewardRedemption>? redemptionRewardEvents,
   })  : chatters = chatters == null ? [] : [...chatters],
         chatMessages = chatMessages == null ? [] : [...chatMessages],
         redemptionRewardEvents =
