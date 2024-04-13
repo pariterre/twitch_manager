@@ -265,7 +265,7 @@ class _ChatBoxState extends State<_ChatBox> {
     Future.delayed(const Duration(seconds: 1, milliseconds: 500)).then((_) {
       _messageController.text = '';
       _isSending = false;
-      setState(() {});
+      if (mounted) setState(() {});
     });
 
     setState(() {});
