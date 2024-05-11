@@ -98,7 +98,7 @@ class TwitchApi {
     final scope = appInfo.scope;
     final address = 'https://id.twitch.tv/oauth2/authorize?'
         'response_type=token'
-        '&client_id=${appInfo.twitchAppId}'
+        '&client_id=${appInfo.twitchClientId}'
         '&redirect_uri=https://${appInfo.redirectUri}/twitch_redirect.html'
         '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
         '&state=$stateToken';
@@ -347,7 +347,7 @@ class TwitchApi {
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
                   'Bearer ${_authenticator.streamerOauthKey}',
-              'Client-Id': _appInfo.twitchAppId,
+              'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             });
         break;
@@ -359,7 +359,7 @@ class TwitchApi {
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
                   'Bearer ${_authenticator.streamerOauthKey}',
-              'Client-Id': _appInfo.twitchAppId,
+              'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
             body: jsonEncode(body));
@@ -372,7 +372,7 @@ class TwitchApi {
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
                   'Bearer ${_authenticator.streamerOauthKey}',
-              'Client-Id': _appInfo.twitchAppId,
+              'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
             body: jsonEncode(body));
@@ -385,7 +385,7 @@ class TwitchApi {
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
                   'Bearer ${_authenticator.streamerOauthKey}',
-              'Client-Id': _appInfo.twitchAppId,
+              'Client-Id': _appInfo.twitchClientId,
             });
         if (response.body.contains('error')) return null;
         return _TwitchResponse(data: [], cursor: null);

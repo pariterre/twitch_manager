@@ -59,7 +59,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
                   Navigator.of(context).pop(manager),
               appInfo: TwitchAppInfo(
                 appName: 'My Lovely App',
-                twitchAppId: 'YOUR_APP_ID_HERE',
+                twitchClientId: 'YOUR_CLIENT_ID_HERE',
                 redirectUri: 'YOUR_REDIRECT_DOMAIN_HERE',
                 // Requested scopes for the connexion
                 scope: const [

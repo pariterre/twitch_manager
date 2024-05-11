@@ -285,7 +285,7 @@ class TwitchEvents {
       headers: <String, String>{
         HttpHeaders.authorizationHeader:
             'Bearer ${_authenticator.streamerOauthKey}',
-        'Client-Id': _appInfo.twitchAppId,
+        'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },
       body: jsonEncode(scope.cratfSubscriptionRequest(
@@ -320,7 +320,7 @@ class TwitchEvents {
       headers: <String, String>{
         HttpHeaders.authorizationHeader:
             'Bearer ${_authenticator.streamerOauthKey}',
-        'Client-Id': _appInfo.twitchAppId,
+        'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },
       body: jsonEncode({'id': _subscriptionIds[index]}),

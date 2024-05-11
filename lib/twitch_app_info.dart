@@ -7,8 +7,12 @@ class TwitchAppInfo {
   final String appName;
 
   ///
-  /// The App ID provided by Twitch. See the extension parameters in dev.twitch.tv
-  final String twitchAppId;
+  /// The Client ID provided by Twitch. See the extension parameters in dev.twitch.tv.
+  /// This is public information, so there is no need to hide it (therefore it can
+  /// be versioned in the code). Do not confuse with the "client secret" key which
+  /// is secret and should never be shared. However, the client secret is not used
+  /// by the TwitchManager.
+  final String twitchClientId;
 
   ///
   /// The domain to which the user will be redirected after
@@ -60,7 +64,7 @@ class TwitchAppInfo {
   /// Main constructor
   TwitchAppInfo({
     required this.appName,
-    required this.twitchAppId,
+    required this.twitchClientId,
     required this.redirectUri,
     required this.scope,
   })  : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
