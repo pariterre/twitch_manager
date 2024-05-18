@@ -336,7 +336,7 @@ class _ChatBoxState extends State<_ChatBox> {
                     borderRadius: BorderRadius.circular(5)),
                 child: DropdownMenu(
                   enabled: !_isSending,
-                  width: widget.maxWidth - 3 * 8 - 80,
+                  width: widget.maxWidth - 3 * 8 - 90,
                   controller: _messageController,
                   dropdownMenuEntries: widget.debugPanelOptions.chatMessages
                       .map((e) => DropdownMenuEntry(label: e, value: e))
@@ -346,18 +346,21 @@ class _ChatBoxState extends State<_ChatBox> {
                 ),
               ),
               const SizedBox(width: 8),
-              ElevatedButton(
-                  onPressed: _isSending
-                      ? () {}
-                      : () => _sendMessage(_messageController.text),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _isSending
-                          ? const Color.fromARGB(255, 222, 222, 222)
-                          : Colors.white),
-                  child: Text(
-                    _isSending ? 'Done!' : 'Send',
-                    style: const TextStyle(color: Colors.black),
-                  )),
+              SizedBox(
+                width: 90,
+                child: ElevatedButton(
+                    onPressed: _isSending
+                        ? () {}
+                        : () => _sendMessage(_messageController.text),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _isSending
+                            ? const Color.fromARGB(255, 222, 222, 222)
+                            : Colors.white),
+                    child: Text(
+                      _isSending ? 'Done!' : 'Send',
+                      style: const TextStyle(color: Colors.black),
+                    )),
+              ),
             ],
           ),
         ],
