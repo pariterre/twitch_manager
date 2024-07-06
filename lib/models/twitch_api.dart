@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'dart:io';
-import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:twitch_manager/models/twitch_authenticator.dart';
@@ -9,6 +8,7 @@ import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
+import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -65,26 +65,6 @@ class TwitchApi {
   }
 
   ///
-  /// Generate a random state token that is 16 digits long with some constraints
-  static String _generateStateToken() {
-    String stateToken = '';
-    for (var i = 0; i < 15; i++) {
-      stateToken += Random().nextInt(10).toString();
-    }
-
-    // Change the 6th digit to a 4 and the 12th to a 2
-    stateToken = stateToken.replaceRange(5, 6, '4');
-    stateToken = stateToken.replaceRange(11, 12, '2');
-
-    // Add a final number checksum that makes the sum of all the digits is 8
-    final sum =
-        stateToken.split('').map((e) => int.parse(e)).reduce((a, b) => a + b);
-    stateToken += ((1 - sum % 7) % 7).toString();
-
-    return stateToken;
-  }
-
-  ///
   /// Get a new OAUTH for the user
   /// [appInfo] holds all the necessary information to connect.
   /// [onRequestBrowsing] is the callback to show which address the user must
@@ -93,20 +73,46 @@ class TwitchApi {
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
   }) async {
-    final stateToken = _generateStateToken();
+    const protocolVersion = '1.0.0';
 
-    final scope = appInfo.scope;
-    final address = 'https://id.twitch.tv/oauth2/authorize?'
-        'response_type=token'
-        '&client_id=${appInfo.twitchClientId}'
-        '&redirect_uri=https://${appInfo.redirectUri}/twitch_redirect.html'
-        '&scope=${scope.map<String>((e) => e.toString()).join('+')}'
-        '&state=$stateToken';
-    onRequestBrowsing(address);
+    ///
+    /// This function mirrors the _communicateWithClient of "twitch_authentication_service".
+    String? manageAnswerFromServer(ws.WebSocket socket, message) {
+      final map = jsonDecode(message);
+      if (map?['protocolVersion'] != protocolVersion) {
+        throw 'Unrecognized protocol, please contact the project owner for an update';
+      }
 
-    // Send link to user and wait for the user to accept
-    return await _getAuthenticationToken(
-        stateToken: stateToken, redirectUri: appInfo.redirectUri);
+      switch (map?['status']) {
+        case 'tokenAcquired':
+          return map['token'];
+        case 'needToAuthenticate':
+          onRequestBrowsing(map['address']);
+          return null;
+        case 'needScope':
+          socket.send(json.encode({
+            'protocolVersion': protocolVersion,
+            'scope': appInfo.scope.map((e) => e.toString()).toList(),
+          }));
+          return null;
+        default:
+          throw 'Unrecognized status, please contact the project owner for an update';
+      }
+    }
+
+    // Communication procedure
+    final channel = ws.WebSocket(Uri.parse(appInfo.authenticationServerUri));
+    await channel.connection.firstWhere((state) => state is ws.Connected);
+
+    String? twitchResponse;
+    channel.messages.listen(
+        (message) => twitchResponse = manageAnswerFromServer(channel, message));
+    while (twitchResponse == null) {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    channel.close();
+    return twitchResponse!;
   }
 
   ///
@@ -417,28 +423,6 @@ class TwitchApi {
     );
 
     return int.tryParse(jsonDecode(response.body)?['user_id']) ?? -1;
-  }
-
-  ///
-  /// Call the Twitch API to Authenticate the user.
-  /// The [redirectUri] should match the configured one in the extension
-  /// dev panel of dev.twitch.tv.
-  /// This method has the same purpose of _authenticate but is targetted to use
-  /// the service. Doing so, we don't need Socket anymore, but only
-  /// websockets, allowing for web interface to be used
-  static Future<String> _getAuthenticationToken(
-      {required String stateToken, required String redirectUri}) async {
-    while (true) {
-      final response = await http.get(Uri.https(
-          redirectUri, '/get_access_token.php', {'state': stateToken}));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data.containsKey('token') && data['token'] != 'error') {
-          return data['token'];
-        }
-      }
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
   }
 
   ///
