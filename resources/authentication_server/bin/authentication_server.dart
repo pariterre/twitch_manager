@@ -162,6 +162,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Send a response back to the client
     request.response
       ..statusCode = HttpStatus.ok
+      ..headers.add('Access-Control-Allow-Origin', '*')
       ..write('Data received successfully')
       ..close();
   } catch (e) {
