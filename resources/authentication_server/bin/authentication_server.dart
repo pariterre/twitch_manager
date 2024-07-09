@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
+
 final _clients = <String, String>{};
+final _logging = Logger('authentication_server');
 
 ///
 /// Manage the communication between the client and twitch. An example of the
@@ -14,29 +17,45 @@ final _clients = <String, String>{};
 /// - --ssl=<cert.pem>,<key.pem>: the certificate and key to use for SSL. If
 ///  empty, SSL (http) is not used (default).
 void main(List<String> arguments) async {
-  final hostArg = arguments.firstWhere(
-      (e) => e.startsWith('--host=') || e.startsWith('-h='),
-      orElse: () => '--host=localhost');
-  final host = hostArg.split('=')[1];
+  // log to a log file
+  final logFilename = arguments
+      .firstWhere((e) => e.startsWith('--log=') || e.startsWith('-l='),
+          orElse: () => '--log=authentication_server.log')
+      .split('=')[1];
+  final logFile = File(logFilename);
+  logFile.writeAsStringSync(
+      '-----------------------------------\n'
+      'Starting new log at ${DateTime.now()}\n',
+      mode: FileMode.append);
+  Logger.root.onRecord.listen((record) {
+    final message = '${record.time}: ${record.message}';
+    logFile.writeAsStringSync('$message\n', mode: FileMode.append);
+    print(message);
+  });
 
-  final portArg = arguments.firstWhere(
-      (e) => e.startsWith('--port=') || e.startsWith('-p='),
-      orElse: () => '--port=3000');
-  final port = int.parse(portArg.split('=')[1]);
+  final host = arguments
+      .firstWhere((e) => e.startsWith('--host=') || e.startsWith('-h='),
+          orElse: () => '--host=localhost')
+      .split('=')[1];
 
-  final sslArg = arguments.firstWhere(
-      (e) => e.startsWith('--ssl=') || e.startsWith('-s='),
-      orElse: () => '--ssl=');
-  final ssl = sslArg.split('=')[1];
+  final port = int.parse(arguments
+      .firstWhere((e) => e.startsWith('--port=') || e.startsWith('-p='),
+          orElse: () => '--port=3000')
+      .split('=')[1]);
+
+  final ssl = arguments
+      .firstWhere((e) => e.startsWith('--ssl=') || e.startsWith('-s='),
+          orElse: () => '--ssl=')
+      .split('=')[1];
   final sslCert = ssl.isEmpty ? '' : ssl.split(',')[0];
   final sslKey = ssl.isEmpty ? '' : ssl.split(',')[1];
   if (ssl.isNotEmpty && (sslCert.isEmpty || sslKey.isEmpty)) {
-    print('Invalid SSL certificate and key, the expected format is: '
+    _logging.severe('Invalid SSL certificate and key, the expected format is: '
         '--ssl=<cert.pem>,<key.pem>');
     return;
   }
 
-  print('Server starting on $host:$port, SSL: ${ssl.isNotEmpty}');
+  _logging.info('Server starting on $host:$port, SSL: ${ssl.isNotEmpty}');
   HttpServer server = sslKey.isEmpty
       ? await HttpServer.bind(host, port)
       : await HttpServer.bindSecure(
@@ -47,7 +66,7 @@ void main(List<String> arguments) async {
             ..usePrivateKey(sslKey));
 
   await for (HttpRequest request in server) {
-    print('New ${request.method} request: ${request.uri.path}');
+    _logging.info('New ${request.method} request from : ${request.uri.path}');
     if (request.method == 'OPTIONS') {
       _handleOptionsRequest(request);
     } else if (request.method == 'GET' && request.uri.path == '/gettoken') {
@@ -77,6 +96,8 @@ void _handleGetTokenRequest(HttpRequest request) async {
   // Get the state token from the query parameters
   final stateToken = request.uri.queryParameters['state'];
   if (stateToken == null) {
+    _logging.severe(
+        'State token not found in query parameters, closing connexion (failure)');
     request.response
       ..statusCode = HttpStatus.badRequest
       ..write('State token not found')
@@ -92,6 +113,7 @@ void _handleGetTokenRequest(HttpRequest request) async {
       stateToken[3] != '6' ||
       stateToken[11] != '2' ||
       stateToken.codeUnits.reduce((a, b) => a + b) % 10 != 9) {
+    _logging.severe('Invalid state token, closing connexion (failure)');
     request.response
       ..statusCode = HttpStatus.badRequest
       ..write('Invalid state token')
@@ -111,6 +133,8 @@ void _handleGetTokenRequest(HttpRequest request) async {
     await Future.delayed(Duration(milliseconds: 100));
   }
   if (token == null) {
+    _logging.severe(
+        'OAUTH Token not found for $stateToken, closing connexion (failure)');
     request.response
       ..statusCode = HttpStatus.notFound
       ..write('Token not found')
@@ -119,6 +143,8 @@ void _handleGetTokenRequest(HttpRequest request) async {
   }
 
   // Send the token back to the client
+  _logging.info(
+      'Twitch OAUTH token sent to $stateToken, closing connexion (success)');
   request.response
     ..statusCode = HttpStatus.ok
     ..write(jsonEncode({'access_token': token, 'state': stateToken}))
@@ -138,7 +164,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Extract the state from the fragment (&state=...&)
     final stateMatch = RegExp(r'^.*&state=([0-9]*)&.*$').firstMatch(data);
     if (stateMatch == null || stateMatch.groupCount < 1) {
-      print('State not found, droping client');
+      _logging.severe('State not found, droping client');
       return;
     }
     String stateToken = stateMatch.group(1)!;
@@ -146,12 +172,13 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Extract the token from the fragment (&access_token=...&)
     final tokenMatch = RegExp(r'^.*access_token=([^&]*)&.*$').firstMatch(data);
     if (tokenMatch == null || tokenMatch.groupCount < 1) {
-      print('Token not found, droping client');
+      _logging.severe('Token not found, droping client');
       return;
     }
     final token = tokenMatch.group(1)!;
 
     // Store the token so it can be sent to the client
+    _logging.info('Twitch OAUTH token received for $stateToken');
     _clients[stateToken] = token;
 
     // Remove token in 5 minutes if not requested
@@ -166,7 +193,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
       ..write('Data received successfully')
       ..close();
   } catch (e) {
-    print('Error processing request: $e');
+    _logging.severe('Error processing request: $e, droping client');
     // Handle any errors
     request.response
       ..statusCode = HttpStatus.internalServerError
@@ -177,6 +204,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
 
 /// Handle connexion refused
 void _handleConnexionRefused(HttpRequest request) {
+  _logging.severe('Connexion refused');
   request.response
     ..statusCode = HttpStatus.forbidden
     ..write('Connexion refused')
