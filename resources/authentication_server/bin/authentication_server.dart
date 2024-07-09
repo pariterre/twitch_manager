@@ -7,9 +7,44 @@ final _clients = <String, String>{};
 /// Manage the communication between the client and twitch. An example of the
 /// expected communication is implemented in [resources/twitch_redirect_example.html]
 /// and in the example of the [twitch_manager] package.
+///
+/// The arguments are:
+/// - --host=<host>: the host to bind the server to. Default is 'localhost'.
+/// - --port=<port>: the port to bind the server to. Default is 3000.
+/// - --ssl=<cert.pem>,<key.pem>: the certificate and key to use for SSL. If
+///  empty, SSL (http) is not used (default).
 void main(List<String> arguments) async {
+  final hostArg = arguments.firstWhere(
+      (e) => e.startsWith('--host=') || e.startsWith('-h='),
+      orElse: () => '--host=localhost');
+  final host = hostArg.split('=')[1];
+
+  final portArg = arguments.firstWhere(
+      (e) => e.startsWith('--port=') || e.startsWith('-p='),
+      orElse: () => '--port=3000');
+  final port = int.parse(portArg.split('=')[1]);
+
+  final sslArg = arguments.firstWhere(
+      (e) => e.startsWith('--ssl=') || e.startsWith('-s='),
+      orElse: () => '--ssl=');
+  final ssl = sslArg.split('=')[1];
+  final sslCert = ssl.isEmpty ? '' : ssl.split(',')[0];
+  final sslKey = ssl.isEmpty ? '' : ssl.split(',')[1];
+  if (ssl.isNotEmpty && (sslCert.isEmpty || sslKey.isEmpty)) {
+    print('Invalid SSL certificate and key, the expected format is: '
+        '--ssl=<cert.pem>,<key.pem>');
+    return;
+  }
+
   print('Server starting...');
-  var server = await HttpServer.bind('localhost', 3000);
+  HttpServer server = sslKey.isEmpty
+      ? await HttpServer.bind(host, port)
+      : await HttpServer.bindSecure(
+          host,
+          port,
+          SecurityContext()
+            ..useCertificateChain(sslCert)
+            ..usePrivateKey(sslKey));
 
   await for (HttpRequest request in server) {
     print('New ${request.method} request: ${request.uri.path}');
