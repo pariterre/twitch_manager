@@ -36,7 +36,7 @@ void main(List<String> arguments) async {
     return;
   }
 
-  print('Server starting...');
+  print('Server starting on $host:$port');
   HttpServer server = sslKey.isEmpty
       ? await HttpServer.bind(host, port)
       : await HttpServer.bindSecure(
