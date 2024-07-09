@@ -161,6 +161,7 @@ class TwitchAuthenticator {
       // Get a new OAuth key
       final oauthKey = await TwitchApi.getNewOauth(
           appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
+      if (oauthKey == null) return false;
       setOauthKey(oauthKey);
 
       // Try to reconnect, but only once [retry = false]

@@ -15,11 +15,15 @@ class TwitchAppInfo {
   final String twitchClientId;
 
   ///
-  /// The URI that points to a server that takes care of the communication with
+  /// The URI that Twitch should redirect to after the user has logged in. This
+  /// URI should be the same as the one defined in the Twitch extension parameters
+  /// in dev.twitch.tv.
+  final Uri twitchRedirectUri;
+
+  ///
+  /// The URI that points to a server that handles the response from Twitch
   /// Twitch. The server is implemented in [ressources/authentication_server].
-  /// [authenticationServerUri] should not contain any protocol (i.e. https://).
-  /// https is automatically added.
-  final String authenticationServerUri;
+  final Uri authenticationServerUri;
 
   ///
   /// The scope of the rights required for the app to work
@@ -48,6 +52,7 @@ class TwitchAppInfo {
   TwitchAppInfo({
     required this.appName,
     required this.twitchClientId,
+    required this.twitchRedirectUri,
     required this.authenticationServerUri,
     required this.scope,
   })  : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),

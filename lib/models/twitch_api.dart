@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:twitch_manager/models/twitch_authenticator.dart';
@@ -8,7 +9,6 @@ import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
-import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -18,6 +18,33 @@ List<String> _removeBlacklisted(
   return names
       .where((e) => blacklist == null || !blacklist.contains(e))
       .toList();
+}
+
+///
+/// Generate a safe state for the OAuth request. This is to prevent CSRF attacks.
+/// The state is a string of 25 digits. The 4th character is 6 and the 12th
+/// character is 2. The sum of all the digits is calculated and the last digit
+/// is adjusted to make the sum 9.
+String _generateSafeState() {
+  // Initialize random number generator
+  final random = Random();
+
+  // Generate a list of random digits
+  List<int> digits = List.generate(25, (_) => random.nextInt(10));
+
+  // Set the required digits
+  digits[3] = 6; // 4th character (index 3)
+  digits[11] = 2; // 12th character (index 11)
+  digits[24] = 0; // Last character (index 24)
+
+  // Calculate the sum of the digits
+  int sum = digits.reduce((a, b) => a + b);
+
+  // Adjust the last digit to make the checksum 9
+  digits[24] = (9 - sum % 10) % 10;
+
+  // Convert the list of digits to a string
+  return digits.join();
 }
 
 ///
@@ -69,50 +96,47 @@ class TwitchApi {
   /// [appInfo] holds all the necessary information to connect.
   /// [onRequestBrowsing] is the callback to show which address the user must
   /// browse.
-  static Future<String> getNewOauth({
+  static Future<String?> getNewOauth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
   }) async {
-    const protocolVersion = '1.0.0';
+    // Generate a state so both Twitch and the Server knows the request is valid
+    // and made by me
+    final state = _generateSafeState();
 
-    ///
-    /// This function mirrors the _communicateWithClient of "twitch_authentication_service".
-    String? manageAnswerFromServer(ws.WebSocket socket, message) {
-      final map = jsonDecode(message);
-      if (map?['protocolVersion'] != protocolVersion) {
-        throw 'Unrecognized protocol, please contact the project owner for an update';
-      }
+    // Prepare the address the user should browse to.
+    String browsingUri = Uri.https('id.twitch.tv', '/oauth2/authorize', {
+      'response_type': 'token',
+      'client_id': appInfo.twitchClientId,
+      'redirect_uri': appInfo.twitchRedirectUri.toString(),
+      'state': state
+    }).toString();
+    // We have to add scope by hand, otherwise the '+' is encoded
+    browsingUri +=
+        '&scope=${appInfo.scope.map<String>((e) => e.toString()).join('+')}';
 
-      switch (map?['status']) {
-        case 'tokenAcquired':
-          return map['token'];
-        case 'needToAuthenticate':
-          onRequestBrowsing(map['address']);
-          return null;
-        case 'needScope':
-          socket.send(json.encode({
-            'protocolVersion': protocolVersion,
-            'scope': appInfo.scope.map((e) => e.toString()).toList(),
-          }));
-          return null;
-        default:
-          throw 'Unrecognized status, please contact the project owner for an update';
-      }
+    onRequestBrowsing(browsingUri);
+
+    // While they are browsing, we are waiting for the answer that will be sent
+    // to the server, by doing an HTTP get request with the state as query
+    final response = await http
+        .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
+    if (response.statusCode != 200) {
+      return null;
     }
 
-    // Communication procedure
-    final channel = ws.WebSocket(Uri.parse(appInfo.authenticationServerUri));
-    await channel.connection.firstWhere((state) => state is ws.Connected);
-
-    String? twitchResponse;
-    channel.messages.listen(
-        (message) => twitchResponse = manageAnswerFromServer(channel, message));
-    while (twitchResponse == null) {
-      await Future.delayed(const Duration(milliseconds: 500));
+    // Parse the response to get the state and the OAuth key
+    final body = json.decode(response.body);
+    final responseState = body['state'];
+    if (responseState != state) {
+      return null;
+    }
+    final oauthKey = body['access_token'];
+    if (oauthKey == null) {
+      return null;
     }
 
-    channel.close();
-    return twitchResponse!;
+    return oauthKey;
   }
 
   ///

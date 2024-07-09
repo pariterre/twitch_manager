@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<body>
+<!-- PUT THE WEBSITE YOU WANT TO SHOW FROM THE TWITCH REDIRECT HERE -->
+You can close this page!
+<script>
+  // Function to get the URL fragment
+  function getFragment() {
+    return window.location.hash.substring(1); // Remove the '#' at the start
+  }
+
+  // Fetch the fragment and send it to the server
+  function sendFragmentToServer() {
+    const fragment = getFragment();
+    
+    // CHANGE THE URL TO YOUR SERVER URL
+    fetch("http://localhost:3000/posttoken", {
+      method: "POST",
+      body: JSON.stringify({
+        fragment: fragment
+      }),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8"
+      }
+    })
+    .then(response => response.text())
+    .then(data => console.log(data))
+    .catch(error => console.error('Error:', error));
+  }
+
+  // Call the function to send the fragment to the server
+  sendFragmentToServer();
+</script>
+</body>
+</html>
