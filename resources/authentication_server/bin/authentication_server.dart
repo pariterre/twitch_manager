@@ -66,7 +66,7 @@ void main(List<String> arguments) async {
             ..usePrivateKey(sslKey));
 
   await for (HttpRequest request in server) {
-    _logging.info('New ${request.method} request from : ${request.uri.path}');
+    _logging.info('New ${request.method} request at ${request.uri.path}');
     if (request.method == 'OPTIONS') {
       _handleOptionsRequest(request);
     } else if (request.method == 'GET' && request.uri.path == '/gettoken') {

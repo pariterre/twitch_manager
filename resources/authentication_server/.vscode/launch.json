@@ -9,6 +9,7 @@
             "request": "launch",
             "type": "dart",
             "program": "bin/authentication_server.dart",
+            "args": ["--host=localhost", "--port=3000"]
         }
     ]
 }
