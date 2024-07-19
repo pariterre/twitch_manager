@@ -60,10 +60,10 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
               appInfo: TwitchAppInfo(
                 appName: 'My Lovely App',
                 twitchClientId: 'YOUR_CLIENT_ID_HERE',
-                twitchRedirectUri: Uri.https(
-                    'REDIRECT_URI_HERE', '/twitch_redirect_example.html'),
+                twitchRedirectUri: Uri.parse(
+                    'https://REDIRECT_URI_HERE/twitch_redirect_example.html'),
                 authenticationServerUri:
-                    Uri.https('SERVER_URI_HERE', '/gettoken'),
+                    Uri.parse('https://SERVER_URI_HERE/gettoken'),
                 // Requested scopes for the connexion
                 scope: const [
                   TwitchScope.chatRead,

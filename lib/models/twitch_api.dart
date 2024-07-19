@@ -119,14 +119,19 @@ class TwitchApi {
 
     // While they are browsing, we are waiting for the answer that will be sent
     // to the server, by doing an HTTP get request with the state as query
-    final response = await http
-        .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
-    if (response.statusCode != 200) {
+    Map<String, dynamic> body;
+    try {
+      final response = await http
+          .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
+      if (response.statusCode != 200) {
+        return null;
+      }
+      body = json.decode(response.body);
+    } on Exception {
       return null;
     }
 
     // Parse the response to get the state and the OAuth key
-    final body = json.decode(response.body);
     final responseState = body['state'];
     if (responseState != state) {
       return null;
