@@ -17,6 +17,23 @@ final _logging = Logger('authentication_server');
 /// - --ssl=<cert.pem>,<key.pem>: the certificate and key to use for SSL. If
 ///  empty, SSL (http) is not used (default).
 void main(List<String> arguments) async {
+  if (arguments.contains('--help')) {
+    print('''
+    Manage the communication between the client and twitch. An example of the
+    expected communication is implemented in [resources/twitch_redirect_example.html]
+    and in the example of the [twitch_manager] package.
+
+    The arguments are:
+    - --host=<host>: the host to bind the server to. Default is 'localhost'.
+    - --port=<port>: the port to bind the server to. Default is 3000.
+    - --ssl=<cert.pem>,<key.pem>: the certificate and key to use for SSL. If
+      empty, SSL (http) is not used (default).
+    - --log=<log_file>: the log file to write the logs to. Default is
+      'authentication_server.log'.
+    ''');
+    return;
+  }
+
   // log to a log file
   final logFilename = arguments
       .firstWhere((e) => e.startsWith('--log=') || e.startsWith('-l='),
