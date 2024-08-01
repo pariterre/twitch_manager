@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:http/http.dart';
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
@@ -11,6 +11,8 @@ import 'package:web_socket_client/web_socket_client.dart' as ws;
 
 const _twitchEventsUri = 'wss://eventsub.wss.twitch.tv/ws';
 const _twitchHelixUri = 'https://api.twitch.tv/helix/eventsub/subscriptions';
+
+final _logger = Logger('TwitchEvents');
 
 class TwitchEvent {
   final String eventId;
@@ -174,6 +176,8 @@ class TwitchEvents {
     required TwitchAuthenticator authenticator,
     required TwitchApi api,
   }) async {
+    _logger.config('Connecting to Twitch events API...');
+
     final twitchEvents = TwitchEvents._(appInfo, authenticator, api);
 
     // Communication procedure
@@ -193,6 +197,7 @@ class TwitchEvents {
     }
 
     // Return the fully functionnal TwitchEvents
+    _logger.config('Connected to Twitch events API');
     return twitchEvents;
   }
 
@@ -210,6 +215,8 @@ class TwitchEvents {
   ///
   /// Unsubscribe to all events and close connexion
   Future<void> disconnect() async {
+    _logger.info('Disconnecting from Twitch events API...');
+
     for (int i = 0; i < _subscriptionIds.length; i++) {
       _sendDeleteSubscribtionRequest(i);
     }
@@ -219,6 +226,7 @@ class TwitchEvents {
     _channel?.close();
 
     _isConnected = false;
+    _logger.info('Disconnected from Twitch events API');
   }
 
   ////// INTERNAL //////
@@ -244,40 +252,52 @@ class TwitchEvents {
   ///
   /// Manage a response from a subscription
   void _responseFromSubscription(message) {
+    _logger.fine('Received message from Twitch events: $message');
+
     final map = jsonDecode(message);
 
     // If this is the first call, we need to get the session id then return
     if (_sessionId == null) {
       // This is the shakehand
-      dev.log('Connected to the TwitchEvents API');
+      _logger.fine('Connected to the TwitchEvents API');
       _sessionId = map['payload']['session']['id'];
       return;
     }
 
     // If the payload is empty, this is a keep alive response, so do nothing
     final payload = map['payload'] as Map;
-    if (payload.isEmpty || !payload.containsKey('event')) return;
+    if (payload.isEmpty || !payload.containsKey('event')) {
+      _logger.fine('Keep alive message from Twitch events');
+      return;
+    }
 
     // If we get here, this is an actual response from Twitch. Let's parse it
     // log and notify the listeners
     if ((payload['event'] as Map).containsKey('reward')) {
+      _logger.info('Reward redemption received from Twitch events');
       final response = TwitchRewardRedemption.fromMap(map);
       onRewardRedeemed.notifyListerners((callback) => callback(response));
     } else {
       final response = TwitchEvent.fromMap(map);
-      dev.log(response.toString());
+      _logger.info('Event received from Twitch events ($response)');
     }
   }
 
   ///
   /// Send the actual Post request to Twitch
   Future<void> _sendPostSubscribtionRequest(TwitchScope scope) async {
+    _logger.info('Subscribing to Twitch events...');
+
     if (scope.scopeType != ScopeType.events) {
+      _logger.severe('The scope must be of type events');
       throw 'The scope must be of type events';
     }
 
     // This method cannot be called if the session id is not set
-    if (_sessionId == null) return;
+    if (_sessionId == null) {
+      _logger.severe('Cannot subscribe to an event without a session id');
+      return;
+    }
 
     // Crafting the actual post request to subscribe and wait for the answer
     final response = await post(
@@ -299,22 +319,29 @@ class TwitchEvents {
       // Success
       _subscriptionIds.add(responseDecoded['data'][0]['id']);
       _isConnected = true;
+      _logger.info('Twitch events subscribed');
       return;
     } else {
       // Failed
-      dev.log(responseDecoded.toString());
       _isConnected = false;
+      _logger.severe(
+          'Failed to subscribe to Twitch events: ${responseDecoded['message']}');
       return;
     }
   }
 
   ///
-  /// Send the actual Post request to Twitch
+  /// Send the actual Delete request to Twitch
   Future<void> _sendDeleteSubscribtionRequest(int index) async {
-    // This method cannot be called if the session id is not set
-    if (_sessionId == null) return;
+    _logger.info('Unsubscribing to Twitch events...');
 
-    // Crafting the actual post request to subscribe and wait for the answer
+    // This method cannot be called if the session id is not set
+    if (_sessionId == null) {
+      _logger.severe('Cannot unsubscribe to an event without a session id');
+      return;
+    }
+
+    // Crafting the actual delete request and wait for the answer
     await delete(
       Uri.parse(_twitchHelixUri),
       headers: <String, String>{
@@ -325,6 +352,9 @@ class TwitchEvents {
       },
       body: jsonEncode({'id': _subscriptionIds[index]}),
     );
+
+    _subscriptionIds.removeAt(index);
+    _logger.info('Twitch events unsubscribed');
   }
 }
 

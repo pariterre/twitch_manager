@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
@@ -6,6 +7,8 @@ import 'package:twitch_manager/models/twitch_chat.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/twitch_app_info.dart';
+
+final _logger = Logger('TwitchManagerInternal');
 
 ///
 /// Finalizer of the chat, so it frees the Socket
@@ -78,6 +81,8 @@ class TwitchManager {
     bool reload = true,
     String? saveKey,
   }) async {
+    _logger.config('Creating the manager to the Twitch connexion...');
+
     final authenticator = TwitchAuthenticator(saveKey: saveKey);
 
     if (reload) {
@@ -98,6 +103,7 @@ class TwitchManager {
     // it again here (mostly for connecting twitch events)
     await manager._connectToTwitchBackend();
 
+    _logger.config('Manager is ready to be used');
     return manager;
   }
 
@@ -107,9 +113,13 @@ class TwitchManager {
   Future<void> connectStreamer({
     required Future<void> Function(String address)? onRequestBrowsing,
   }) async {
+    _logger.info('Connecting streamer to Twitch...');
+
     await _authenticator.connectStreamer(
         appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
+
+    _logger.info('Streamer is connected to Twitch');
   }
 
   ///
@@ -118,14 +128,20 @@ class TwitchManager {
   Future<void> connectChatbot({
     required Future<void> Function(String address)? onRequestBrowsing,
   }) async {
+    _logger.info('Connecting chatbot to Twitch...');
+
     await _authenticator.connectChatbot(
         appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
+
+    _logger.info('Chatbot is connected to Twitch');
   }
 
   ///
   /// Disconnect and clean the saved OAUTH keys
   Future<void> disconnect() async {
+    _logger.info('Disconnecting from Twitch...');
+
     await _chat?.disconnect();
     await _events?.disconnect();
     await _authenticator.disconnect();
@@ -133,6 +149,8 @@ class TwitchManager {
 
     // Notify the user that the manager has disconnected
     onHasDisconnected.notifyListerners((callback) => callback());
+
+    _logger.info('Disconnected from Twitch');
   }
 
   ///
@@ -157,7 +175,12 @@ class TwitchManager {
   /// Initialize the connexion with twitch for all the relevent users
   ///
   Future<void> _connectToTwitchBackend() async {
-    if (!_authenticator.isStreamerConnected) return;
+    _logger.config('Connecting to Twitch backend...');
+
+    if (!_authenticator.isStreamerConnected) {
+      _logger.warning('Streamer is not connected, cannot proceed');
+      return;
+    }
 
     // Connect the API
     _api ??= await TwitchApi.factory(
@@ -186,6 +209,8 @@ class TwitchManager {
 
     // Mark the Manager as being fully ready
     _isConnected = true;
+
+    _logger.config('Connected to Twitch backend');
   }
 }
 

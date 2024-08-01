@@ -1,6 +1,6 @@
-import 'dart:developer';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_authenticator.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
@@ -8,6 +8,8 @@ import 'package:web_socket_client/web_socket_client.dart' as ws;
 // Define some constant from Twitch itself
 const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
+
+final _logger = Logger('TwitchChat');
 
 class TwitchChat {
   bool _isConnected = false;
@@ -31,6 +33,8 @@ class TwitchChat {
   ///
   /// Disconnect to Twitch IRC channel
   Future<void> disconnect() async {
+    _logger.info('Disconnecting from Twitch IRC channel...');
+
     // Remove the active listeners
     onMessageReceived.clearListeners();
     onInternalMessageReceived.clearListeners();
@@ -41,6 +45,8 @@ class TwitchChat {
     if (_socket != null) _socket!.close();
 
     _isConnected = false;
+
+    _logger.info('Disconnected from Twitch IRC channel');
   }
 
   /// ATTRIBUTES
@@ -56,6 +62,7 @@ class TwitchChat {
   static Future<TwitchChat> factory(
       {required String streamerLogin,
       required TwitchAuthenticator authenticator}) async {
+    _logger.config('Connecting to Twitch chat');
     return TwitchChat._(
         streamerLogin, await _getConnectedSocket(), authenticator);
   }
@@ -69,11 +76,18 @@ class TwitchChat {
   ///
   /// Send a message to the Twitch IRC. If connection failed it tries another time.
   Future<void> _send(String command) async {
-    if (!_isConnected) return;
+    _logger.info('Sending command: $command');
+
+    if (!_isConnected) {
+      _logger.warning('Cannot send message as we are not connected to Twitch');
+      return;
+    }
 
     try {
       _socket!.send('$command\n');
     } on SocketException {
+      _logger.warning(
+          'Connection reset by peer, trying to reconnect and to send again');
       _socket = await _getConnectedSocket();
       await _send(command);
       return;
@@ -83,6 +97,8 @@ class TwitchChat {
   ///
   /// Establish a connexion with the Twitch IRC channel
   static Future<ws.WebSocket> _getConnectedSocket() async {
+    _logger.info('Connecting to Twitch socket...');
+
     bool socketIsConnected = false;
     late ws.WebSocket socket;
     int retryCounter = 0;
@@ -93,41 +109,52 @@ class TwitchChat {
         socketIsConnected = true;
       } on SocketException {
         // Retry after some time
-        log('Connection reset by peer, retry attempt $retryCounter');
+        _logger
+            .warning('Connection reset by peer, retry attempt $retryCounter');
         await Future.delayed(const Duration(seconds: 5));
         if (retryCounter > 5) throw 'Cannot connect to socket';
         retryCounter++;
       }
     }
+
+    _logger.info('Connected to Twitch socket');
     return socket;
   }
 
   ///
   /// Connect to Twitch websocket.
   void _connect() async {
+    _logger.info('Connecting to Twitch websocket...');
     try {
       _socket!.messages.listen(_messageReceived);
     } on SocketException {
       // Wait for some time and reconnect
+      _logger.warning('Connection failed, retrying...');
       _socket = await _getConnectedSocket();
       _connect();
       return;
     }
+
     await _connectToTwitchIrc();
+    _logger.info('Connected to Twitch websocket');
   }
 
   ///
   /// Connect to the actual IRC channel
   Future<void> _connectToTwitchIrc() async {
+    _logger.info('Connecting to Twitch IRC channel...');
     _isConnected = true;
     await _send('PASS oauth:$_oauthKey');
     await _send('NICK $streamerLogin');
     await _send('JOIN #$streamerLogin');
+    _logger.info('Connected to Twitch IRC channel');
   }
 
   ///
   /// This method is called each time a new message is received
   void _messageReceived(event) {
+    _logger.info('New message received: $event');
+
     var fullMessage = event; //String.fromCharCodes(event);
     // Remove the line returns
     if (fullMessage[fullMessage.length - 1] == '\n') {
@@ -140,9 +167,8 @@ class TwitchChat {
     if (fullMessage == 'PING :tmi.twitch.tv') {
       if (!_isConnected) return;
       // Keep connexion alive
-      log(fullMessage);
+      _logger.info('Received PING, sending PONG');
       _send('PONG :tmi.twitch.tv');
-      log('PONG');
       return;
     }
 
@@ -150,7 +176,7 @@ class TwitchChat {
     final match = re.firstMatch(fullMessage);
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
-      log(fullMessage);
+      _logger.warning('Unrecognized message format');
       onInternalMessageReceived
           .notifyListerners((callback) => callback(fullMessage));
       return;
@@ -159,8 +185,8 @@ class TwitchChat {
     // If this is a message from the chat
     final sender = match.group(1)!;
     final message = match.group(2)!;
-    log('Message received:\n$sender: $message');
     onMessageReceived.notifyListerners((callback) => callback(sender, message));
+    _logger.info('Message parsed');
   }
 }
 
@@ -198,7 +224,7 @@ class TwitchChatMock extends TwitchChat {
 
   @override
   Future<void> _send(String command) async {
-    log(command);
+    _logger.info('Sending command: $command');
     await Future.delayed(const Duration(seconds: 1));
 
     final re = RegExp(r'^PRIVMSG #(.*) :(.*)$');
