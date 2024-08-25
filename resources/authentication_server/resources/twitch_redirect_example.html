@@ -13,8 +13,8 @@ You can close this page!
   function sendFragmentToServer() {
     const fragment = getFragment();
     
-    // CHANGE THE URL TO YOUR SERVER URL
-    fetch("https://REDIRECT_URI_HERE/posttoken", {
+    // CHANGE THE URL TO YOUR AUTHENTICATION SERVER URL
+    fetch("https://REDIRECT_URI_HERE/token", {
       method: "POST",
       body: JSON.stringify({
         fragment: fragment

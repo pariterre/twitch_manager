@@ -63,7 +63,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
                 twitchRedirectUri: Uri.parse(
                     'https://REDIRECT_URI_HERE/twitch_redirect_example.html'),
                 authenticationServerUri:
-                    Uri.parse('https://SERVER_URI_HERE/gettoken'),
+                    Uri.parse('https://SERVER_URI_HERE/token'),
                 // Requested scopes for the connexion
                 scope: const [
                   TwitchScope.chatRead,

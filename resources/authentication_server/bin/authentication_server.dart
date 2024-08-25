@@ -86,9 +86,9 @@ void main(List<String> arguments) async {
     _logging.info('New ${request.method} request at ${request.uri.path}');
     if (request.method == 'OPTIONS') {
       _handleOptionsRequest(request);
-    } else if (request.method == 'GET' && request.uri.path == '/gettoken') {
+    } else if (request.method == 'GET' && request.uri.path == '/token') {
       _handleGetTokenRequest(request);
-    } else if (request.method == 'POST' && request.uri.path == '/posttoken') {
+    } else if (request.method == 'POST' && request.uri.path == '/token') {
       _handlePostTokenRequest(request);
     } else {
       _handleConnexionRefused(request);

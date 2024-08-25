@@ -17,12 +17,15 @@ class TwitchAppInfo {
   ///
   /// The URI that Twitch should redirect to after the user has logged in. This
   /// URI should be the same as the one defined in the Twitch extension parameters
-  /// in dev.twitch.tv.
+  /// in dev.twitch.tv. It is expected to post the authentication token to the
+  /// [authenticationServerUri] so that the app can get the token.
   final Uri twitchRedirectUri;
 
   ///
-  /// The URI that points to a server that handles the response from Twitch
-  /// Twitch. The server is implemented in [ressources/authentication_server].
+  /// The URI that points to a server that handles the response from Twitch.
+  /// The server is implemented in [ressources/authentication_server]. This is the
+  /// backend called by the [twitchRedirectUri] to get the authentication token from
+  /// Twitch and redirect it to the app.
   final Uri authenticationServerUri;
 
   ///
