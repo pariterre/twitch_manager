@@ -21,6 +21,6 @@ One can also use certbot to create the relevant certificates
 
 # How to use
 
-This backend is intended to receive a POST request (to `/posttoken`) from a website that relays the Twitch response fragment in a json {'fragment': fragment} formatting. An example of such a website can be found at `resources/twitch_redirect_example.html`
+This backend is intended to receive a POST request (to `/token`) from a website that relays the Twitch response fragment in a json {'fragment': fragment} formatting. An example of such a website can be found at `resources/twitch_redirect_example.html`
 
-It also respond to a GET request (to `/gettoken`) by relaying the fragment part. The request is done by the 'twitch_manager` package. 
+It also respond to a GET request (to `/token`) by relaying the fragment part. The request is done by the 'twitch_manager` package. 
