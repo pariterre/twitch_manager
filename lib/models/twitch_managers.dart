@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
-import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_chat.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
+import 'package:twitch_manager/models/twitch_info.dart';
 
 final _logger = Logger('TwitchManagerInternal');
 
@@ -15,27 +15,50 @@ final _logger = Logger('TwitchManagerInternal');
 final Finalizer<TwitchChat> _finalizerTwitchChat =
     Finalizer((twitchChat) => twitchChat.disconnect());
 
-class TwitchManager {
+mixin TwitchManager {
   ///
-  /// If the streamer is connected
-  bool get isStreamerConnected => _authenticator.isStreamerConnected;
+  /// Get the app information
+  TwitchInfo get appInfo;
+
+  ///
+  /// Get the authenticator
+  TwitchAuthenticator get authenticator;
+
+  ///
+  /// Connecting a user to Twitch
+  Future<void> connect();
+
+  ///
+  /// Callback to inform the user when the manager has connected
+  TwitchGenericListener get onHasConnected;
+
+  ///
+  /// Disconnect and clean the saved bearer token
+  Future<void> disconnect();
+
+  ///
+  /// Callback to inform the user when the manager has disconnected
+  TwitchGenericListener get onHasDisconnected;
 
   ///
   /// If the streamer is connected
-  bool get isChatbotConnected => _authenticator.isChatbotConnected;
+  bool get isConnected;
+}
+
+class TwitchAppManager implements TwitchManager {
+  final TwitchAppInfo _appInfo;
+  @override
+  TwitchAppInfo get appInfo => _appInfo;
+
+  final TwitchClientAuthenticator _authenticator;
+  @override
+  TwitchClientAuthenticator get authenticator => _authenticator;
 
   ///
-  /// If all the necessary users are connected and the API and chat are initialized
-  bool get isConnected => _isConnected;
-
-  ///
-  /// If the events are connected
-  bool get isEventConnected => _events?.isConnected ?? false;
-
-  ///
-  /// Get a reference to the twitch chat
+  /// A reference to the chat of the stream
+  TwitchChat? _chat;
   TwitchChat get chat {
-    if (!_appInfo.needChat) {
+    if (!appInfo.needChat) {
       throw 'The app must define at least one TwitchScope with a ScopeType.chat '
           'to use the chat.';
     }
@@ -47,7 +70,8 @@ class TwitchManager {
   }
 
   ///
-  /// Get a reference to the twitch API
+  /// A reference to the API of the stream
+  TwitchApi? _api;
   TwitchApi get api {
     if (!_isConnected) {
       throw 'api necessitate the user to be connected';
@@ -56,9 +80,11 @@ class TwitchManager {
   }
 
   ///
-  /// Get a reference to the events API
+  /// A reference to the events API
+  TwitchEvents? _events;
+  bool get isEventConnected => _events?.isConnected ?? false;
   TwitchEvents get events {
-    if (!_appInfo.hasEvents) {
+    if (!appInfo.hasEvents) {
       throw 'The app must define at least one TwitchScope with a ScopeType.events '
           'to use the events.';
     }
@@ -69,54 +95,71 @@ class TwitchManager {
     return _events!;
   }
 
-  /// Main constructor for the TwitchManager.
+  ///
+  /// If the streamer is connected
+  bool get isStreamerConnected => authenticator.isConnected;
+
+  ///
+  /// If the streamer is connected
+  bool get isChatbotConnected => authenticator.isChatbotConnected;
+
+  ///
+  /// If all the necessary users are connected and the API and chat are initialized
+  bool _isConnected = false;
+  @override
+  bool get isConnected => _isConnected;
+
+  ///
+  /// Internal constructor of the Twitch Manager
+  TwitchAppManager._(this._appInfo, this._authenticator);
+
+  /// Main constructor for the TwitchAppManager.
   /// [appInfo] is all the required information of the current app.
   /// [reload] load (or not) a previous session.
-  /// [saveKey] can be added to the reload flag so a specific user can be
+  /// [saveKeySuffix] can be added to the reload flag so a specific user can be
   /// loaded. This can be useful if many users are registered via multiple
-  /// instances of TwitchManager in a single app.  If [reload] if false,
-  /// this parameter has no effect.
-  static Future<TwitchManager> factory({
+  /// instances of TwitchManager in a single app. If [reload] if false,
+  /// this parameter has no effect, as the session is not loaded.
+  static Future<TwitchAppManager> factory({
     required TwitchAppInfo appInfo,
     bool reload = true,
-    String? saveKey,
+    String? saveKeySuffix,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
-    final authenticator = TwitchAuthenticator(saveKey: saveKey);
+    final authenticator =
+        TwitchClientAuthenticator(saveKeySuffix: saveKeySuffix);
 
     if (reload) {
-      await authenticator.loadSession(appInfo: appInfo);
+      await authenticator.loadSession();
     }
 
-    final manager = TwitchManager._(appInfo, authenticator);
+    final manager = TwitchAppManager._(appInfo, authenticator);
 
     // Connect to the chat
-    if (authenticator.streamerOauthKey != null) {
-      await manager.connectStreamer(onRequestBrowsing: null);
-    }
-    if (authenticator.chatbotOauthKey != null) {
-      await manager.connectChatbot(onRequestBrowsing: null);
-    }
+    if (authenticator.bearerKey != null) await manager.connect();
+    if (authenticator.chatbotBearerKey != null) await manager.connectChatbot();
 
     // Despite being called by the streamer and bot, just make sure by calling
     // it again here (mostly for connecting twitch events)
     await manager._connectToTwitchBackend();
 
+    manager.onHasConnected.notifyListeners((callback) => callback());
     _logger.config('Manager is ready to be used');
     return manager;
   }
 
   ///
-  /// Entry point for connecting a streamer to Twitch
+  /// Entry point for connecting a chatbot to Twitch
   ///
-  Future<void> connectStreamer({
-    required Future<void> Function(String address)? onRequestBrowsing,
+  @override
+  Future<void> connect({
+    Future<void> Function(String address)? onRequestBrowsing,
   }) async {
     _logger.info('Connecting streamer to Twitch...');
 
-    await _authenticator.connectStreamer(
-        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+    await authenticator.connect(
+        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
 
     _logger.info('Streamer is connected to Twitch');
@@ -126,19 +169,23 @@ class TwitchManager {
   /// Entry point for connecting a chatbot to Twitch
   ///
   Future<void> connectChatbot({
-    required Future<void> Function(String address)? onRequestBrowsing,
+    Future<void> Function(String address)? onRequestBrowsing,
   }) async {
     _logger.info('Connecting chatbot to Twitch...');
 
     await _authenticator.connectChatbot(
-        appInfo: _appInfo, onRequestBrowsing: onRequestBrowsing);
+        appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
 
     _logger.info('Chatbot is connected to Twitch');
   }
 
+  @override
+  final onHasConnected = TwitchGenericListener();
+
   ///
   /// Disconnect and clean the saved OAUTH keys
+  @override
   Future<void> disconnect() async {
     _logger.info('Disconnecting from Twitch...');
 
@@ -148,36 +195,21 @@ class TwitchManager {
     _isConnected = false;
 
     // Notify the user that the manager has disconnected
-    onHasDisconnected.notifyListerners((callback) => callback());
+    onHasDisconnected.notifyListeners((callback) => callback());
 
     _logger.info('Disconnected from Twitch');
   }
 
-  ///
-  /// Callbacks to inform the user when something changes internally
-  ///
+  @override
   final onHasDisconnected = TwitchGenericListener();
 
   ///
-  /// ATTRIBUTES
-  final TwitchAppInfo _appInfo;
-  final TwitchAuthenticator _authenticator;
-  TwitchChat? _chat;
-  TwitchApi? _api;
-  TwitchEvents? _events;
-  bool _isConnected = false;
-
-  ///
-  /// Main constructor of the Twitch Manager
-  TwitchManager._(this._appInfo, this._authenticator);
-
-  ///
-  /// Initialize the connexion with twitch for all the relevent users
+  /// Formally initialize the connexion with Twitch for all the relevent services
   ///
   Future<void> _connectToTwitchBackend() async {
     _logger.config('Connecting to Twitch backend...');
 
-    if (!_authenticator.isStreamerConnected) {
+    if (!_authenticator.isConnected) {
       _logger.warning('Streamer is not connected, cannot proceed');
       return;
     }
@@ -214,7 +246,62 @@ class TwitchManager {
   }
 }
 
-class TwitchManagerMock extends TwitchManager {
+class TwitchFrontendManager implements TwitchManager {
+  final TwitchFrontendInfo _appInfo;
+  @override
+  TwitchFrontendInfo get appInfo => _appInfo;
+
+  final TwitchJwtAuthenticator _authenticator;
+  @override
+  TwitchJwtAuthenticator get authenticator => _authenticator;
+
+  @override
+  bool get isConnected => authenticator.isConnected;
+
+  ///
+  /// Internal constructor of the Twitch Manager
+  TwitchFrontendManager._(this._appInfo, this._authenticator);
+
+  /// Main constructor for the TwitchFrontendManager.
+  /// [appInfo] is all the required information of the current extension.
+  static Future<TwitchFrontendManager> factory({
+    required TwitchFrontendInfo appInfo,
+    Function()? onHasConnectedCallback,
+  }) async {
+    _logger.config('Creating the manager to the Twitch connexion...');
+
+    final authenticator = TwitchJwtAuthenticator();
+    final manager = TwitchFrontendManager._(appInfo, authenticator);
+
+    // Connect to the EBS and relay the onHasConnected event to the manager listeners
+    if (onHasConnectedCallback != null) {
+      authenticator.onHasConnected.startListening(onHasConnectedCallback);
+    }
+    await manager.connect();
+
+    _logger.config('Manager is ready to be used');
+    return manager;
+  }
+
+  @override
+  Future<void> connect() async {
+    await authenticator.connect(appInfo: appInfo);
+  }
+
+  @override
+  Future<void> disconnect() =>
+      throw 'It is not possible to disconnect from the frontend, it is automatically '
+          'done by the browser when the page is closed';
+
+  @override
+  final onHasConnected = TwitchGenericListener();
+
+  @override
+  TwitchGenericListener<Function> get onHasDisconnected =>
+      throw 'It is not possible to listen to the disconnection of the frontend';
+}
+
+class TwitchManagerMock extends TwitchAppManager {
   TwitchDebugPanelOptions debugPanelOptions;
 
   @override
@@ -261,9 +348,8 @@ class TwitchManagerMock extends TwitchManager {
   }
 
   @override
-  Future<void> connectStreamer({
-    required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
+  Future<void> connect({
+    Future<void> Function(String address)? onRequestBrowsing,
   }) async {
     await _connectToTwitchBackend();
   }
@@ -273,8 +359,7 @@ class TwitchManagerMock extends TwitchManager {
   ///
   @override
   Future<void> connectChatbot({
-    required Future<void> Function(String address)? onRequestBrowsing,
-    String? saveKey,
+    Future<void> Function(String address)? onRequestBrowsing,
   }) async {
     await _connectToTwitchBackend();
   }
@@ -282,7 +367,7 @@ class TwitchManagerMock extends TwitchManager {
   ///
   /// Main constructor of the Twitch Manager
   TwitchManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
-      : super._(appInfo, TwitchAuthenticatorMock()) {
+      : super._(appInfo, TwitchClientAuthenticatorMock()) {
     _connectToTwitchBackend();
   }
 
@@ -294,7 +379,7 @@ class TwitchManagerMock extends TwitchManager {
     // Connect the API
     _api ??= await TwitchApiMock.factory(
         appInfo: _appInfo,
-        authenticator: _authenticator as TwitchAuthenticatorMock,
+        authenticator: _authenticator,
         debugPanelOptions: debugPanelOptions);
 
     final streamerLogin = await _api!.login(_api!.streamerId);
@@ -302,8 +387,9 @@ class TwitchManagerMock extends TwitchManager {
 
     // Connect to the chat
     _chat = await TwitchChatMock.factory(
-        streamerLogin: streamerLogin,
-        authenticator: _authenticator as TwitchAuthenticatorMock);
+      streamerLogin: streamerLogin,
+      authenticator: _authenticator as TwitchClientAuthenticatorMock,
+    );
     if (!kIsWeb) {
       _finalizerTwitchChat.attach(this, _chat!, detach: this);
     }
@@ -312,7 +398,7 @@ class TwitchManagerMock extends TwitchManager {
     if (_appInfo.hasEvents) {
       _events ??= await TwitchEventsMock.factory(
           appInfo: _appInfo,
-          authenticator: _authenticator as TwitchAuthenticatorMock,
+          authenticator: _authenticator,
           api: _api as TwitchApiMock,
           debugPanelOptions: debugPanelOptions);
     }

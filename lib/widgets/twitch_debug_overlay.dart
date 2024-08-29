@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
-import 'package:twitch_manager/models/twitch_manager_internal.dart';
+import 'package:twitch_manager/models/twitch_managers.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
 import 'package:twitch_manager/widgets/animated_expanding_card.dart';
 
@@ -20,7 +20,7 @@ class TwitchDebugOverlay extends StatefulWidget {
 
   final double maxHeight;
   final double width;
-  final TwitchManager? manager;
+  final TwitchAppManager? manager;
   final Offset startingPosition;
   final Widget child;
 

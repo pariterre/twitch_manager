@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 
@@ -50,10 +50,10 @@ class TwitchChat {
   }
 
   /// ATTRIBUTES
-  final TwitchAuthenticator _authenticator;
+  final TwitchClientAuthenticator _authenticator;
   final String streamerLogin;
   String get _oauthKey =>
-      _authenticator.chatbotOauthKey ?? _authenticator.streamerOauthKey!;
+      _authenticator.chatbotBearerKey ?? _authenticator.bearerKey!;
   ws.WebSocket? _socket;
 
   ///
@@ -61,7 +61,7 @@ class TwitchChat {
   ///
   static Future<TwitchChat> factory(
       {required String streamerLogin,
-      required TwitchAuthenticator authenticator}) async {
+      required TwitchClientAuthenticator authenticator}) async {
     _logger.config('Connecting to Twitch chat');
     return TwitchChat._(
         streamerLogin, await _getConnectedSocket(), authenticator);
@@ -178,14 +178,14 @@ class TwitchChat {
     if (match == null || match.groupCount != 2) {
       _logger.warning('Unrecognized message format');
       onInternalMessageReceived
-          .notifyListerners((callback) => callback(fullMessage));
+          .notifyListeners((callback) => callback(fullMessage));
       return;
     }
 
     // If this is a message from the chat
     final sender = match.group(1)!;
     final message = match.group(2)!;
-    onMessageReceived.notifyListerners((callback) => callback(sender, message));
+    onMessageReceived.notifyListeners((callback) => callback(sender, message));
     _logger.info('Message parsed');
   }
 }
@@ -199,14 +199,15 @@ class TwitchChatMock extends TwitchChat {
   ///
   static Future<TwitchChatMock> factory({
     required String streamerLogin,
-    required TwitchAuthenticatorMock authenticator,
+    required TwitchClientAuthenticator authenticator,
   }) async =>
       TwitchChatMock._(streamerLogin, authenticator);
 
   ///
   /// Private constructor
   ///
-  TwitchChatMock._(String streamerLogin, TwitchAuthenticatorMock authenticator)
+  TwitchChatMock._(
+      String streamerLogin, TwitchClientAuthenticator authenticator)
       : super._(streamerLogin, null, authenticator);
 
   @override

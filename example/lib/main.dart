@@ -267,9 +267,9 @@ class TwitchManagerSingleton {
 
   ///
   /// Setup a singleton for the TwitchManager
-  static TwitchManager? get instance => _singleton._manager;
+  static TwitchAppManager? get instance => _singleton._manager;
 
-  static void initialize(TwitchManager manager) {
+  static void initialize(TwitchAppManager manager) {
     _singleton._manager = manager;
     _singleton._manager!.chat.onMessageReceived
         .startListening((String sender, String message) {
@@ -283,5 +283,5 @@ class TwitchManagerSingleton {
   /// Internal
   static final TwitchManagerSingleton _singleton = TwitchManagerSingleton._();
   TwitchManagerSingleton._();
-  TwitchManager? _manager;
+  TwitchAppManager? _manager;
 }

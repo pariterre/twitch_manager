@@ -1,6 +1,6 @@
-import 'package:twitch_manager/twitch_scope.dart';
+import 'package:twitch_manager/models/twitch_scope.dart';
 
-class TwitchAppInfo {
+abstract class TwitchInfo {
   ///
   /// The name of the app. It is mainly user to create a save folder with a
   /// relevent name.
@@ -12,7 +12,20 @@ class TwitchAppInfo {
   /// be versioned in the code). Do not confuse with the "client secret" key which
   /// is secret and should never be shared. However, the client secret is not used
   /// by the TwitchManager.
-  final String twitchClientId;
+  final String? twitchClientId;
+
+  ///
+  /// Main constructor
+  ///
+  TwitchInfo({
+    required this.appName,
+    required this.twitchClientId,
+  });
+}
+
+class TwitchAppInfo extends TwitchInfo {
+  @override
+  String get twitchClientId => super.twitchClientId!;
 
   ///
   /// The URI that Twitch should redirect to after the user has logged in. This
@@ -53,12 +66,30 @@ class TwitchAppInfo {
   ///
   /// Main constructor
   TwitchAppInfo({
-    required this.appName,
-    required this.twitchClientId,
+    required super.appName,
+    required super.twitchClientId,
     required this.twitchRedirectUri,
     required this.authenticationServerUri,
     required this.scope,
   })  : hasChatbot = scope.any((e) => e == TwitchScope.chatEdit),
         needChat = scope.any((e) => e.scopeType == ScopeType.chat),
         hasEvents = scope.any((e) => e.scopeType == ScopeType.events);
+}
+
+class TwitchFrontendInfo extends TwitchInfo {
+  ///
+  /// The URI of the EBS server. This is the server that handles the requests
+  /// from the frontend. It is used to initialize and communicate information from
+  /// the frontend to the backend.
+  final Uri ebsUri;
+
+  ///
+  /// Main constructor
+  /// [appName] is the name of the app. It is mainly for reference as it is not used
+  /// [ebsUri] is the URI of the EBS server.
+  /// [twitchClientId] is not used in the frontend, so it is set to an empty string.
+  TwitchFrontendInfo({
+    required super.appName,
+    required this.ebsUri,
+  }) : super(twitchClientId: null);
 }

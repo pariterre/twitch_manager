@@ -13,7 +13,7 @@ class TwitchGenericListener<T extends Function> {
 
   ///
   /// Notify all listeners.
-  void notifyListerners(void Function(T) callback) =>
+  void notifyListeners(void Function(T) callback) =>
       _listeners.forEach(callback);
 
   ///

@@ -35,7 +35,7 @@ class TwitchAuthenticationDialog extends StatefulWidget {
   final bool isMockActive;
 
   static const route = '/twitch-authentication';
-  final Function(TwitchManager) onConnexionEstablished;
+  final Function(TwitchAppManager) onConnexionEstablished;
 
   final TwitchAppInfo appInfo;
   final bool reload;
@@ -50,19 +50,19 @@ class _TwitchAuthenticationDialogState
     extends State<TwitchAuthenticationDialog> {
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
-  TwitchManager? _manager;
-  late Future<TwitchManager> factoryManager = widget.isMockActive
+  TwitchAppManager? _manager;
+  late Future<TwitchAppManager> factoryManager = widget.isMockActive
       ? TwitchManagerMock.factory(
           appInfo: widget.appInfo, debugPanelOptions: widget.debugPanelOptions)
-      : TwitchManager.factory(
+      : TwitchAppManager.factory(
           appInfo: widget.appInfo,
           reload: widget.reload,
-          saveKey: widget.saveKey);
+          saveKeySuffix: widget.saveKey);
 
   Future<void> _connectStreamer() async {
     if (_manager == null) return;
 
-    await _manager!.connectStreamer(onRequestBrowsing: _onRequestBrowsing);
+    await _manager!.connect(onRequestBrowsing: _onRequestBrowsing);
     _checkForConnexionDone();
   }
 

@@ -5,11 +5,11 @@ import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
-import 'package:twitch_manager/twitch_app_info.dart';
+import 'package:twitch_manager/models/twitch_info.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -75,7 +75,7 @@ class TwitchApi {
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
     final api = TwitchApi._(appInfo, authenticator);
-    api.streamerId = await api._userId(authenticator.streamerOauthKey!);
+    api.streamerId = await api._userId(authenticator.bearerKey!);
 
     _logger.config('Twitch API created');
     return api;
@@ -86,8 +86,8 @@ class TwitchApi {
   ///
   /// Validates the current OAUTH key. This is mandatory as stated here:
   /// https://dev.twitch.tv/docs/authentication/validate-tokens/
-  static Future<bool> validateOauthToken(
-      {required TwitchAppInfo appInfo, required String oauthKey}) async {
+  /// This only make sense for App (as opposed to extensions)
+  static Future<bool> validateOauthToken({required String oauthKey}) async {
     _logger.info('Validating OAUTH token...');
 
     final response = await http.get(
@@ -439,7 +439,7 @@ class TwitchApi {
       Map<String, String?>? parameters,
       Map<String, String>? body}) async {
     // Stop now if we are disconnected
-    if (_authenticator.streamerOauthKey == null) {
+    if (_authenticator.bearerKey == null) {
       _logger
           .warning('Could not send request as the streamer is not connected');
       return null;
@@ -462,7 +462,7 @@ class TwitchApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.streamerOauthKey}',
+                  'Bearer ${_authenticator.bearerKey}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             });
@@ -474,7 +474,7 @@ class TwitchApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.streamerOauthKey}',
+                  'Bearer ${_authenticator.bearerKey}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
@@ -487,7 +487,7 @@ class TwitchApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.streamerOauthKey}',
+                  'Bearer ${_authenticator.bearerKey}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
@@ -500,7 +500,7 @@ class TwitchApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.streamerOauthKey}',
+                  'Bearer ${_authenticator.bearerKey}',
               'Client-Id': _appInfo.twitchClientId,
             });
         if (response.body.contains('error')) return null;
@@ -572,7 +572,7 @@ class TwitchApiMock extends TwitchApi {
   /// [debugPanelOptions] are the options to use for the mock
   static Future<TwitchApiMock> factory({
     required TwitchAppInfo appInfo,
-    required TwitchAuthenticatorMock authenticator,
+    required TwitchAuthenticator authenticator,
     required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
     // Create a temporary TwitchApi with [streamerId] empty so we
@@ -655,7 +655,7 @@ class TwitchApiMock extends TwitchApi {
     final id = 'reward_id_${reward.hashCode}';
     _rewardRedemptions.add(reward.copyWith(rewardRedemptionId: id));
 
-    onRewardRedemptionsChanged.notifyListerners(
+    onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: false));
     return id;
   }
@@ -678,7 +678,7 @@ class TwitchApiMock extends TwitchApi {
     _rewardRedemptions
         .add(reward.copyWith(rewardRedemptionId: reward.rewardRedemptionId));
 
-    onRewardRedemptionsChanged.notifyListerners(
+    onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: false));
     return true;
   }
@@ -694,7 +694,7 @@ class TwitchApiMock extends TwitchApi {
     _rewardRedemptions
         .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
 
-    onRewardRedemptionsChanged.notifyListerners(
+    onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: true));
     return true;
   }
@@ -716,7 +716,7 @@ class TwitchApiMock extends TwitchApi {
 
   ///
   /// Private constructor
-  TwitchApiMock._(super.appInfo,
-      TwitchAuthenticatorMock super.twitchAuthenticator, this.debugPanelOptions)
+  TwitchApiMock._(
+      super.appInfo, super.twitchAuthenticator, this.debugPanelOptions)
       : super._();
 }

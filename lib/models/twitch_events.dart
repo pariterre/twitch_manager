@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
-import 'package:twitch_manager/models/twitch_authenticator.dart';
+import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
@@ -276,7 +276,7 @@ class TwitchEvents {
     if ((payload['event'] as Map).containsKey('reward')) {
       _logger.info('Reward redemption received from Twitch events');
       final response = TwitchRewardRedemption.fromMap(map);
-      onRewardRedeemed.notifyListerners((callback) => callback(response));
+      onRewardRedeemed.notifyListeners((callback) => callback(response));
     } else {
       final response = TwitchEvent.fromMap(map);
       _logger.info('Event received from Twitch events ($response)');
@@ -303,8 +303,7 @@ class TwitchEvents {
     final response = await post(
       Uri.parse(_twitchHelixUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader:
-            'Bearer ${_authenticator.streamerOauthKey}',
+        HttpHeaders.authorizationHeader: 'Bearer ${_authenticator.bearerKey}',
         'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },
@@ -345,8 +344,7 @@ class TwitchEvents {
     await delete(
       Uri.parse(_twitchHelixUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader:
-            'Bearer ${_authenticator.streamerOauthKey}',
+        HttpHeaders.authorizationHeader: 'Bearer ${_authenticator.bearerKey}',
         'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },
@@ -365,7 +363,7 @@ class TwitchEventsMock extends TwitchEvents {
   /// [authenticator] holds the OAuth key to communicate with the API
   static Future<TwitchEventsMock> factory({
     required TwitchAppInfo appInfo,
-    required TwitchAuthenticatorMock authenticator,
+    required TwitchAuthenticator authenticator,
     required TwitchApiMock api,
     required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
@@ -375,8 +373,8 @@ class TwitchEventsMock extends TwitchEvents {
   ////// PUBLIC //////
 
   // Simulate a reward redemption
-  void simulateRewardRedemption(TwitchRewardRedemption event) =>
-      onRewardRedeemed.notifyListerners((callback) => callback(event));
+  void simulateRewardRedemption(event) => onRewardRedeemed
+      .notifyListeners((callback) => callback(event as TwitchRewardRedemption));
 
   ////// INTERNAL //////
 
@@ -384,7 +382,7 @@ class TwitchEventsMock extends TwitchEvents {
   /// Private constructor
   TwitchEventsMock._(
     super.appInfo,
-    TwitchAuthenticatorMock super.authenticator,
+    super.authenticator,
     TwitchApiMock super.api,
     TwitchDebugPanelOptions debugPanelOptions,
   ) : super._() {
