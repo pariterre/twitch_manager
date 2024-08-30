@@ -5,9 +5,14 @@ import 'package:example/widgets/twitch_command_formfield.dart';
 import 'package:example/widgets/twitch_message_formfield.dart';
 import 'package:example/widgets/twitch_recurring_message_formfield.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 
 void main() async {
+  Logger.root.onRecord.listen((record) {
+    debugPrint(record.message);
+  });
+
   runApp(const MaterialApp(home: TwitchChatBotScreen()));
 }
 
@@ -52,7 +57,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
     // it is a convenient way to handle the connexion.
     TwitchManagerSingleton.initialize(await showDialog(
         context: context,
-        builder: (ctx) => TwitchAuthenticationDialog(
+        builder: (ctx) => TwitchAppAuthenticationDialog(
               // Use a mocker to simulate the connexion, this is useful for testing
               isMockActive: true,
               onConnexionEstablished: (manager) =>
@@ -105,7 +110,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return TwitchDebugOverlay(
+    return TwitchAppDebugOverlay(
       manager: TwitchManagerSingleton.instance,
       child: Scaffold(
         appBar: AppBar(

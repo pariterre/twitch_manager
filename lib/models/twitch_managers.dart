@@ -2,11 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticators.dart';
-import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_chat.dart';
+import 'package:twitch_manager/models/twitch_events.dart';
+import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
-import 'package:twitch_manager/models/twitch_info.dart';
 
 final _logger = Logger('TwitchManagerInternal');
 
@@ -71,8 +71,8 @@ class TwitchAppManager implements TwitchManager {
 
   ///
   /// A reference to the API of the stream
-  TwitchApi? _api;
-  TwitchApi get api {
+  TwitchClientApi? _api;
+  TwitchClientApi get api {
     if (!_isConnected) {
       throw 'api necessitate the user to be connected';
     }
@@ -215,7 +215,7 @@ class TwitchAppManager implements TwitchManager {
     }
 
     // Connect the API
-    _api ??= await TwitchApi.factory(
+    _api ??= await TwitchClientApi.factory(
         appInfo: _appInfo, authenticator: _authenticator);
 
     final streamerLogin = await _api!.login(_api!.streamerId);

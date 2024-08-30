@@ -192,7 +192,7 @@ class TwitchChat {
 
 class TwitchChatMock extends TwitchChat {
   @override
-  String get _oauthKey => 'chatbotOauthKey';
+  String get _oauthKey => 'chatbotOAuthKey';
 
   ///
   /// Main constructor

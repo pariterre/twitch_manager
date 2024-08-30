@@ -8,8 +8,8 @@ import 'package:twitch_manager/widgets/animated_expanding_card.dart';
 ///
 /// This is a debug panel, it must be placed in a Stack on the top Screen.
 /// It creates a draggable panel.
-class TwitchDebugOverlay extends StatefulWidget {
-  const TwitchDebugOverlay({
+class TwitchAppDebugOverlay extends StatefulWidget {
+  const TwitchAppDebugOverlay({
     super.key,
     required this.manager,
     this.maxHeight = 500,
@@ -25,10 +25,10 @@ class TwitchDebugOverlay extends StatefulWidget {
   final Widget child;
 
   @override
-  State<TwitchDebugOverlay> createState() => _TwitchDebugOverlayState();
+  State<TwitchAppDebugOverlay> createState() => _TwitchAppDebugOverlayState();
 }
 
-class _TwitchDebugOverlayState extends State<TwitchDebugOverlay> {
+class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
   var _twitchDragOffset = const Offset(0, 0);
   late var _currentTwitchPosition = widget.startingPosition;
 

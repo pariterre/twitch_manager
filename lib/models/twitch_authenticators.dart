@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
-import 'package:twitch_manager/models/twitch_java_script.dart';
-import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
+import 'package:twitch_manager/models/twitch_java_script/twitch_java_script.dart';
+import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/twitch_manager.dart';
-import 'package:http/http.dart' as http;
 
 final _logger = Logger('TwitchAuthenticator');
 
@@ -96,7 +96,7 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
   Future<bool> connect({
     required covariant TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
-    bool tryNewOauthKey = true,
+    bool tryNewOAuthKey = true,
   }) async {
     _logger.info('Connecting streamer to Twitch');
 
@@ -109,8 +109,8 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
     _isConnected = await _connectUserUsingOAuth(
       appInfo: appInfo,
       onRequestBrowsing: onRequestBrowsing,
-      getOauthKey: () => bearerKey,
-      setOauthKey: (value) => _bearerKey = value,
+      getOAuthKey: () => bearerKey,
+      setOAuthKey: (value) => _bearerKey = value,
     );
 
     if (appInfo.needChat && !appInfo.hasChatbot) {
@@ -131,14 +131,14 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
   /// [onRequestBrowsing] is the callback that authenticate through web browers.
   /// If it is not provided, then connectStreamer only tries to validate the current
   /// OAuth key. If there is none, it simply returns.
-  /// If [tryNewOauthKey] is false, then only the validation is performed, otherwise
-  /// a new Oauth key can be generated
+  /// If [tryNewOAuthKey] is false, then only the validation is performed, otherwise
+  /// a new OAuth key can be generated
   ///
   /// This method only make sense for App (as opposed to extensions)
   Future<bool> connectChatbot({
     required TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
-    bool tryNewOauthKey = true,
+    bool tryNewOAuthKey = true,
   }) async {
     _logger.info('Connecting chatbot to Twitch');
 
@@ -151,8 +151,8 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
     _isChatbotConnected = await _connectUserUsingOAuth(
       appInfo: appInfo,
       onRequestBrowsing: onRequestBrowsing,
-      getOauthKey: () => chatbotBearerKey,
-      setOauthKey: (value) => _chatbotBearerKey = value,
+      getOAuthKey: () => chatbotBearerKey,
+      setOAuthKey: (value) => _chatbotBearerKey = value,
     );
 
     _saveSessions();
@@ -167,48 +167,48 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
   /// [onRequestBrowsing] is the callback that authenticate through web browers.
   /// If it is not provided, then _connectUser only tries to validate the current
   /// OAuth key. If there is none, it simply returns.
-  /// [getOauthKey] Callback to the current OAuth key of the user.
-  /// [setOauthKey] Callback to set the OAuth key of the user.
-  /// If [tryNewOauthKey] is false, then only the validation is performed, otherwise
-  /// a new Oauth key can generated
+  /// [getOAuthKey] Callback to the current OAuth key of the user.
+  /// [setOAuthKey] Callback to set the OAuth key of the user.
+  /// If [tryNewOAuthKey] is false, then only the validation is performed, otherwise
+  /// a new OAuth key can generated
   Future<bool> _connectUserUsingOAuth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
-    required String? Function() getOauthKey,
-    required void Function(String oauthKey) setOauthKey,
-    bool tryNewOauthKey = true,
+    required String? Function() getOAuthKey,
+    required void Function(String oAuthKey) setOAuthKey,
+    bool tryNewOAuthKey = true,
   }) async {
     _logger.info('Connecting user to Twitch...');
 
     bool isConnected = false;
 
     // Try to validate the current OAuth key
-    if (getOauthKey() != null) {
+    if (getOAuthKey() != null) {
       isConnected =
-          await TwitchApi.validateOauthToken(oauthKey: getOauthKey()!);
+          await TwitchClientApi.validateOAuthToken(oAuthKey: getOAuthKey()!);
       _logger.info('OAuth key is ${isConnected ? '' : 'not'} valid');
     }
 
     if (!isConnected) {
-      if (!tryNewOauthKey || onRequestBrowsing == null) {
+      if (!tryNewOAuthKey || onRequestBrowsing == null) {
         _logger.severe('Could not connect to Twitch');
         return false;
       }
 
       _logger.info('Requesting new OAuth key');
       // Get a new OAuth key
-      final oauthKey = await TwitchApi.getNewOauth(
+      final oauthKey = await TwitchClientApi.getNewOAuth(
           appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
       if (oauthKey == null) return false;
-      setOauthKey(oauthKey);
+      setOAuthKey(oauthKey);
 
       // Try to reconnect, but only once [retry = false]
       return _connectUserUsingOAuth(
         appInfo: appInfo,
         onRequestBrowsing: onRequestBrowsing,
-        getOauthKey: getOauthKey,
-        setOauthKey: setOauthKey,
-        tryNewOauthKey: false,
+        getOAuthKey: getOAuthKey,
+        setOAuthKey: setOAuthKey,
+        tryNewOAuthKey: false,
       );
     }
 
@@ -216,21 +216,21 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
     Timer.periodic(const Duration(hours: 1), (timer) async {
       _logger.info('Validating OAuth key...');
 
-      final key = getOauthKey();
+      final key = getOAuthKey();
       if (key == null) {
         _logger.warning('User has disconnected, stop validating the OAuth key');
         timer.cancel();
         return;
       }
-      if (!await TwitchApi.validateOauthToken(oauthKey: key)) {
+      if (!await TwitchClientApi.validateOAuthToken(oAuthKey: key)) {
         // If it fails, restart the connecting process
         _logger.warning('OAuth key is not valid, requesting new OAuth key');
         timer.cancel();
         _connectUserUsingOAuth(
           appInfo: appInfo,
           onRequestBrowsing: onRequestBrowsing,
-          getOauthKey: getOauthKey,
-          setOauthKey: setOauthKey,
+          getOAuthKey: getOAuthKey,
+          setOAuthKey: setOAuthKey,
         );
       }
 
@@ -355,9 +355,9 @@ class TwitchClientAuthenticatorMock extends TwitchClientAuthenticator {
   Future<bool> connect({
     required covariant TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
-    bool tryNewOauthKey = true,
+    bool tryNewOAuthKey = true,
   }) async {
-    _bearerKey = 'streamerOauthKey';
+    _bearerKey = 'streamerOAuthKey';
     _isConnected = true;
     return true;
   }
@@ -366,9 +366,9 @@ class TwitchClientAuthenticatorMock extends TwitchClientAuthenticator {
   Future<bool> connectChatbot({
     required TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
-    bool tryNewOauthKey = false,
+    bool tryNewOAuthKey = false,
   }) async {
-    _chatbotBearerKey = 'chatbotOauthKey';
+    _chatbotBearerKey = 'chatbotOAuthKey';
     _isChatbotConnected = true;
     return true;
   }

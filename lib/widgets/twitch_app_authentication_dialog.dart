@@ -20,8 +20,8 @@ enum _ConnexionStatus {
 /// [saveKey] is directly passed to [TwitchManager.factory];
 /// [isMockActive] determines if the mock is active or not;
 /// [debugPanelOptions] is used to prefill the debug panel if it is activated;
-class TwitchAuthenticationDialog extends StatefulWidget {
-  const TwitchAuthenticationDialog({
+class TwitchAppAuthenticationDialog extends StatefulWidget {
+  const TwitchAppAuthenticationDialog({
     super.key,
     required this.appInfo,
     required this.onConnexionEstablished,
@@ -42,12 +42,12 @@ class TwitchAuthenticationDialog extends StatefulWidget {
   final String? saveKey;
 
   @override
-  State<TwitchAuthenticationDialog> createState() =>
-      _TwitchAuthenticationDialogState();
+  State<TwitchAppAuthenticationDialog> createState() =>
+      _TwitchAppAuthenticationDialogState();
 }
 
-class _TwitchAuthenticationDialogState
-    extends State<TwitchAuthenticationDialog> {
+class _TwitchAppAuthenticationDialogState
+    extends State<TwitchAppAuthenticationDialog> {
   var _status = _ConnexionStatus.waitForUser;
   String? _redirectAddress;
   TwitchAppManager? _manager;

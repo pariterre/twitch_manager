@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
+import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/models/twitch_mock_options.dart';
-import 'package:twitch_manager/models/twitch_info.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -63,10 +63,15 @@ enum HttpRequestMethod { get, post, patch, delete }
 
 class TwitchApi {
   ///
+  /// This is a placeholder for future development for the EBS and the JWT API
+}
+
+class TwitchClientApi extends TwitchApi {
+  ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchApi> factory({
+  static Future<TwitchClientApi> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
   }) async {
@@ -74,7 +79,7 @@ class TwitchApi {
 
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApi._(appInfo, authenticator);
+    final api = TwitchClientApi._(appInfo, authenticator);
     api.streamerId = await api._userId(authenticator.bearerKey!);
 
     _logger.config('Twitch API created');
@@ -87,13 +92,13 @@ class TwitchApi {
   /// Validates the current OAUTH key. This is mandatory as stated here:
   /// https://dev.twitch.tv/docs/authentication/validate-tokens/
   /// This only make sense for App (as opposed to extensions)
-  static Future<bool> validateOauthToken({required String oauthKey}) async {
+  static Future<bool> validateOAuthToken({required String oAuthKey}) async {
     _logger.info('Validating OAUTH token...');
 
     final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        HttpHeaders.authorizationHeader: 'Bearer $oAuthKey',
       },
     );
 
@@ -107,7 +112,7 @@ class TwitchApi {
   /// [appInfo] holds all the necessary information to connect.
   /// [onRequestBrowsing] is the callback to show which address the user must
   /// browse.
-  static Future<String?> getNewOauth({
+  static Future<String?> getNewOAuth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String) onRequestBrowsing,
   }) async {
@@ -148,13 +153,13 @@ class TwitchApi {
     if (responseState != state) {
       return null;
     }
-    final oauthKey = body['access_token'];
-    if (oauthKey == null) {
+    final oAuthKey = body['access_token'];
+    if (oAuthKey == null) {
       return null;
     }
 
     _logger.info('OAUTH received');
-    return oauthKey;
+    return oAuthKey;
   }
 
   ///
@@ -430,7 +435,7 @@ class TwitchApi {
 
   ///
   /// Private constructor
-  TwitchApi._(this._appInfo, this._authenticator);
+  TwitchClientApi._(this._appInfo, this._authenticator);
 
   ///
   /// Send an actual HTTP request to Twitch
@@ -526,14 +531,14 @@ class TwitchApi {
   }
 
   ///
-  /// Fetch the user id from its [oauthKey]
-  Future<int> _userId(String oauthKey) async {
+  /// Fetch the user id from its [oAuthKey]
+  Future<int> _userId(String oAuthKey) async {
     _logger.info('Fetching user id...');
 
     final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oauthKey',
+        HttpHeaders.authorizationHeader: 'Bearer $oAuthKey',
       },
     );
 
@@ -563,7 +568,7 @@ class TwitchApi {
   }
 }
 
-class TwitchApiMock extends TwitchApi {
+class TwitchApiMock extends TwitchClientApi {
   TwitchDebugPanelOptions debugPanelOptions;
 
   ///

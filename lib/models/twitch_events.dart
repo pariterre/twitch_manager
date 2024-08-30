@@ -174,7 +174,7 @@ class TwitchEvents {
   static Future<TwitchEvents> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
-    required TwitchApi api,
+    required TwitchClientApi api,
   }) async {
     _logger.config('Connecting to Twitch events API...');
 
@@ -235,7 +235,7 @@ class TwitchEvents {
   ///
   /// ATTRIBUTES
   bool _isConnected = false;
-  final TwitchApi _api;
+  final TwitchClientApi _api;
   final TwitchAppInfo _appInfo;
   final TwitchAuthenticator _authenticator;
   String? _sessionId;
