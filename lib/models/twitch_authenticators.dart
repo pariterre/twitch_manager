@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
+import 'package:twitch_manager/models/twitch_ebs_api.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_java_script/twitch_java_script.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
@@ -310,7 +309,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     _userId = reponse.userId;
 
     try {
-      _registerToEbs(appInfo, this);
+      TwitchEbsApi.registerToEbs(appInfo, this);
       _isConnected = true;
       onHasConnected.notifyListeners((callback) => callback());
       _logger.info('Successully connected to the server');
@@ -371,35 +370,5 @@ class TwitchClientAuthenticatorMock extends TwitchClientAuthenticator {
     _chatbotBearerKey = 'chatbotOAuthKey';
     _isChatbotConnected = true;
     return true;
-  }
-}
-
-void _registerToEbs(
-    TwitchFrontendInfo appInfo, TwitchJwtAuthenticator authenticator) async {
-  // TODO move this to twitch_ebs.dart
-
-  // Making a simple GET request with the bearer token
-  _sendGetRequestToEbs(
-      Uri.parse('${appInfo.ebsUri}/initialize'), authenticator);
-}
-
-Future<Map<String, dynamic>> _sendGetRequestToEbs(
-    Uri endpoint, TwitchJwtAuthenticator authenticator) async {
-  // TODO move this to twitch_ebs.dart
-
-  // Making a simple GET request with the bearer token
-  try {
-    final response = await http.get(endpoint, headers: {
-      'Authorization': 'Bearer ${authenticator.ebsToken}',
-      'Content-Type': 'application/json',
-    });
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Request failed with status: ${response.statusCode}');
-    }
-  } catch (e) {
-    throw Exception('Error making request: $e');
   }
 }

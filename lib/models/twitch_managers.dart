@@ -3,6 +3,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_chat.dart';
+import 'package:twitch_manager/models/twitch_ebs_api.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
@@ -255,12 +256,15 @@ class TwitchFrontendManager implements TwitchManager {
   @override
   TwitchJwtAuthenticator get authenticator => _authenticator;
 
+  final TwitchEbsApi _api;
+  TwitchEbsApi get api => _api;
+
   @override
   bool get isConnected => authenticator.isConnected;
 
   ///
   /// Internal constructor of the Twitch Manager
-  TwitchFrontendManager._(this._appInfo, this._authenticator);
+  TwitchFrontendManager._(this._appInfo, this._authenticator, this._api);
 
   /// Main constructor for the TwitchFrontendManager.
   /// [appInfo] is all the required information of the current extension.
@@ -271,7 +275,8 @@ class TwitchFrontendManager implements TwitchManager {
     _logger.config('Creating the manager to the Twitch connexion...');
 
     final authenticator = TwitchJwtAuthenticator();
-    final manager = TwitchFrontendManager._(appInfo, authenticator);
+    final api = TwitchEbsApi(appInfo: appInfo, authenticator: authenticator);
+    final manager = TwitchFrontendManager._(appInfo, authenticator, api);
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
     if (onHasConnectedCallback != null) {
