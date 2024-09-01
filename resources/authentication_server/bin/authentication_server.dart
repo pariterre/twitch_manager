@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 
 final _clients = <String, String>{};
-final _logging = Logger('authentication_server');
+final _logger = Logger('authentication_server');
 
 ///
 /// Manage the communication between the client and twitch. An example of the
@@ -67,12 +67,12 @@ void main(List<String> arguments) async {
   final sslCert = ssl.isEmpty ? '' : ssl.split(',')[0];
   final sslKey = ssl.isEmpty ? '' : ssl.split(',')[1];
   if (ssl.isNotEmpty && (sslCert.isEmpty || sslKey.isEmpty)) {
-    _logging.severe('Invalid SSL certificate and key, the expected format is: '
+    _logger.severe('Invalid SSL certificate and key, the expected format is: '
         '--ssl=<cert.pem>,<key.pem>');
     return;
   }
 
-  _logging.info('Server starting on $host:$port, SSL: ${ssl.isNotEmpty}');
+  _logger.info('Server starting on $host:$port, SSL: ${ssl.isNotEmpty}');
   HttpServer server = sslKey.isEmpty
       ? await HttpServer.bind(host, port)
       : await HttpServer.bindSecure(
@@ -83,7 +83,7 @@ void main(List<String> arguments) async {
             ..usePrivateKey(sslKey));
 
   await for (HttpRequest request in server) {
-    _logging.info('New ${request.method} request at ${request.uri.path}');
+    _logger.info('New ${request.method} request at ${request.uri.path}');
     if (request.method == 'OPTIONS') {
       _handleOptionsRequest(request);
     } else if (request.method == 'GET' && request.uri.path == '/token') {
@@ -91,7 +91,8 @@ void main(List<String> arguments) async {
     } else if (request.method == 'POST' && request.uri.path == '/token') {
       _handlePostTokenRequest(request);
     } else {
-      _handleConnexionRefused(request);
+      _sendErrorResponse(
+          request, HttpStatus.methodNotAllowed, 'Method not allowed');
     }
   }
 }
@@ -113,12 +114,7 @@ void _handleGetTokenRequest(HttpRequest request) async {
   // Get the state token from the query parameters
   final stateToken = request.uri.queryParameters['state'];
   if (stateToken == null) {
-    _logging.severe(
-        'State token not found in query parameters, closing connexion (failure)');
-    request.response
-      ..statusCode = HttpStatus.badRequest
-      ..write('State token not found')
-      ..close();
+    _sendErrorResponse(request, HttpStatus.badRequest, 'State token not found');
     return;
   }
 
@@ -130,11 +126,7 @@ void _handleGetTokenRequest(HttpRequest request) async {
       stateToken[3] != '6' ||
       stateToken[11] != '2' ||
       stateToken.codeUnits.reduce((a, b) => a + b) % 10 != 9) {
-    _logging.severe('Invalid state token, closing connexion (failure)');
-    request.response
-      ..statusCode = HttpStatus.badRequest
-      ..write('Invalid state token')
-      ..close();
+    _sendErrorResponse(request, HttpStatus.badRequest, 'Invalid state token');
     return;
   }
 
@@ -150,22 +142,12 @@ void _handleGetTokenRequest(HttpRequest request) async {
     await Future.delayed(Duration(milliseconds: 100));
   }
   if (token == null) {
-    _logging.severe(
-        'OAUTH Token not found for $stateToken, closing connexion (failure)');
-    request.response
-      ..statusCode = HttpStatus.notFound
-      ..write('Token not found')
-      ..close();
+    _sendErrorResponse(request, HttpStatus.badRequest, 'Token not found');
     return;
   }
 
   // Send the token back to the client
-  _logging.info(
-      'Twitch OAUTH token sent to $stateToken, closing connexion (success)');
-  request.response
-    ..statusCode = HttpStatus.ok
-    ..write(jsonEncode({'access_token': token, 'state': stateToken}))
-    ..close();
+  _sendSuccessResponse(request, {'access_token': token, 'state': stateToken});
 }
 
 ///
@@ -181,7 +163,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Extract the state from the fragment (&state=...&)
     final stateMatch = RegExp(r'^.*&state=([0-9]*)&.*$').firstMatch(data);
     if (stateMatch == null || stateMatch.groupCount < 1) {
-      _logging.severe('State not found, droping client');
+      _logger.severe('State not found, droping client');
       return;
     }
     String stateToken = stateMatch.group(1)!;
@@ -189,13 +171,13 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Extract the token from the fragment (&access_token=...&)
     final tokenMatch = RegExp(r'^.*access_token=([^&]*)&.*$').firstMatch(data);
     if (tokenMatch == null || tokenMatch.groupCount < 1) {
-      _logging.severe('Token not found, droping client');
+      _logger.severe('Token not found, droping client');
       return;
     }
     final token = tokenMatch.group(1)!;
 
     // Store the token so it can be sent to the client
-    _logging.info('Twitch OAUTH token received for $stateToken');
+    _logger.info('Twitch OAUTH token received for $stateToken');
     _clients[stateToken] = token;
 
     // Remove token in 5 minutes if not requested
@@ -204,26 +186,27 @@ void _handlePostTokenRequest(HttpRequest request) async {
     });
 
     // Send a response back to the client
-    request.response
-      ..statusCode = HttpStatus.ok
-      ..headers.add('Access-Control-Allow-Origin', '*')
-      ..write('Data received successfully')
-      ..close();
+    _sendSuccessResponse(request, {'state': 'OK'});
   } catch (e) {
-    _logging.severe('Error processing request: $e, droping client');
-    // Handle any errors
-    request.response
-      ..statusCode = HttpStatus.internalServerError
-      ..write('Error processing request: $e')
-      ..close();
+    _sendErrorResponse(
+        request, HttpStatus.internalServerError, 'Error processing request');
   }
 }
 
-/// Handle connexion refused
-void _handleConnexionRefused(HttpRequest request) {
-  _logging.severe('Connexion refused');
+_sendSuccessResponse(HttpRequest request, Map<String, dynamic> data) {
+  _logger.info('Sending success response: $data');
   request.response
-    ..statusCode = HttpStatus.forbidden
-    ..write('Connexion refused')
+    ..statusCode = HttpStatus.ok
+    ..headers.add('Access-Control-Allow-Origin', '*')
+    ..write(json.encode(data))
+    ..close();
+}
+
+_sendErrorResponse(HttpRequest request, int statusCode, String message) {
+  _logger.severe('Sending error response: $message');
+  request.response
+    ..statusCode = statusCode
+    ..headers.add('Access-Control-Allow-Origin', '*')
+    ..write(message)
     ..close();
 }
