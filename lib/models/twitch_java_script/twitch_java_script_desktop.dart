@@ -6,13 +6,13 @@ import 'package:twitch_manager/models/twitch_java_script/twitch_java_script_inte
 class TwitchJavaScriptDesktop implements TwitchJavaScriptBase {
   @override
   void onAuthorized(Function(OnAuthorizedResponse auth) callback) {
-    callback(OnAuthorizedResponse(
-      channelId: '123456',
-      clientId: 'client-id',
-      token: 'token',
-      helixToken: 'helix-token',
-      userId: 'user-id',
-    ));
+    // This method will never be called in the desktop version
+  }
+
+  @override
+  void listen(String target,
+      Function(String target, String contentType, String message) callback) {
+    // This method will never be called in the desktop version
   }
 }
 

@@ -271,6 +271,7 @@ class TwitchFrontendManager implements TwitchManager {
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
     Function()? onHasConnectedCallback,
+    Function(String message)? pubSubCallback,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
@@ -281,6 +282,9 @@ class TwitchFrontendManager implements TwitchManager {
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
     if (onHasConnectedCallback != null) {
       authenticator.onHasConnected.startListening(onHasConnectedCallback);
+    }
+    if (pubSubCallback != null) {
+      authenticator.listenToPubSub('broadcast', pubSubCallback);
     }
     await manager.connect();
 

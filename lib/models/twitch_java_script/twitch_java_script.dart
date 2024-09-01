@@ -19,7 +19,16 @@ class OnAuthorizedResponse {
 }
 
 class TwitchJavaScript {
+  ///
+  /// This is a callback that is called when the Twitch Extension is authorized
   static void onAuthorized(Function(OnAuthorizedResponse auth) callback) {
     getTwitchJavaScriptInstance.onAuthorized(callback);
+  }
+
+  ///
+  /// This is a callback that is called when PubSub messages are received
+  static void listen(String target,
+      Function(String target, String contentType, String message) callback) {
+    getTwitchJavaScriptInstance.listen(target, callback);
   }
 }

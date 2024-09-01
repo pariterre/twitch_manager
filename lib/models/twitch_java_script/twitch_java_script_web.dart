@@ -8,14 +8,6 @@ import 'package:twitch_manager/models/twitch_java_script/twitch_java_script_inte
 external _TwitchExtension get _twitchExtension;
 
 ///
-/// Define the Twitch Extension JavaScript API
-@JS()
-@anonymous
-class _TwitchExtension {
-  external void onAuthorized(Function(_OnAuthorizedResponseJs auth) callback);
-}
-
-///
 /// Define the response from the Twitch Extension onAuthorized callback
 @JS()
 @anonymous
@@ -27,7 +19,22 @@ class _OnAuthorizedResponseJs {
   external String get userId;
 }
 
-OnAuthorizedResponse _fromJsToReponse(_OnAuthorizedResponseJs responseJs) {
+///
+/// Define the Twitch Extension JavaScript API
+@JS()
+@anonymous
+class _TwitchExtension {
+  external void onAuthorized(Function(_OnAuthorizedResponseJs auth) callback);
+
+  // Listen to PubSub messages
+  external void listen(
+    String target,
+    Function(String target, String contentType, String message) callback,
+  );
+}
+
+OnAuthorizedResponse _fromReponseJsToReponse(
+    _OnAuthorizedResponseJs responseJs) {
   return OnAuthorizedResponse(
     channelId: responseJs.channelId,
     clientId: responseJs.clientId,
@@ -42,8 +49,14 @@ OnAuthorizedResponse _fromJsToReponse(_OnAuthorizedResponseJs responseJs) {
 class TwitchJavaScriptWeb implements TwitchJavaScriptBase {
   @override
   void onAuthorized(Function(OnAuthorizedResponse auth) callback) {
-    _twitchExtension.onAuthorized(
-        allowInterop((responseJs) => callback(_fromJsToReponse(responseJs))));
+    _twitchExtension.onAuthorized(allowInterop(
+        (responseJs) => callback(_fromReponseJsToReponse(responseJs))));
+  }
+
+  @override
+  void listen(String target,
+      Function(String target, String contentType, String message) callback) {
+    _twitchExtension.listen(target, allowInterop(callback));
   }
 }
 

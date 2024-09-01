@@ -15,9 +15,14 @@ class TwitchEbsApi {
 
   TwitchEbsApi({required this.appInfo, required this.authenticator});
 
-  Future<Map<String, dynamic>> coucou() async {
-    return _sendGetRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}/coucou'), authenticator);
+  Future<void> pong() async {
+    _sendGetRequestToEbs(Uri.parse('${appInfo.ebsUri}/pong'), authenticator);
+  }
+
+  Future<Map<String, dynamic>> post(
+      String endpoint, Map<String, dynamic> body) async {
+    return _sendPostRequestToEbs(
+        Uri.parse('${appInfo.ebsUri}/$endpoint'), authenticator, body);
   }
 
   ///
@@ -42,6 +47,27 @@ Future<Map<String, dynamic>> _sendGetRequestToEbs(
       'Authorization': 'Bearer ${authenticator.ebsToken}',
       'Content-Type': 'application/json',
     });
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Request failed with status: ${response.statusCode}');
+    }
+  } catch (e) {
+    throw Exception('Error making request: $e');
+  }
+}
+
+Future<Map<String, dynamic>> _sendPostRequestToEbs(Uri endpoint,
+    TwitchJwtAuthenticator authenticator, Map<String, dynamic> body) async {
+  // Making a simple POST request with the bearer token
+  try {
+    final response = await http.post(endpoint,
+        headers: {
+          'Authorization': 'Bearer ${authenticator.ebsToken}',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(body));
 
     if (response.statusCode == 200) {
       return json.decode(response.body);

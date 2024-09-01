@@ -298,7 +298,15 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
         _onAuthorizedCallback(response, appInfo));
   }
 
-  // Define the callback function
+  Future<void> listenToPubSub(
+      String target, Function(String message) callback) async {
+    TwitchJavaScript.listen(target,
+        (String target, String contentType, String message) {
+      callback(message);
+    });
+  }
+
+  // Define the onAuthorized callback function
   void _onAuthorizedCallback(
       OnAuthorizedResponse reponse, TwitchFrontendInfo appInfo) {
     _logger.info('Received auth token');
