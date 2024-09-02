@@ -9,33 +9,21 @@ import 'package:twitch_manager/twitch_manager.dart';
 /// must be implemented in a separate project, and there is unfortunately no
 /// way to provide a complete example of the EBS side in this project, as it
 /// can be implemented in any language or framework.
-class TwitchEbsApi {
+class TwitchApiToEbs {
   final TwitchFrontendInfo appInfo;
   final TwitchJwtAuthenticator authenticator;
 
-  TwitchEbsApi({required this.appInfo, required this.authenticator});
+  TwitchApiToEbs({required this.appInfo, required this.authenticator});
 
-  Future<void> pong() async {
-    _sendGetRequestToEbs(Uri.parse('${appInfo.ebsUri}/pong'), authenticator);
+  Future<Map<String, dynamic>> get(String endpoint) async {
+    return _sendGetRequestToEbs(
+        Uri.parse('${appInfo.ebsUri}/$endpoint'), authenticator);
   }
 
   Future<Map<String, dynamic>> post(
       String endpoint, Map<String, dynamic> body) async {
     return _sendPostRequestToEbs(
         Uri.parse('${appInfo.ebsUri}/$endpoint'), authenticator, body);
-  }
-
-  ///
-  /// Register the frontend to the EBS. This is a simple GET request to the
-  /// EBS with the bearer token in the header. The EBS can then use this token
-  /// to verify, both validating the user and the frontend communicating with
-  /// Twitch.
-  ///
-  /// It assumes that the EBS has an endpoint at /initialize.
-  static void registerToEbs(
-      TwitchFrontendInfo appInfo, TwitchJwtAuthenticator authenticator) async {
-    _sendGetRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}/initialize'), authenticator);
   }
 }
 

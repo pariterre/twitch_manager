@@ -3,7 +3,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_authenticators.dart';
 import 'package:twitch_manager/models/twitch_chat.dart';
-import 'package:twitch_manager/models/twitch_ebs_api.dart';
+import 'package:twitch_manager/models/twitch_api_to_ebs.dart';
 import 'package:twitch_manager/models/twitch_events.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
@@ -256,28 +256,36 @@ class TwitchFrontendManager implements TwitchManager {
   @override
   TwitchJwtAuthenticator get authenticator => _authenticator;
 
-  final TwitchEbsApi _api;
-  TwitchEbsApi get api => _api;
+  final TwitchApiToEbs _apiToEbs;
+  TwitchApiToEbs get apiToEbs => _apiToEbs;
 
   @override
   bool get isConnected => authenticator.isConnected;
 
   ///
   /// Internal constructor of the Twitch Manager
-  TwitchFrontendManager._(this._appInfo, this._authenticator, this._api);
+  TwitchFrontendManager._(this._appInfo, this._authenticator, this._apiToEbs);
 
   /// Main constructor for the TwitchFrontendManager.
   /// [appInfo] is all the required information of the current extension.
+  /// [initializeEndpoint] is the endpoint to initialize the connexion with the EBS.
+  /// If not provided, the endpoint is assumed to be the URI in [appInfo].
+  /// [onHasConnectedCallback] is the callback to be called when the frontend has connected.
+  /// This is useful to perform actions when the frontend is ready to be used.
+  /// [pubSubCallback] is the callback to be called when the frontend has received a PubSub message.
+  /// If not provided, the manager will not listen to PubSub messages.
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
+    String? initializeEndpoint,
     Function()? onHasConnectedCallback,
     Function(String message)? pubSubCallback,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
     final authenticator = TwitchJwtAuthenticator();
-    final api = TwitchEbsApi(appInfo: appInfo, authenticator: authenticator);
-    final manager = TwitchFrontendManager._(appInfo, authenticator, api);
+    final apiToEbs =
+        TwitchApiToEbs(appInfo: appInfo, authenticator: authenticator);
+    final manager = TwitchFrontendManager._(appInfo, authenticator, apiToEbs);
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
     if (onHasConnectedCallback != null) {
@@ -286,15 +294,16 @@ class TwitchFrontendManager implements TwitchManager {
     if (pubSubCallback != null) {
       authenticator.listenToPubSub('broadcast', pubSubCallback);
     }
-    await manager.connect();
+    await manager.connect(initializeEndpoint: initializeEndpoint);
 
     _logger.config('Manager is ready to be used');
     return manager;
   }
 
   @override
-  Future<void> connect() async {
-    await authenticator.connect(appInfo: appInfo);
+  Future<void> connect({String? initializeEndpoint}) async {
+    await authenticator.connect(
+        appInfo: appInfo, apiToEbs: apiToEbs, endpoint: initializeEndpoint);
   }
 
   @override
