@@ -279,13 +279,13 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
   ///
   /// The id of the channel that the frontend is connected to
-  String? _channelId;
-  String get channelId => _channelId!;
+  int? _channelId;
+  int get channelId => _channelId!;
 
   ///
-  /// The client id of the frontend
-  String? _userId;
-  String get userId => _userId!;
+  /// The obfuscted user id of the frontend
+  String? _opaqueUserId;
+  String get opaqueUserId => _opaqueUserId!;
 
   ///
   /// Provide a callback when the connection is established
@@ -319,13 +319,13 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   void _onAuthorizedCallback(OnAuthorizedResponse reponse,
       TwitchFrontendInfo appInfo, TwitchApiToEbs apiToEbs, String endpoint) {
     _logger.info('Received auth token');
-    _ebsToken = reponse.token;
-    _bearerKey = reponse.helixToken;
-
-    _channelId = reponse.channelId;
-    _userId = reponse.userId;
 
     try {
+      _ebsToken = reponse.token;
+      _bearerKey = reponse.helixToken;
+      _channelId = int.parse(reponse.channelId);
+      _opaqueUserId = reponse.userId;
+
       apiToEbs.get(endpoint);
       _isConnected = true;
       onHasConnected.notifyListeners((callback) => callback());
@@ -336,7 +336,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
       _bearerKey = null;
 
       _channelId = null;
-      _userId = null;
+      _opaqueUserId = null;
 
       _isConnected = false;
     }

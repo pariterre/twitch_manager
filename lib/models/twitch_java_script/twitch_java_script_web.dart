@@ -3,6 +3,10 @@ import 'package:twitch_manager/models/twitch_java_script/twitch_java_script.dart
 import 'package:twitch_manager/models/twitch_java_script/twitch_java_script_interface.dart';
 
 ///
+/// Reference for the Twitch Extension JavaScript API
+/// https://dev.twitch.tv/docs/extensions/reference/
+
+///
 /// Declare external JavaScript function and objects
 @JS('Twitch.ext')
 external _TwitchExtension get _twitchExtension;
@@ -31,6 +35,9 @@ class _TwitchExtension {
     String target,
     Function(String target, String contentType, String message) callback,
   );
+
+  // Request for the non-opaque user id of the viewer
+  // TODO: window.Twitch.ext.actions.requestIdShare
 }
 
 OnAuthorizedResponse _fromReponseJsToReponse(

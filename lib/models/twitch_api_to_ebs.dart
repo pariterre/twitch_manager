@@ -15,15 +15,24 @@ class TwitchApiToEbs {
 
   TwitchApiToEbs({required this.appInfo, required this.authenticator});
 
+  ///
+  /// This method sends a GET request to the EBS server. The [endpoint] is the
+  /// path to the endpoint on the EBS server. The method expect the endpoint
+  /// to include the leading slash (if required). The method returns a Map<String, dynamic>
+  /// with the response from the EBS server.
   Future<Map<String, dynamic>> get(String endpoint) async {
     return _sendGetRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}/$endpoint'), authenticator);
+        Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator);
   }
 
-  Future<Map<String, dynamic>> post(
-      String endpoint, Map<String, dynamic> body) async {
+  ///
+  /// This method sends a POST request to the EBS server. The [endpoint] is the
+  /// path to the endpoint on the EBS server. The method expect the endpoint
+  /// to include the leading slash (if required). The method returns a Map<String, dynamic>
+  Future<Map<String, dynamic>> post(String endpoint,
+      [Map<String, dynamic>? body]) async {
     return _sendPostRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}/$endpoint'), authenticator, body);
+        Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator, body);
   }
 }
 
@@ -47,7 +56,7 @@ Future<Map<String, dynamic>> _sendGetRequestToEbs(
 }
 
 Future<Map<String, dynamic>> _sendPostRequestToEbs(Uri endpoint,
-    TwitchJwtAuthenticator authenticator, Map<String, dynamic> body) async {
+    TwitchJwtAuthenticator authenticator, Map<String, dynamic>? body) async {
   // Making a simple POST request with the bearer token
   try {
     final response = await http.post(endpoint,
