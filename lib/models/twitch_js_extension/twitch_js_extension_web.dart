@@ -1,6 +1,6 @@
 import 'package:js/js.dart';
-import 'package:twitch_manager/models/twitch_java_script/twitch_java_script.dart';
-import 'package:twitch_manager/models/twitch_java_script/twitch_java_script_interface.dart';
+import 'package:twitch_manager/models/twitch_js_extension/twitch_js_extension.dart';
+import 'package:twitch_manager/models/twitch_js_extension/twitch_js_extension_interface.dart';
 
 ///
 /// Reference for the Twitch Extension JavaScript API
@@ -10,18 +10,6 @@ import 'package:twitch_manager/models/twitch_java_script/twitch_java_script_inte
 /// Declare external JavaScript function and objects
 @JS('Twitch.ext')
 external _TwitchExtension get _twitchExtension;
-
-///
-/// Define the response from the Twitch Extension onAuthorized callback
-@JS()
-@anonymous
-class _OnAuthorizedResponseJs {
-  external String get channelId;
-  external String get clientId;
-  external String get token;
-  external String get helixToken;
-  external String get userId;
-}
 
 ///
 /// Define the Twitch Extension JavaScript API
@@ -35,9 +23,18 @@ class _TwitchExtension {
     String target,
     Function(String target, String contentType, String message) callback,
   );
+}
 
-  // Request for the non-opaque user id of the viewer
-  // TODO: window.Twitch.ext.actions.requestIdShare
+///
+/// Define the response from the Twitch Extension onAuthorized callback
+@JS()
+@anonymous
+class _OnAuthorizedResponseJs {
+  external String get channelId;
+  external String get clientId;
+  external String get token;
+  external String get helixToken;
+  external String get userId;
 }
 
 OnAuthorizedResponse _fromReponseJsToReponse(
@@ -53,7 +50,7 @@ OnAuthorizedResponse _fromReponseJsToReponse(
 
 ///
 /// Define an interface to call the Twitch Extension JavaScript API
-class TwitchJavaScriptWeb implements TwitchJavaScriptBase {
+class TwitchJsExtensionWeb implements TwitchJsExtensionBase {
   @override
   void onAuthorized(Function(OnAuthorizedResponse auth) callback) {
     _twitchExtension.onAuthorized(allowInterop(
@@ -67,5 +64,26 @@ class TwitchJavaScriptWeb implements TwitchJavaScriptBase {
   }
 }
 
-final TwitchJavaScriptWeb _instance = TwitchJavaScriptWeb();
-TwitchJavaScriptBase get getTwitchJavaScriptInstance => _instance;
+// @JS('Twitch.ext.actions')
+// external _TwitchActions get _twitchActions;
+
+// @JS()
+// @anonymous
+// class _TwitchActions {
+//   external void requestIdShare();
+// }
+
+class TwitchJsExtensionActionWeb implements TwitchJsExtensionActionsBase {
+  @override
+  void requestIdShare() {
+    //_twitchActions.requestIdShare();
+  }
+}
+
+final TwitchJsExtensionWeb _instance = TwitchJsExtensionWeb();
+TwitchJsExtensionBase get getTwitchJsExtension => _instance;
+
+final TwitchJsExtensionActionsBase _actionsInstance =
+    TwitchJsExtensionActionWeb();
+TwitchJsExtensionActionsBase get getTwitchJsExtensionActions =>
+    _actionsInstance;

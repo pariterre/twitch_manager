@@ -5,7 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
 import 'package:twitch_manager/models/twitch_api_to_ebs.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
-import 'package:twitch_manager/models/twitch_java_script/twitch_java_script.dart';
+import 'package:twitch_manager/models/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
 import 'package:twitch_manager/twitch_manager.dart';
 
@@ -296,20 +296,29 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     required covariant TwitchFrontendInfo appInfo,
     TwitchApiToEbs? apiToEbs,
     String? endpoint,
+    bool isTwitchUserIdRequired = false,
   }) async {
     // Register the onAuthorized callback
-    TwitchJavaScript.onAuthorized(
-        (OnAuthorizedResponse response) => _onAuthorizedCallback(
-              response,
-              appInfo,
-              apiToEbs ?? TwitchApiToEbs(appInfo: appInfo, authenticator: this),
-              endpoint ?? '',
-            ));
+    TwitchJsExtension.onAuthorized((OnAuthorizedResponse response) {
+      // Request the authorization of the real user id, if the app needs it
+      if (isTwitchUserIdRequired) {
+        _logger.info('Requesting the real user id');
+        TwitchJsExtension.actions.requestIdShare();
+      } else {
+        _logger.info('Real user id is not required');
+      }
+      _onAuthorizedCallback(
+        response,
+        appInfo,
+        apiToEbs ?? TwitchApiToEbs(appInfo: appInfo, authenticator: this),
+        endpoint ?? '',
+      );
+    });
   }
 
   Future<void> listenToPubSub(
       String target, Function(String message) callback) async {
-    TwitchJavaScript.listen(target,
+    TwitchJsExtension.listen(target,
         (String target, String contentType, String message) {
       callback(message);
     });

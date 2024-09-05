@@ -277,6 +277,7 @@ class TwitchFrontendManager implements TwitchManager {
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
     String? initializeEndpoint,
+    bool isTwitchUserIdRequired = false,
     Function()? onHasConnectedCallback,
     Function(String message)? pubSubCallback,
   }) async {
@@ -294,16 +295,22 @@ class TwitchFrontendManager implements TwitchManager {
     if (pubSubCallback != null) {
       authenticator.listenToPubSub('broadcast', pubSubCallback);
     }
-    await manager.connect(initializeEndpoint: initializeEndpoint);
+    await manager.connect(
+        initializeEndpoint: initializeEndpoint,
+        isTwitchUserIdRequired: isTwitchUserIdRequired);
 
     _logger.config('Manager is ready to be used');
     return manager;
   }
 
   @override
-  Future<void> connect({String? initializeEndpoint}) async {
+  Future<void> connect(
+      {String? initializeEndpoint, bool isTwitchUserIdRequired = false}) async {
     await authenticator.connect(
-        appInfo: appInfo, apiToEbs: apiToEbs, endpoint: initializeEndpoint);
+        appInfo: appInfo,
+        apiToEbs: apiToEbs,
+        endpoint: initializeEndpoint,
+        isTwitchUserIdRequired: isTwitchUserIdRequired);
   }
 
   @override
