@@ -19,8 +19,9 @@ class TwitchApiToEbs {
   /// This method sends a GET request to the EBS server. The [endpoint] is the
   /// path to the endpoint on the EBS server. The method expect the endpoint
   /// to include the leading slash (if required). The method returns a Map<String, dynamic>
-  /// with the response from the EBS server.
-  Future<Map<String, dynamic>> get(String endpoint) async {
+  /// with the response from the EBS server. If the endpoint is not found,
+  /// the method will throw an exception.
+  Future<Map<String, dynamic>> getRequest(String endpoint) async {
     return _sendGetRequestToEbs(
         Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator);
   }
@@ -29,7 +30,9 @@ class TwitchApiToEbs {
   /// This method sends a POST request to the EBS server. The [endpoint] is the
   /// path to the endpoint on the EBS server. The method expect the endpoint
   /// to include the leading slash (if required). The method returns a Map<String, dynamic>
-  Future<Map<String, dynamic>> post(String endpoint,
+  /// with the response from the EBS server. If the endpoint is not found,
+  /// the method will throw an exception.
+  Future<Map<String, dynamic>> postRequest(String endpoint,
       [Map<String, dynamic>? body]) async {
     return _sendPostRequestToEbs(
         Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator, body);

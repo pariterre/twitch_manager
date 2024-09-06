@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/models/twitch_api.dart';
-import 'package:twitch_manager/models/twitch_api_to_ebs.dart';
 import 'package:twitch_manager/models/twitch_info.dart';
 import 'package:twitch_manager/models/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/models/twitch_listener.dart';
@@ -294,8 +293,6 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   @override
   Future<void> connect({
     required covariant TwitchFrontendInfo appInfo,
-    TwitchApiToEbs? apiToEbs,
-    String? endpoint,
     bool isTwitchUserIdRequired = false,
   }) async {
     // Register the onAuthorized callback
@@ -307,12 +304,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
       } else {
         _logger.info('Real user id is not required');
       }
-      _onAuthorizedCallback(
-        response,
-        appInfo,
-        apiToEbs ?? TwitchApiToEbs(appInfo: appInfo, authenticator: this),
-        endpoint ?? '',
-      );
+      _onAuthorizedCallback(response);
     });
   }
 
@@ -325,8 +317,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   }
 
   // Define the onAuthorized callback function
-  void _onAuthorizedCallback(OnAuthorizedResponse reponse,
-      TwitchFrontendInfo appInfo, TwitchApiToEbs apiToEbs, String endpoint) {
+  void _onAuthorizedCallback(OnAuthorizedResponse reponse) {
     _logger.info('Received auth token');
 
     try {
@@ -335,7 +326,6 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
       _channelId = int.parse(reponse.channelId);
       _opaqueUserId = reponse.userId;
 
-      apiToEbs.get(endpoint);
       _isConnected = true;
       onHasConnected.notifyListeners((callback) => callback());
       _logger.info('Successully connected to the server');

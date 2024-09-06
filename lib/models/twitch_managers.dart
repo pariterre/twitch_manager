@@ -268,17 +268,14 @@ class TwitchFrontendManager implements TwitchManager {
 
   /// Main constructor for the TwitchFrontendManager.
   /// [appInfo] is all the required information of the current extension.
-  /// [initializeEndpoint] is the endpoint to initialize the connexion with the EBS.
-  /// If not provided, the endpoint is assumed to be the URI in [appInfo].
-  /// [onHasConnectedCallback] is the callback to be called when the frontend has connected.
+  /// [onConnectedToTwitchService] is the callback to be called when the frontend has connected.
   /// This is useful to perform actions when the frontend is ready to be used.
   /// [pubSubCallback] is the callback to be called when the frontend has received a PubSub message.
   /// If not provided, the manager will not listen to PubSub messages.
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
-    String? initializeEndpoint,
     bool isTwitchUserIdRequired = false,
-    Function()? onHasConnectedCallback,
+    Function()? onConnectedToTwitchService,
     Function(String message)? pubSubCallback,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
@@ -289,28 +286,22 @@ class TwitchFrontendManager implements TwitchManager {
     final manager = TwitchFrontendManager._(appInfo, authenticator, apiToEbs);
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
-    if (onHasConnectedCallback != null) {
-      authenticator.onHasConnected.startListening(onHasConnectedCallback);
+    if (onConnectedToTwitchService != null) {
+      authenticator.onHasConnected.startListening(onConnectedToTwitchService);
     }
     if (pubSubCallback != null) {
       authenticator.listenToPubSub('broadcast', pubSubCallback);
     }
-    await manager.connect(
-        initializeEndpoint: initializeEndpoint,
-        isTwitchUserIdRequired: isTwitchUserIdRequired);
+    manager.connect(isTwitchUserIdRequired: isTwitchUserIdRequired);
 
     _logger.config('Manager is ready to be used');
     return manager;
   }
 
   @override
-  Future<void> connect(
-      {String? initializeEndpoint, bool isTwitchUserIdRequired = false}) async {
+  Future<void> connect({bool isTwitchUserIdRequired = false}) async {
     await authenticator.connect(
-        appInfo: appInfo,
-        apiToEbs: apiToEbs,
-        endpoint: initializeEndpoint,
-        isTwitchUserIdRequired: isTwitchUserIdRequired);
+        appInfo: appInfo, isTwitchUserIdRequired: isTwitchUserIdRequired);
   }
 
   @override
