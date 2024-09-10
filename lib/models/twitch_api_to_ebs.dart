@@ -22,8 +22,12 @@ class TwitchApiToEbs {
   /// with the response from the EBS server. If the endpoint is not found,
   /// the method will throw an exception.
   Future<Map<String, dynamic>> getRequest(String endpoint) async {
-    return _sendGetRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator);
+    try {
+      return await _sendGetRequestToEbs(
+          Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator);
+    } catch (e) {
+      return {'status': 'NOK', 'error_message': e.toString()};
+    }
   }
 
   ///
@@ -34,8 +38,12 @@ class TwitchApiToEbs {
   /// the method will throw an exception.
   Future<Map<String, dynamic>> postRequest(String endpoint,
       [Map<String, dynamic>? body]) async {
-    return _sendPostRequestToEbs(
-        Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator, body);
+    try {
+      return await _sendPostRequestToEbs(
+          Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator, body);
+    } catch (e) {
+      return {'status': 'NOK', 'error_message': e.toString()};
+    }
   }
 }
 
@@ -72,7 +80,8 @@ Future<Map<String, dynamic>> _sendPostRequestToEbs(Uri endpoint,
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
-      throw Exception('Request failed with status: ${response.statusCode}');
+      throw Exception(
+          'Request failed with status: ${response.statusCode} with message: ${response.body}');
     }
   } catch (e) {
     throw Exception('Error making request: $e');

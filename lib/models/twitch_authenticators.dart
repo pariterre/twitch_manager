@@ -274,17 +274,35 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   ///
   /// ebsToken is the token that is used to authenticate the EBS to the Twitch API
   String? _ebsToken;
-  String? get ebsToken => _ebsToken;
+  String? get ebsToken {
+    if (!isConnected) {
+      _logger.severe('EBS Server not connected');
+      throw Exception('EBS Server not connected');
+    }
+    return _ebsToken;
+  }
 
   ///
   /// The id of the channel that the frontend is connected to
   int? _channelId;
-  int get channelId => _channelId!;
+  int get channelId {
+    if (!isConnected) {
+      _logger.severe('EBS Server not connected');
+      throw Exception('EBS Server not connected');
+    }
+    return _channelId!;
+  }
 
   ///
   /// The obfuscted user id of the frontend
   String? _opaqueUserId;
-  String get opaqueUserId => _opaqueUserId!;
+  String get opaqueUserId {
+    if (!isConnected) {
+      _logger.severe('EBS Server not connected');
+      throw Exception('EBS Server not connected');
+    }
+    return _opaqueUserId!;
+  }
 
   ///
   /// Provide a callback when the connection is established
@@ -328,9 +346,9 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
       _isConnected = true;
       onHasConnected.notifyListeners((callback) => callback());
-      _logger.info('Successully connected to the server');
+      _logger.info('Successully connected to the EBS server');
     } catch (e) {
-      _logger.severe('Error registering to EBS: $e');
+      _logger.severe('Error registering to the EBS server: $e');
       _ebsToken = null;
       _bearerKey = null;
 
