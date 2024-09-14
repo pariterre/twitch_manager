@@ -19,3 +19,14 @@ During debug, this can be a pain though. Therefore, one can rely on disabling se
 ```bash
 flutter run -d edge --web-browser-flag "--disable-web-security"
 ```
+
+# Nomeclature
+
+## EBS
+EBS stands for *Extension Backend Service*. This is the service that runs on a server you own and communicates with the Twitch API. It is responsible to hold a persistent communication with the App (if there is any). It is also responsible to respond to the Frontend requests, by relaying the information to the App or to the Twitch API (using the shared secret). It communicates with the Frontend by either responding the an http request or by broadcasting using PubSub.
+
+## Frontend
+The frontend is the Flutter application that runs on the spectator screen, i.e. the main screen that the user interacts with. It is responsible to communicate with the EBS and to display the data to the user. By nature, it is a web app. 
+
+## App
+The app is the Flutter application that runs on stream computer. It can be targetting any platform. It communicates information to the Frontend via the EBS. It is responsible to display the extension that will be shown on the stream.

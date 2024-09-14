@@ -50,7 +50,7 @@ class TwitchChat {
   }
 
   /// ATTRIBUTES
-  final TwitchClientAuthenticator _authenticator;
+  final TwitchAppAuthenticator _authenticator;
   final String streamerLogin;
   String get _oauthKey =>
       _authenticator.chatbotBearerKey ?? _authenticator.bearerKey!;
@@ -61,7 +61,7 @@ class TwitchChat {
   ///
   static Future<TwitchChat> factory(
       {required String streamerLogin,
-      required TwitchClientAuthenticator authenticator}) async {
+      required TwitchAppAuthenticator authenticator}) async {
     _logger.config('Connecting to Twitch chat');
     return TwitchChat._(
         streamerLogin, await _getConnectedSocket(), authenticator);
@@ -199,15 +199,14 @@ class TwitchChatMock extends TwitchChat {
   ///
   static Future<TwitchChatMock> factory({
     required String streamerLogin,
-    required TwitchClientAuthenticator authenticator,
+    required TwitchAppAuthenticator authenticator,
   }) async =>
       TwitchChatMock._(streamerLogin, authenticator);
 
   ///
   /// Private constructor
   ///
-  TwitchChatMock._(
-      String streamerLogin, TwitchClientAuthenticator authenticator)
+  TwitchChatMock._(String streamerLogin, TwitchAppAuthenticator authenticator)
       : super._(streamerLogin, null, authenticator);
 
   @override

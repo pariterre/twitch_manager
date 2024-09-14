@@ -66,12 +66,12 @@ class TwitchApi {
   /// This is a placeholder for future development for the EBS and the JWT API
 }
 
-class TwitchClientApi extends TwitchApi {
+class TwitchAppApi extends TwitchApi {
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchClientApi> factory({
+  static Future<TwitchAppApi> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
   }) async {
@@ -79,7 +79,7 @@ class TwitchClientApi extends TwitchApi {
 
     // Create a temporary TwitchApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchClientApi._(appInfo, authenticator);
+    final api = TwitchAppApi._(appInfo, authenticator);
     api.streamerId = await api._userId(authenticator.bearerKey!);
 
     _logger.config('Twitch API created');
@@ -435,7 +435,7 @@ class TwitchClientApi extends TwitchApi {
 
   ///
   /// Private constructor
-  TwitchClientApi._(this._appInfo, this._authenticator);
+  TwitchAppApi._(this._appInfo, this._authenticator);
 
   ///
   /// Send an actual HTTP request to Twitch
@@ -568,7 +568,7 @@ class TwitchClientApi extends TwitchApi {
   }
 }
 
-class TwitchApiMock extends TwitchClientApi {
+class TwitchApiMock extends TwitchAppApi {
   TwitchDebugPanelOptions debugPanelOptions;
 
   ///

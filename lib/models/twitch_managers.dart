@@ -51,9 +51,9 @@ class TwitchAppManager implements TwitchManager {
   @override
   TwitchAppInfo get appInfo => _appInfo;
 
-  final TwitchClientAuthenticator _authenticator;
+  final TwitchAppAuthenticator _authenticator;
   @override
-  TwitchClientAuthenticator get authenticator => _authenticator;
+  TwitchAppAuthenticator get authenticator => _authenticator;
 
   ///
   /// A reference to the chat of the stream
@@ -72,8 +72,8 @@ class TwitchAppManager implements TwitchManager {
 
   ///
   /// A reference to the API of the stream
-  TwitchClientApi? _api;
-  TwitchClientApi get api {
+  TwitchAppApi? _api;
+  TwitchAppApi get api {
     if (!_isConnected) {
       throw 'api necessitate the user to be connected';
     }
@@ -128,8 +128,7 @@ class TwitchAppManager implements TwitchManager {
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
-    final authenticator =
-        TwitchClientAuthenticator(saveKeySuffix: saveKeySuffix);
+    final authenticator = TwitchAppAuthenticator(saveKeySuffix: saveKeySuffix);
 
     if (reload) {
       await authenticator.loadSession();
@@ -216,7 +215,7 @@ class TwitchAppManager implements TwitchManager {
     }
 
     // Connect the API
-    _api ??= await TwitchClientApi.factory(
+    _api ??= await TwitchAppApi.factory(
         appInfo: _appInfo, authenticator: _authenticator);
 
     final streamerLogin = await _api!.login(_api!.streamerId);
@@ -383,7 +382,7 @@ class TwitchManagerMock extends TwitchAppManager {
   ///
   /// Main constructor of the Twitch Manager
   TwitchManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
-      : super._(appInfo, TwitchClientAuthenticatorMock()) {
+      : super._(appInfo, TwitchAppAuthenticatorMock()) {
     _connectToTwitchBackend();
   }
 
@@ -404,7 +403,7 @@ class TwitchManagerMock extends TwitchAppManager {
     // Connect to the chat
     _chat = await TwitchChatMock.factory(
       streamerLogin: streamerLogin,
-      authenticator: _authenticator as TwitchClientAuthenticatorMock,
+      authenticator: _authenticator as TwitchAppAuthenticatorMock,
     );
     if (!kIsWeb) {
       _finalizerTwitchChat.attach(this, _chat!, detach: this);

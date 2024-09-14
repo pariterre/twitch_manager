@@ -75,10 +75,10 @@ abstract class TwitchAuthenticator {
 /// https://dev.twitch.tv/docs/authentication/getting-tokens-oauth
 ///
 /// As requested by Twitch, the OAuth key is validated every hour.
-class TwitchClientAuthenticator extends TwitchAuthenticator {
+class TwitchAppAuthenticator extends TwitchAuthenticator {
   ///
   /// Constructor of the Authenticator
-  TwitchClientAuthenticator({super.saveKeySuffix = ''});
+  TwitchAppAuthenticator({super.saveKeySuffix = ''});
 
   ///
   /// The chatbot bearer key
@@ -183,7 +183,7 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
     // Try to validate the current OAuth key
     if (getOAuthKey() != null) {
       isConnected =
-          await TwitchClientApi.validateOAuthToken(oAuthKey: getOAuthKey()!);
+          await TwitchAppApi.validateOAuthToken(oAuthKey: getOAuthKey()!);
       _logger.info('OAuth key is ${isConnected ? '' : 'not'} valid');
     }
 
@@ -195,7 +195,7 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
 
       _logger.info('Requesting new OAuth key');
       // Get a new OAuth key
-      final oauthKey = await TwitchClientApi.getNewOAuth(
+      final oauthKey = await TwitchAppApi.getNewOAuth(
           appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
       if (oauthKey == null) return false;
       setOAuthKey(oauthKey);
@@ -220,7 +220,7 @@ class TwitchClientAuthenticator extends TwitchAuthenticator {
         timer.cancel();
         return;
       }
-      if (!await TwitchClientApi.validateOAuthToken(oAuthKey: key)) {
+      if (!await TwitchAppApi.validateOAuthToken(oAuthKey: key)) {
         // If it fails, restart the connecting process
         _logger.warning('OAuth key is not valid, requesting new OAuth key');
         timer.cancel();
@@ -381,8 +381,8 @@ Future<void> _clearSession({required String key}) async {
   await storage.write(key: key, value: '');
 }
 
-class TwitchClientAuthenticatorMock extends TwitchClientAuthenticator {
-  TwitchClientAuthenticatorMock({super.saveKeySuffix});
+class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
+  TwitchAppAuthenticatorMock({super.saveKeySuffix});
 
   @override
   Future<bool> connect({

@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 
-final _clients = <String, String>{};
+final _streamers = <String, String>{};
 final _logger = Logger('authentication_server');
 
 ///
-/// Manage the communication between the client and twitch. An example of the
+/// Manage the communication between the App and Twitch API. An example of the
 /// expected communication is implemented in [resources/twitch_redirect_example.html]
 /// and in the example of the [twitch_manager] package.
 ///
@@ -19,7 +19,7 @@ final _logger = Logger('authentication_server');
 void main(List<String> arguments) async {
   if (arguments.contains('--help')) {
     print('''
-    Manage the communication between the client and twitch. An example of the
+    Manage the communication between the App and Twitch API. An example of the
     expected communication is implemented in [resources/twitch_redirect_example.html]
     and in the example of the [twitch_manager] package.
 
@@ -109,7 +109,7 @@ void _handleOptionsRequest(HttpRequest request) {
 }
 
 ///
-/// Handle client request
+/// Handle app request
 void _handleGetTokenRequest(HttpRequest request) async {
   // Get the state token from the query parameters
   final stateToken = request.uri.queryParameters['state'];
@@ -134,9 +134,9 @@ void _handleGetTokenRequest(HttpRequest request) async {
   final downtimeThreshold = DateTime.now().add(Duration(minutes: 1));
   String? token;
   while (DateTime.now().isBefore(downtimeThreshold)) {
-    if (_clients.containsKey(stateToken)) {
+    if (_streamers.containsKey(stateToken)) {
       // Pop the token from the stored data
-      token = _clients.remove(stateToken);
+      token = _streamers.remove(stateToken);
       break;
     }
     await Future.delayed(Duration(milliseconds: 100));
@@ -146,7 +146,7 @@ void _handleGetTokenRequest(HttpRequest request) async {
     return;
   }
 
-  // Send the token back to the client
+  // Send the token back to the streamer
   _sendSuccessResponse(request, {'access_token': token, 'state': stateToken});
 }
 
@@ -176,16 +176,16 @@ void _handlePostTokenRequest(HttpRequest request) async {
     }
     final token = tokenMatch.group(1)!;
 
-    // Store the token so it can be sent to the client
+    // Store the token so it can be sent to the streamer
     _logger.info('Twitch OAUTH token received for $stateToken');
-    _clients[stateToken] = token;
+    _streamers[stateToken] = token;
 
     // Remove token in 5 minutes if not requested
     Future.delayed(Duration(minutes: 5), () {
-      _clients.remove(stateToken);
+      _streamers.remove(stateToken);
     });
 
-    // Send a response back to the client
+    // Send a response back to the streamer
     _sendSuccessResponse(request, {'state': 'OK'});
   } catch (e) {
     _sendErrorResponse(
