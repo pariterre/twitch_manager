@@ -36,7 +36,7 @@ class TwitchApiToEbs {
   /// to include the leading slash (if required). The method returns a Map<String, dynamic>
   /// with the response from the EBS server. If the endpoint is not found,
   /// the method will throw an exception.
-  Future<Map<String, dynamic>> postRequest(String endpoint,
+  Future<Map<String, dynamic>> postRequest(MessageTypes endpoint,
       [Map<String, dynamic>? body]) async {
     try {
       return await _sendPostRequestToEbs(
