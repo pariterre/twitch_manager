@@ -45,7 +45,7 @@ abstract class TwitchAppManagerAbstract {
 
     Future<void> retry(String errorMessage) async {
       if (_hasConnectedToEbsCompleter != null) return;
-
+      // TODO Fix only trying to reconnect once
       _logger.severe(errorMessage);
       // Do some clean up
       _isConnectedToEbs = false;
@@ -147,6 +147,14 @@ abstract class TwitchAppManagerAbstract {
     }
   }
 
+  void sendResponseToEbs(MessageProtocol message) {
+    sendMessageToEbs(message.copyWith(
+      from: MessageFrom.app,
+      to: MessageTo.ebsIsolated,
+      type: MessageTypes.response,
+    ));
+  }
+
   ///
   /// Handle the messages received from the EBS server. This method should be
   /// overridden by the child class to handle the messages.
@@ -191,12 +199,6 @@ abstract class TwitchAppManagerAbstract {
       case MessageTypes.put:
         await handlePutRequest(message);
         break;
-    }
-
-    if (!message.isSuccess!) {
-      _logger.severe(
-          'Error while handling message from EBS: ${message.data?['error_message']}');
-      return;
     }
   }
 }

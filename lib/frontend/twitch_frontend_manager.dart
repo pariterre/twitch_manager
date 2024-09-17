@@ -37,7 +37,7 @@ class TwitchFrontendManager implements TwitchManager {
     required TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
     Function()? onConnectedToTwitchService,
-    Function(String message)? pubSubCallback,
+    Function(MessageProtocol message)? pubSubCallback,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
@@ -50,12 +50,19 @@ class TwitchFrontendManager implements TwitchManager {
     if (onConnectedToTwitchService != null) {
       authenticator.onHasConnected.listen(onConnectedToTwitchService);
     }
+    authenticator.listenToPubSub('broadcast', manager._pubSubCallback);
     if (pubSubCallback != null) {
       authenticator.listenToPubSub('broadcast', pubSubCallback);
     }
     manager.connect(isTwitchUserIdRequired: isTwitchUserIdRequired);
 
     _logger.config('Manager is ready to be used');
+
+    // Try to register to the extension. This will fail if the streamer did not
+    // start the extension yet, just ignore it. When the streamer is ready, the
+    // extension will send a handshake message to the frontend which will also
+    // register it to the extension.
+    await manager._registerToExtension();
     return manager;
   }
 
@@ -82,7 +89,7 @@ class TwitchFrontendManager implements TwitchManager {
                   to: MessageTo.app,
                   type: message.type)
               .toJson());
-      _logger.info('Message sent to EBS: $response');
+      _logger.info('Response from App: $response');
       return MessageProtocol.fromJson(response);
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
@@ -96,6 +103,8 @@ class TwitchFrontendManager implements TwitchManager {
 
   ///
   /// Send a message to the EBS based on the [type] of message.
+  /// This is mostly for internal stuff. Usually, you will want to send a message
+  /// to the App instead using [sendMessageToApp].
   Future<MessageProtocol> sendMessageToEbs(MessageProtocol message) async {
     if (message.type == MessageTypes.get || message.type == MessageTypes.put) {
       _logger
@@ -109,10 +118,10 @@ class TwitchFrontendManager implements TwitchManager {
           message.type,
           MessageProtocol(
                   from: MessageFrom.frontend,
-                  to: MessageTo.ebsMain,
+                  to: MessageTo.ebsIsolated,
                   type: message.type)
               .toJson());
-      _logger.info('Message sent to EBS: $response');
+      _logger.info('Reponse from EBS: $response');
       return MessageProtocol.fromJson(response);
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
@@ -130,4 +139,43 @@ class TwitchFrontendManager implements TwitchManager {
   @override
   TwitchListener<Function> get onHasDisconnected =>
       throw 'It is not possible to listen to the disconnection of the frontend';
+
+  ///
+  /// Intercept internal messages from the PubSub and behave accordingly
+  Future<void> _pubSubCallback(MessageProtocol message) async {
+    _logger.info('Received PubSub message: ${message.toString()}');
+
+    try {
+      switch (message.type) {
+        case MessageTypes.handShake:
+          _logger.info('Streamer connected to the extension');
+          await _registerToExtension();
+          break;
+        case MessageTypes.disconnect:
+        case MessageTypes.ping:
+        case MessageTypes.pong:
+        case MessageTypes.get:
+        case MessageTypes.put:
+        case MessageTypes.response:
+          break;
+      }
+    } catch (e) {
+      _logger.severe('Error while handling PubSub message: $e');
+    }
+  }
+
+  Future<void> _registerToExtension() async {
+    final response = await sendMessageToEbs(MessageProtocol(
+        from: MessageFrom.frontend,
+        to: MessageTo.ebsMain,
+        type: MessageTypes.handShake));
+    final isSuccess = response.isSuccess ?? false;
+    if (!isSuccess) {
+      _logger.info(
+          'Cannot register to extension, as the streamer did not started it yet');
+      return;
+    }
+
+    _logger.info('Registered to extension');
+  }
 }

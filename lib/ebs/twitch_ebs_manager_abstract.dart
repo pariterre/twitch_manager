@@ -65,9 +65,14 @@ abstract class TwitchEbsManagerAbstract {
             // Do nothing, the handshake is handled by the main and the constructor
             break;
           case MessageFrom.frontend:
-            _frontendHasRegistered(
+            final isSuccess = await _frontendHasRegistered(
                 userId: message.data!['user_id'],
                 opaqueId: message.data!['opaque_id']);
+            communicator.sendReponse(message.copyWith(
+                from: MessageFrom.ebsIsolated,
+                to: MessageTo.ebsMain,
+                type: MessageTypes.response,
+                isSuccess: isSuccess));
             break;
           case MessageFrom.ebsMain:
           case MessageFrom.ebsIsolated:
@@ -78,7 +83,7 @@ abstract class TwitchEbsManagerAbstract {
       case MessageTypes.disconnect:
         // This is probably overkill, but we want to make sure the game is ended
         // So send back to the main a message to disconnect
-        communicator.sendMessageViaMain(MessageProtocol(
+        communicator.sendMessage(MessageProtocol(
             from: MessageFrom.ebsIsolated,
             to: MessageTo.ebsMain,
             type: MessageTypes.disconnect));
@@ -88,12 +93,9 @@ abstract class TwitchEbsManagerAbstract {
       case MessageTypes.put:
         return handlePutRequest(message);
       case MessageTypes.response:
-        return communicator.completers.complete(
-            message.internalIsolate?['completer_id'],
-            data: message.data);
       case MessageTypes.pong:
         return communicator.completers
-            .complete(message.internalIsolate?['completer_id'], data: true);
+            .complete(message.internalIsolate?['completer_id'], data: message);
       case MessageTypes.ping:
         return;
     }
@@ -155,13 +157,20 @@ abstract class TwitchEbsManagerAbstract {
   Future<void> _keepAlive(Timer keepGameManagerAlive) async {
     try {
       _logger.info('PING');
-      final isAlive = await communicator
-          .sendQuestionViaMain(MessageProtocol(
-            from: MessageFrom.ebsIsolated,
-            to: MessageTo.app,
-            type: MessageTypes.ping,
-          ))
-          .timeout(const Duration(seconds: 30), onTimeout: () => false);
+      final isAlive = (await communicator
+                  .sendQuestion(MessageProtocol(
+                    from: MessageFrom.ebsIsolated,
+                    to: MessageTo.app,
+                    type: MessageTypes.ping,
+                  ))
+                  .timeout(const Duration(seconds: 30),
+                      onTimeout: () => MessageProtocol(
+                          from: MessageFrom.app,
+                          to: MessageTo.ebsIsolated,
+                          type: MessageTypes.response,
+                          isSuccess: false)))
+              .isSuccess ??
+          false;
       if (!isAlive) {
         throw Exception('No pong');
       }
@@ -175,7 +184,7 @@ abstract class TwitchEbsManagerAbstract {
 
   void kill() {
     _logger.info('Killing the isolated instance');
-    communicator.sendMessageViaMain(MessageProtocol(
+    communicator.sendMessage(MessageProtocol(
         from: MessageFrom.ebsIsolated,
         to: MessageTo.ebsMain,
         type: MessageTypes.disconnect));
@@ -184,7 +193,7 @@ abstract class TwitchEbsManagerAbstract {
 
 class Communicator {
   final _receivePort = ReceivePort();
-  final SendPort sendPort;
+  final SendPort _sendPort;
   final completers = Completers();
   Future<void> complete(
       {required int? completerId, required dynamic data}) async {
@@ -193,15 +202,16 @@ class Communicator {
   }
 
   Communicator(
-      {required TwitchEbsManagerAbstract manager, required this.sendPort}) {
+      {required TwitchEbsManagerAbstract manager, required SendPort sendPort})
+      : _sendPort = sendPort {
     // Send the SendPort to the main isolate, so it can communicate back to the isolate
-    sendMessageViaMain(MessageProtocol(
+    sendMessage(MessageProtocol(
         from: MessageFrom.ebsIsolated,
         to: MessageTo.ebsMain,
         type: MessageTypes.handShake,
         data: {'send_port': _receivePort.sendPort}));
 
-    sendMessageViaMain(MessageProtocol(
+    sendMessage(MessageProtocol(
       from: MessageFrom.ebsIsolated,
       to: MessageTo.app,
       type: MessageTypes.handShake,
@@ -217,9 +227,9 @@ class Communicator {
   /// Helper method to send a response via the main. The [message] is the message
   /// to respond with the fields [to], [isSuccess] and [data] filled.
   Future<void> sendReponse(MessageProtocol message) async {
-    sendMessageViaMain(message.copyWith(
+    sendMessage(message.copyWith(
         from: MessageFrom.ebsIsolated,
-        to: message.to,
+        to: message.to == MessageTo.frontend ? MessageTo.ebsMain : message.to,
         type: MessageTypes.response));
   }
 
@@ -229,7 +239,7 @@ class Communicator {
   /// to the data field with the key 'error_message' and the [isSuccess] field is set to false.
   Future<void> sendErrorReponse(
           MessageProtocol message, String errorMessage) async =>
-      sendMessageViaMain(message.copyWith(
+      sendMessage(message.copyWith(
           from: MessageFrom.ebsIsolated,
           to: message.to,
           type: MessageTypes.response,
@@ -240,25 +250,48 @@ class Communicator {
   /// Send a message to main. The message will be redirected based on the
   /// target field of the message.
   /// [message] the message to send
-  void sendMessageViaMain(MessageProtocol message) =>
-      sendPort.send(message.toJson());
+  Future<void> sendMessage(MessageProtocol message) async {
+    try {
+      await _sendMessage(message);
+    } catch (e) {
+      // Do nothing
+    }
+  }
 
   ///
   /// Send a message to main while expecting an actual response. This is
   /// useful we needs to wait for a response from the main.
   /// [message] the message to send
   /// returns a future that will be completed when the main responds
-  Future<dynamic> sendQuestionViaMain(MessageProtocol message) {
+  Future<MessageProtocol> sendQuestion(MessageProtocol message) async {
     final completerId = completers.spawn();
     final completer = completers.get(completerId)!;
 
-    sendPort.send(message.copyWith(
-        from: message.from,
-        to: message.to,
-        type: message.type,
-        internalIsolate: {'completer_id': completerId}).toJson());
+    if (message.to == MessageTo.frontend) {
+      await _sendMessage(message);
+    } else {
+      await _sendMessage(message.copyWith(
+          from: message.from,
+          to: message.to,
+          type: message.type,
+          internalIsolate: {'completer_id': completerId}));
+    }
 
-    return completer.future.timeout(const Duration(seconds: 30),
+    final response = await completer.future.timeout(const Duration(seconds: 30),
         onTimeout: () => throw Exception('Timeout'));
+    return response as MessageProtocol;
+  }
+
+  Future<void> _sendMessage(MessageProtocol message) async {
+    if (message.to == MessageTo.frontend) {
+      final response =
+          await TwitchApi.instance.sendPubsubMessage(message.toJson());
+      if (response.statusCode != 204) {
+        _logger.severe('Could not send message to frontends');
+        throw Exception('Could not send message to frontends');
+      }
+    } else {
+      _sendPort.send(message.toJson());
+    }
   }
 }

@@ -162,8 +162,8 @@ class IsolatedMainManager {
 
   Future<void> _handleMessageFromIsolatedToFrontends(
       MessageProtocol message, WebSocket socket) async {
-    _logger.info('Sending message to the frontend: ${message.toJson()}');
-    TwitchApi.instance.sendPubsubMessage(message.toJson());
+    _logger.severe(
+        'Message to frontend are supposed to be sent from the isolated');
   }
 
   Future<void> messageFromAppToIsolated(

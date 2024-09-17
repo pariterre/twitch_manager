@@ -61,10 +61,15 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   }
 
   Future<void> listenToPubSub(
-      String target, Function(String message) callback) async {
+      String target, Function(MessageProtocol message) callback) async {
     TwitchJsExtension.listen(target,
-        (String target, String contentType, String message) {
-      callback(message);
+        (String target, String contentType, String raw) {
+      _logger.fine('Message from Pubsub: $raw');
+      try {
+        callback(MessageProtocol.decode(raw.replaceAll('\'', '"')));
+      } catch (e) {
+        _logger.info('Message from PubSub: $raw');
+      }
     });
   }
 

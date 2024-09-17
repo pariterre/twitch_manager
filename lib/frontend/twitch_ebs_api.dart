@@ -1,9 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
+
+final _logger = Logger('TwitchEbsApi');
 
 ///
 /// This is the frontend implementation of the Twitch EBS API. The EBS side
@@ -22,11 +25,12 @@ class TwitchEbsApi {
   /// to include the leading slash (if required). The method returns a Map<String, dynamic>
   /// with the response from the EBS server. If the endpoint is not found,
   /// the method will throw an exception.
-  Future<Map<String, dynamic>> getRequest(String endpoint) async {
+  Future<Map<String, dynamic>> getRequest(MessageTypes endpoint) async {
     try {
       return await _sendGetRequestToEbs(
-          Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator);
+          Uri.parse('${appInfo.ebsUri}/${endpoint.name}'), authenticator);
     } catch (e) {
+      _logger.info('Error making request: $e');
       return {'status': 'NOK', 'error_message': e.toString()};
     }
   }
@@ -41,8 +45,9 @@ class TwitchEbsApi {
       [Map<String, dynamic>? body]) async {
     try {
       return await _sendPostRequestToEbs(
-          Uri.parse('${appInfo.ebsUri}$endpoint'), authenticator, body);
+          Uri.parse('${appInfo.ebsUri}/${endpoint.name}'), authenticator, body);
     } catch (e) {
+      _logger.info('Error making request: $e');
       return {'status': 'NOK', 'error_message': e.toString()};
     }
   }

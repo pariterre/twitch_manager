@@ -12,19 +12,24 @@ Future<void> _handleFrontendHttpRequest(HttpRequest request,
   final userId = int.tryParse(payload?['user_id']);
   final opaqueUserId = payload?['opaque_user_id'];
 
+  // Parse the body of the POST request
+  final body = await utf8.decoder.bind(request).join();
+  final message = MessageProtocol.fromJson(jsonDecode(body));
+  final data = message.data ?? {};
+
   // Get the message of the POST request
   final response = await IsolatedMainManager.instance
       .messageFromFrontendToIsolated(
-          message: MessageProtocol(
-              from: MessageFrom.frontend,
-              to: MessageTo.ebsIsolated,
-              type: MessageTypes.get,
-              data: {
-        'type': request.uri.path,
-        'broadcaster_id': broadcasterId,
-        'user_id': userId,
-        'opaque_id': opaqueUserId
-      }));
+          message: message.copyWith(
+              from: message.from,
+              to: message.to,
+              type: message.type,
+              data: data
+                ..addAll({
+                  'broadcaster_id': broadcasterId,
+                  'user_id': userId,
+                  'opaque_id': opaqueUserId
+                })));
 
   final isSuccess = response.isSuccess ?? false;
   if (!isSuccess) {
