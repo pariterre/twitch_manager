@@ -56,7 +56,7 @@ Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
   final bearer = authHeader.substring(7);
   // If the token is invalid, an exception is thrown
   final decodedJwt = JWT.verify(
-      bearer, SecretKey(ebsInfo.extensionSecret, isBase64Encoded: true));
+      bearer, SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
 
   return decodedJwt.payload;
 }

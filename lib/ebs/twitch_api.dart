@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
+import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 
 class _Bearer {
   final String token;
@@ -12,22 +13,6 @@ class _Bearer {
   _Bearer(this.token, {required this.expiration});
 
   bool get isExpired => DateTime.now().isAfter(expiration);
-}
-
-void initialize({
-  required int broadcasterId,
-  required String extensionId,
-  required String extensionVersion,
-  required String extensionSecret,
-  required String sharedSecret,
-}) {
-  TwitchApi._internal(
-    broadcasterId: broadcasterId,
-    extensionId: extensionId,
-    extensionVersion: extensionVersion,
-    extensionSecret: extensionSecret,
-    sharedSecret: sharedSecret,
-  );
 }
 
 class TwitchApi {
@@ -43,37 +28,20 @@ class TwitchApi {
 
   static Future<void> initialize({
     required int broadcasterId,
-    required String extensionId,
-    required String extensionVersion,
-    required String extensionSecret,
-    required String sharedSecret,
+    required TwitchEbsInfo ebsInfo,
   }) async {
     if (_instance != null) {
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
-    _instance = TwitchApi._internal(
-      broadcasterId: broadcasterId,
-      extensionId: extensionId,
-      extensionVersion: extensionVersion,
-      extensionSecret: extensionSecret,
-      sharedSecret: sharedSecret,
-    );
+    _instance =
+        TwitchApi._internal(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
   }
 
-  TwitchApi._internal({
-    required this.broadcasterId,
-    required this.extensionId,
-    required this.extensionVersion,
-    required this.extensionSecret,
-    required this.sharedSecret,
-  });
+  TwitchApi._internal({required this.broadcasterId, required this.ebsInfo});
 
   final int broadcasterId;
-
-  final String extensionId;
-  final String extensionVersion;
-  final String? extensionSecret;
+  final TwitchEbsInfo ebsInfo;
 
   Future<Uri> getAuthorizationExtensionBearerUri() async {
     // Generate a random 16-bigs hexadecimal state
@@ -83,7 +51,7 @@ class TwitchApi {
 
     final authorizationUrl = Uri.https('id.twitch.tv', 'oauth2/authorize', {
       'response_type': 'code',
-      'client_id': extensionId,
+      'client_id': ebsInfo.extensionId,
       'redirect_uri': 'https://localhost',
       'scope': 'user:write:chat user:bot',
       'state': state,
@@ -97,7 +65,6 @@ class TwitchApi {
     return authorizationUrl;
   }
 
-  final String sharedSecret;
   Future<int?> userId({required String login}) async {
     final bearer = await _getExtensionBearerToken();
     final response = await _getApiRequest(
@@ -140,9 +107,9 @@ class TwitchApi {
     }
   }
 
-  Future<void> sendChatMessage(String message,
+  Future<http.Response> sendChatMessage(String message,
       {bool sendUnderExtensionName = true}) async {
-    await _postApiRequest(
+    return await _postApiRequest(
       endPoint: sendUnderExtensionName
           ? 'helix/extensions/chat'
           : 'helix/chat/messages',
@@ -152,14 +119,14 @@ class TwitchApi {
       queryParameters: {'broadcaster_id': broadcasterId.toString()},
       body: {
         'text': message,
-        'extension_id': extensionId,
-        'extension_version': extensionVersion,
+        'extension_id': ebsInfo.extensionId,
+        'extension_version': ebsInfo.extensionVersion,
       },
     );
   }
 
-  Future<void> sendPubsubMessage(Map<String, dynamic> message) async {
-    await _postApiRequest(
+  Future<http.Response> sendPubsubMessage(Map<String, dynamic> message) async {
+    return await _postApiRequest(
       endPoint: 'helix/extensions/pubsub',
       bearer: await _getSharedBearerToken(),
       body: {
@@ -179,7 +146,7 @@ class TwitchApi {
         Uri.https('api.twitch.tv', endPoint, queryParameters),
         headers: <String, String>{
           HttpHeaders.authorizationHeader: 'Bearer $bearer',
-          'Client-Id': extensionId,
+          'Client-Id': ebsInfo.extensionId,
           HttpHeaders.contentTypeHeader: 'application/json',
         });
 
@@ -196,7 +163,7 @@ class TwitchApi {
         await http.post(Uri.https('api.twitch.tv', endPoint, queryParameters),
             headers: <String, String>{
               HttpHeaders.authorizationHeader: 'Bearer $bearer',
-              'Client-Id': extensionId,
+              'Client-Id': ebsInfo.extensionId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
             body: json.encode(body));
@@ -206,7 +173,7 @@ class TwitchApi {
 
   _Bearer? _extensionBearer;
   Future<String> _getExtensionBearerToken() async {
-    if (extensionSecret == null) {
+    if (ebsInfo.extensionSecret == null) {
       throw ArgumentError('Extension secret is required, please generate one '
           'from the Twitch developer console');
     }
@@ -214,8 +181,8 @@ class TwitchApi {
     if (_extensionBearer == null) {
       final response =
           await http.post(Uri.https('id.twitch.tv', 'oauth2/token'), body: {
-        'client_id': extensionId,
-        'client_secret': extensionSecret,
+        'client_id': ebsInfo.extensionId,
+        'client_secret': ebsInfo.extensionSecret,
         'grant_type': 'client_credentials',
       });
       final data = json.decode(response.body);
@@ -240,7 +207,7 @@ class TwitchApi {
         }
       });
       _sharedBearerToken = _Bearer(
-          jwt.sign(SecretKey(sharedSecret, isBase64Encoded: true),
+          jwt.sign(SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true),
               expiresIn: const Duration(days: 1)),
           expiration: DateTime.now().add(const Duration(days: 1)));
     }

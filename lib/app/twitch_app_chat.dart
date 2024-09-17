@@ -35,8 +35,8 @@ class TwitchAppChat {
     _logger.info('Disconnecting from Twitch IRC channel...');
 
     // Remove the active listeners
-    onMessageReceived.clearListeners();
-    onInternalMessageReceived.clearListeners();
+    onMessageReceived.cancelAll();
+    onInternalMessageReceived.cancelAll();
 
     if (!_isConnected) return;
 

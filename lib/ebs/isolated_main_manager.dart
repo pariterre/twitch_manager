@@ -26,7 +26,7 @@ class IsolatedMainManager {
     required int broadcasterId,
     required TwitchEbsInfo ebsInfo,
     required SendPort sendPort,
-  }) _isolatedFactory;
+  }) _twitchEbsManagerFactory;
 
   // Prepare the singleton instance
   static IsolatedMainManager? _instance;
@@ -43,13 +43,14 @@ class IsolatedMainManager {
       required int broadcasterId,
       required TwitchEbsInfo ebsInfo,
       required SendPort sendPort,
-    }) isolatedFactory,
+    }) twitchEbsManagerFactory,
   ) {
     if (_instance != null) {
       throw Exception('IsolatedMainManager already initialized');
     }
 
-    _instance = IsolatedMainManager._(isolatedFactory: isolatedFactory);
+    _instance =
+        IsolatedMainManager._(twitchEbsManagerFactory: twitchEbsManagerFactory);
   }
 
   IsolatedMainManager._(
@@ -57,8 +58,8 @@ class IsolatedMainManager {
         required int broadcasterId,
         required TwitchEbsInfo ebsInfo,
         required SendPort sendPort,
-      }) isolatedFactory})
-      : _isolatedFactory = isolatedFactory;
+      }) twitchEbsManagerFactory})
+      : _twitchEbsManagerFactory = twitchEbsManagerFactory;
 
   final _completers = Completers();
   final Map<int, _IsolatedInterface> _isolates = {};
@@ -78,14 +79,13 @@ class IsolatedMainManager {
     // Create a new game
     if (!_isolates.containsKey(broadcasterId)) {
       _logger.info('Starting a new connexion (broadcasterId: $broadcasterId)');
-      // TODO Check why this does not return (compare with the original code?)
-      final isolate = await Isolate.spawn(twitchEbsManagerSpawner, {
+      _isolates[broadcasterId] = _IsolatedInterface(
+          isolate: await Isolate.spawn(twitchEbsManagerSpawner, {
         'broadcaster_id': broadcasterId,
         'ebs_info': ebsInfo,
         'send_port': mainReceivePort.sendPort,
-        'isolate_factory': _isolatedFactory,
-      });
-      _isolates[broadcasterId] = _IsolatedInterface(isolate: isolate);
+        'ebs_manager_factory': _twitchEbsManagerFactory,
+      }));
     }
   }
 
@@ -162,9 +162,8 @@ class IsolatedMainManager {
 
   Future<void> _handleMessageFromIsolatedToFrontends(
       MessageProtocol message, WebSocket socket) async {
-    // TODO Instanciate the TwitchApi
     _logger.info('Sending message to the frontend: ${message.toJson()}');
-    //TwitchApi.instance.sendPubsubMessage(message.toJson());
+    TwitchApi.instance.sendPubsubMessage(message.toJson());
   }
 
   Future<void> messageFromAppToIsolated(
@@ -199,9 +198,9 @@ class IsolatedMainManager {
     // Relay the message to the worker isolate
     final completerId = _completers.spawn();
     sendPort.send(message.copyWith(
-        from: MessageFrom.frontend,
-        to: MessageTo.ebsIsolated,
-        type: MessageTypes.get,
+        from: message.from,
+        to: message.to,
+        type: message.type,
         internalMain: {'completer_id': completerId}).encode());
 
     return await _completers.get(completerId)!.future;
@@ -227,51 +226,12 @@ void twitchEbsManagerSpawner(Map<String, dynamic> data) async {
   final broadcasterId = data['broadcaster_id'] as int;
   final ebsInfo = data['ebs_info'] as TwitchEbsInfo;
   final sendPort = data['send_port'] as SendPort;
-  final factory = data['isolate_factory'] as TwitchEbsManagerAbstract Function(
-      {required int broadcasterId,
-      required TwitchEbsInfo ebsInfo,
-      required SendPort sendPort});
+  final ebsManagerfactory = data['ebs_manager_factory']
+      as TwitchEbsManagerAbstract Function(
+          {required int broadcasterId,
+          required TwitchEbsInfo ebsInfo,
+          required SendPort sendPort});
 
-  factory(broadcasterId: broadcasterId, ebsInfo: ebsInfo, sendPort: sendPort);
-}
-
-class IsolatedInstance {
-  // TODO Add the ebs api
-  //   case FromEbsToMainMessages.getUserId:
-  //   final response = <String, dynamic>{};
-  //   try {
-  //     response['user_id'] = await tm.userId(login: message.raw!['login']);
-  //   } catch (e) {
-  //     response['user_id'] = null;
-  //   }
-  //   messageFromMainToIsolated(
-  //       broadcasterId: isolateData.twitchBroadcasterId,
-  //       message: message.copyWith(data: response));
-  //   break;
-
-  // case FromEbsToMainMessages.getDisplayName:
-  //   final response = <String, dynamic>{};
-  //   try {
-  //     response['display_name'] =
-  //         await tm.displayName(userId: message.raw!['user_id']);
-  //   } catch (e) {
-  //     response['display_name'] = null;
-  //   }
-  //   messageFromMainToIsolated(
-  //       broadcasterId: isolateData.twitchBroadcasterId,
-  //       message: message.copyWith(data: response));
-  //   break;
-
-  // case FromEbsToMainMessages.getLogin:
-  //   final response = <String, dynamic>{};
-  //   try {
-  //     response['login'] = await tm.login(userId: message.raw!['user_id']);
-  //   } catch (e) {
-  //     response['login'] = null;
-  //   }
-  //   messageFromMainToIsolated(
-  //       broadcasterId: isolateData.twitchBroadcasterId,
-  //       message: message.copyWith(
-  //           fromTo: FromMainToEbsMessages.getLogin, data: response));
-  //   break;
+  ebsManagerfactory(
+      broadcasterId: broadcasterId, ebsInfo: ebsInfo, sendPort: sendPort);
 }

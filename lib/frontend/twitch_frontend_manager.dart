@@ -3,6 +3,7 @@ import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/abstract/twitch_manager.dart';
 import 'package:twitch_manager/frontend/twitch_ebs_api.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
+import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 final _logger = Logger('TwitchFrontendManager');
@@ -47,7 +48,7 @@ class TwitchFrontendManager implements TwitchManager {
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
     if (onConnectedToTwitchService != null) {
-      authenticator.onHasConnected.startListening(onConnectedToTwitchService);
+      authenticator.onHasConnected.listen(onConnectedToTwitchService);
     }
     if (pubSubCallback != null) {
       authenticator.listenToPubSub('broadcast', pubSubCallback);
@@ -68,6 +69,60 @@ class TwitchFrontendManager implements TwitchManager {
   Future<void> disconnect() =>
       throw 'It is not possible to disconnect from the frontend, it is automatically '
           'done by the browser when the page is closed';
+
+  ///
+  /// Send a message to the App based on the [type] of message.
+  Future<MessageProtocol> sendMessageToApp(MessageProtocol message) async {
+    try {
+      final response = await apiToEbs.postRequest(
+          message.type,
+          message
+              .copyWith(
+                  from: MessageFrom.frontend,
+                  to: MessageTo.app,
+                  type: message.type)
+              .toJson());
+      _logger.info('Message sent to EBS: $response');
+      return MessageProtocol.fromJson(response);
+    } catch (e) {
+      _logger.severe('Failed to send message to EBS: $e');
+      return MessageProtocol(
+          from: MessageFrom.app,
+          to: MessageTo.frontend,
+          type: MessageTypes.response,
+          isSuccess: false);
+    }
+  }
+
+  ///
+  /// Send a message to the EBS based on the [type] of message.
+  Future<MessageProtocol> sendMessageToEbs(MessageProtocol message) async {
+    if (message.type == MessageTypes.get || message.type == MessageTypes.put) {
+      _logger
+          .severe('Cannot send a message of type ${message.type} to the EBS');
+      throw Exception(
+          'Cannot send a message of type ${message.type} to the EBS');
+    }
+
+    try {
+      final response = await apiToEbs.postRequest(
+          message.type,
+          MessageProtocol(
+                  from: MessageFrom.frontend,
+                  to: MessageTo.ebsMain,
+                  type: message.type)
+              .toJson());
+      _logger.info('Message sent to EBS: $response');
+      return MessageProtocol.fromJson(response);
+    } catch (e) {
+      _logger.severe('Failed to send message to EBS: $e');
+      return MessageProtocol(
+          from: MessageFrom.ebsMain,
+          to: MessageTo.frontend,
+          type: MessageTypes.response,
+          isSuccess: false);
+    }
+  }
 
   @override
   final onHasConnected = TwitchListener();

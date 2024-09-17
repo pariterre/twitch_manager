@@ -224,7 +224,7 @@ class TwitchEvents {
     }
     _subscriptionIds.clear();
 
-    onRewardRedeemed.clearListeners();
+    onRewardRedeemed.cancelAll();
     _channel?.close();
 
     _isConnected = false;

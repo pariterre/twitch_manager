@@ -9,7 +9,7 @@ class NetworkParameters {
   final String? certificatePath;
   final String? privateKeyPath;
 
-  final rateLimiter = NetworkRateLimiter(100, Duration(minutes: 1));
+  final rateLimiter = NetworkRateLimiter(100, const Duration(minutes: 1));
 
   NetworkParameters({
     required this.host,

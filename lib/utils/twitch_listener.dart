@@ -1,15 +1,19 @@
+///
+/// To specify a specific type of listener, you can instantiate this class
+/// as such:
+/// final myListener = TwitchListener<Function(String param1, bool param2)>();
 class TwitchListener<T extends Function> {
   ///
   /// Start listening.
-  void startListening(T callback) => _listeners.add(callback);
+  void listen(T callback) => _listeners.add(callback);
 
   ///
   /// Stop listening.
-  void stopListening(T callback) => _listeners.remove(callback);
+  void cancel(T callback) => _listeners.remove(callback);
 
   ///
   /// Stop all listeners.
-  void clearListeners() => _listeners.clear();
+  void cancelAll() => _listeners.clear();
 
   ///
   /// Notify all listeners.

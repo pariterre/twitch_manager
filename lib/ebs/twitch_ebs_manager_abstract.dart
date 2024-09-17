@@ -7,11 +7,10 @@ import 'package:twitch_manager/utils/completers.dart';
 
 final _logger = Logger('IsolatedInstance');
 
-////////////////
 abstract class TwitchEbsManagerAbstract {
   ///
   /// Necessary information to communicate with the Twitch API
-  final int broadcasterId;
+
   final TwitchEbsInfo ebsInfo;
 
   ///
@@ -39,19 +38,20 @@ abstract class TwitchEbsManagerAbstract {
 
   ///
   /// The communicator handle communicaition with the main
-  late final IsolatedManagerCommunicator communicator;
+  late final Communicator communicator;
 
   ///
   /// Constructor for the IsolatedInstanceManagerAbstract. This must be called
   /// by the inherited class.
   TwitchEbsManagerAbstract(
-      {required this.broadcasterId,
+      {required int broadcasterId,
       required this.ebsInfo,
       required SendPort sendPort}) {
     _logger.info('Isolated created for streamer: $broadcasterId');
 
-    communicator =
-        IsolatedManagerCommunicator(manager: this, sendPort: sendPort);
+    communicator = Communicator(manager: this, sendPort: sendPort);
+
+    TwitchApi.initialize(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
 
     // Keep the connexion alive
     Timer.periodic(const Duration(minutes: 5), _keepAlive);
@@ -88,10 +88,12 @@ abstract class TwitchEbsManagerAbstract {
       case MessageTypes.put:
         return handlePutRequest(message);
       case MessageTypes.response:
-      case MessageTypes.pong:
         return communicator.completers.complete(
             message.internalIsolate?['completer_id'],
             data: message.data);
+      case MessageTypes.pong:
+        return communicator.completers
+            .complete(message.internalIsolate?['completer_id'], data: true);
       case MessageTypes.ping:
         return;
     }
@@ -112,18 +114,26 @@ abstract class TwitchEbsManagerAbstract {
   /// [userId] the twitch id of the user
   /// [opaqueId] the opaque id of the user (provided by the frontend)
   Future<bool> _frontendHasRegistered(
-      {required int userId, required String opaqueId}) async {
+      {required int? userId, required String opaqueId}) async {
     _logger.info('Registering to game');
 
     // Do not lose time if the user is already registered
     if (userIdToOpaqueId.containsKey(userId)) return true;
 
     // If we do not need any information from Twitch, we are done
-    if (!ebsInfo.needTwitchUserId) return true;
+    if (!ebsInfo.isTwitchUserIdRequired) {
+      _logger.info(
+          'No need to register UserID as [isTwitchUserIdRequired] is false');
+      return true;
+    }
+
+    if (userId == null) {
+      _logger.severe('User id is required to register this extension');
+      return false;
+    }
 
     // Get the login of the user
-    // TODO: Get the login from Twitch
-    final String? login = null;
+    final login = await TwitchApi.instance.login(userId: userId);
     if (login == null) {
       _logger.severe(
           'Could not get login for user $userId or the app does not have the '
@@ -132,36 +142,33 @@ abstract class TwitchEbsManagerAbstract {
     }
 
     // Register the user
-    userIdToOpaqueId[userId] = opaqueId;
-    opaqueIdToUserId[opaqueId] = userId;
-    userIdToLogin[userId] = login;
-    loginToUserId[login] = userId;
+    _userIdToOpaqueId[userId] = opaqueId;
+    _opaqueIdToUserId[opaqueId] = userId;
+    _userIdToLogin[userId] = login;
+    _loginToUserId[login] = userId;
 
     return true;
   }
 
   ///
   /// Keep the connexion alive. If it fails, the game is ended.
-  Future<void> _keepAlive(Timer? keepGameManagerAlive) async {
+  Future<void> _keepAlive(Timer keepGameManagerAlive) async {
     try {
       _logger.info('PING');
-      final completerId = communicator.completers.spawn();
-      final completer = communicator.completers.get(completerId)!;
-      final response = await communicator
+      final isAlive = await communicator
           .sendQuestionViaMain(MessageProtocol(
             from: MessageFrom.ebsIsolated,
             to: MessageTo.app,
             type: MessageTypes.ping,
           ))
-          .timeout(const Duration(seconds: 30),
-              onTimeout: () => {'response': 'NOT PONG'});
-      if (response?['response'] != 'PONG') {
+          .timeout(const Duration(seconds: 30), onTimeout: () => false);
+      if (!isAlive) {
         throw Exception('No pong');
       }
       _logger.info('PONG');
     } catch (e) {
       _logger.severe('App missed the ping, closing connexion');
-      keepGameManagerAlive?.cancel();
+      keepGameManagerAlive.cancel();
       kill();
     }
   }
@@ -175,7 +182,7 @@ abstract class TwitchEbsManagerAbstract {
   }
 }
 
-class IsolatedManagerCommunicator {
+class Communicator {
   final _receivePort = ReceivePort();
   final SendPort sendPort;
   final completers = Completers();
@@ -185,7 +192,7 @@ class IsolatedManagerCommunicator {
     completers.get(completerId)?.complete(data);
   }
 
-  IsolatedManagerCommunicator(
+  Communicator(
       {required TwitchEbsManagerAbstract manager, required this.sendPort}) {
     // Send the SendPort to the main isolate, so it can communicate back to the isolate
     sendMessageViaMain(MessageProtocol(

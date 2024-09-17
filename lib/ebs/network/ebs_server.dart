@@ -21,11 +21,11 @@ void startEbsServer(
             {required int broadcasterId,
             required TwitchEbsInfo ebsInfo,
             required SendPort sendPort})
-        isolatedFactory}) async {
+        twitchEbsManagerFactory}) async {
   final httpServer = await _startServer(parameters);
 
   // Initialize the isolated manager so it can create new isolates
-  IsolatedMainManager.initialize(isolatedFactory);
+  IsolatedMainManager.initialize(twitchEbsManagerFactory);
 
   await for (final request in httpServer) {
     final ipAddress = request.connectionInfo?.remoteAddress.address;

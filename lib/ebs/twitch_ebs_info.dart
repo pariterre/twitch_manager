@@ -2,6 +2,10 @@ import 'package:twitch_manager/abstract/twitch_info.dart';
 
 class TwitchEbsInfo extends TwitchInfo {
   ///
+  /// Sometime the client ID is referred as the extension ID.
+  String get extensionId => twitchClientId!;
+
+  ///
   /// The current version of the extension
   final String extensionVersion;
 
@@ -9,7 +13,7 @@ class TwitchEbsInfo extends TwitchInfo {
   /// The secret key of the extension. This is used to communicate with the
   /// Twitch API. It is secret and should never be shared, nor should it be
   /// stored in the code. It should be stored in the environment variables.
-  final String extensionSecret;
+  final String? extensionSecret;
 
   ///
   /// The shared secret key of the extension. This is used to communicate with
@@ -22,7 +26,7 @@ class TwitchEbsInfo extends TwitchInfo {
   /// from the frontend. If this is set to true, the user ID is required in the
   /// JWT token. To do so, the developer must add the corresponding field in the
   /// dev panel of the extension.
-  final bool needTwitchUserId;
+  final bool isTwitchUserIdRequired;
 
   ///
   /// Main constructor
@@ -36,6 +40,6 @@ class TwitchEbsInfo extends TwitchInfo {
     required this.extensionVersion,
     required this.extensionSecret,
     this.sharedSecret,
-    this.needTwitchUserId = false,
+    this.isTwitchUserIdRequired = false,
   });
 }

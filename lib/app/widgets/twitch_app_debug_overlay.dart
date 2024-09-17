@@ -388,12 +388,12 @@ class _RedemptionRedeemBoxState extends State<_RedemptionRedeemBox> {
   @override
   void initState() {
     super.initState();
-    widget.manager.api.onRewardRedemptionsChanged.startListening(refresh);
+    widget.manager.api.onRewardRedemptionsChanged.listen(refresh);
   }
 
   @override
   void dispose() {
-    widget.manager.api.onRewardRedemptionsChanged.stopListening(refresh);
+    widget.manager.api.onRewardRedemptionsChanged.cancel(refresh);
     super.dispose();
   }
 
