@@ -6,7 +6,8 @@ import 'package:example/widgets/twitch_message_formfield.dart';
 import 'package:example/widgets/twitch_recurring_message_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/twitch_manager.dart';
+
+import 'package:twitch_manager/twitch_app.dart';
 
 void main() async {
   Logger.root.onRecord.listen((record) {
@@ -71,10 +72,10 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
                     Uri.parse('https://SERVER_URI_HERE/token'),
                 // Requested scopes for the connexion
                 scope: const [
-                  TwitchScope.chatRead,
-                  TwitchScope.chatEdit,
-                  TwitchScope.chatters,
-                  TwitchScope.readFollowers,
+                  TwitchAppScope.chatRead,
+                  TwitchAppScope.chatEdit,
+                  TwitchAppScope.chatters,
+                  TwitchAppScope.readFollowers,
                 ],
               ),
               reload: true, // Use previous connexion if available
