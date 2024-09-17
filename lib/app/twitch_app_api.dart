@@ -14,7 +14,7 @@ import 'package:twitch_manager/utils/twitch_listener.dart';
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
 
-final _logger = Logger('TwitchApi');
+final _logger = Logger('TwitchAppApi');
 
 List<String> _removeBlacklisted(
     Iterable<String> names, List<String>? blacklist) {

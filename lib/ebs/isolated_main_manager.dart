@@ -7,7 +7,7 @@ import 'package:twitch_manager/ebs/ebs_exceptions.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/utils/completers.dart';
 
-final _logger = Logger('IsolatedMainManagers');
+final _logger = Logger('IsolatedMainManager');
 
 class _IsolatedInterface {
   final Isolate isolate;

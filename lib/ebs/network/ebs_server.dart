@@ -11,7 +11,7 @@ import 'package:twitch_manager/twitch_ebs.dart';
 part 'package:twitch_manager/ebs/network/handle_app_endpoints.dart';
 part 'package:twitch_manager/ebs/network/handle_frontend_endpoints.dart';
 
-final _logger = Logger('http_server');
+final _logger = Logger('EbsServer');
 
 ///
 /// Main entry point of the EBS server

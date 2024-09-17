@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 
 final _streamers = <String, String>{};
-final _logger = Logger('authentication_server');
+final _logger = Logger('AuthenticationServer');
 
 ///
 /// Manage the communication between the App and Twitch API. An example of the
@@ -158,7 +158,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
     // Read the request body
     String content = await utf8.decoder.bind(request).join();
     // Parse the JSON data
-    var data = jsonDecode(content)["fragment"];
+    var data = jsonDecode(content)['fragment'];
 
     // Extract the state from the fragment (&state=...&)
     final stateMatch = RegExp(r'^.*&state=([0-9]*)&.*$').firstMatch(data);

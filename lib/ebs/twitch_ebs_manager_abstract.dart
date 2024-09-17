@@ -5,7 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/utils/completers.dart';
 
-final _logger = Logger('IsolatedInstance');
+final _logger = Logger('TwitchEbsManagerAbstract');
 
 abstract class TwitchEbsManagerAbstract {
   ///

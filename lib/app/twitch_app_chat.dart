@@ -9,7 +9,7 @@ import 'package:web_socket_client/web_socket_client.dart' as ws;
 const _ircWebSocketServerAddress = 'wss://irc-ws.chat.twitch.tv:443';
 const _regexpMessage = r'^:(.*)!.*@.*PRIVMSG.*#.*:(.*)$';
 
-final _logger = Logger('TwitchChat');
+final _logger = Logger('TwitchAppChat');
 
 class TwitchAppChat {
   bool _isConnected = false;
