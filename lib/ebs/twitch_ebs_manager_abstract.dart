@@ -83,6 +83,10 @@ abstract class TwitchEbsManagerAbstract {
       case MessageTypes.disconnect:
         // This is probably overkill, but we want to make sure the game is ended
         // So send back to the main a message to disconnect
+        await communicator.sendMessage(MessageProtocol(
+            from: MessageFrom.ebsIsolated,
+            to: MessageTo.frontend,
+            type: MessageTypes.disconnect));
         communicator.sendMessage(MessageProtocol(
             from: MessageFrom.ebsIsolated,
             to: MessageTo.ebsMain,

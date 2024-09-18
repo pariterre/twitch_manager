@@ -136,12 +136,6 @@ class IsolatedMainManager {
         break;
 
       case MessageTypes.disconnect:
-        _handleMessageFromIsolatedToFrontends(
-            MessageProtocol(
-                from: MessageFrom.ebsMain,
-                to: MessageTo.frontend,
-                type: MessageTypes.disconnect),
-            socket);
         _isolates.remove(broadcasterId)?.clear();
         break;
 
