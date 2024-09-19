@@ -167,21 +167,19 @@ abstract class TwitchEbsManagerAbstract {
   Future<void> _keepAlive(Timer keepGameManagerAlive) async {
     try {
       _logger.info('PING');
-      final isAlive = (await communicator
-                  .sendQuestion(MessageProtocol(
-                    from: MessageFrom.ebsIsolated,
-                    to: MessageTo.app,
-                    type: MessageTypes.ping,
-                  ))
-                  .timeout(const Duration(seconds: 30),
-                      onTimeout: () => MessageProtocol(
-                          from: MessageFrom.app,
-                          to: MessageTo.ebsIsolated,
-                          type: MessageTypes.response,
-                          isSuccess: false)))
-              .isSuccess ??
-          false;
-      if (!isAlive) {
+      final response = (await communicator
+          .sendQuestion(MessageProtocol(
+            from: MessageFrom.ebsIsolated,
+            to: MessageTo.app,
+            type: MessageTypes.ping,
+          ))
+          .timeout(const Duration(seconds: 30),
+              onTimeout: () => MessageProtocol(
+                  from: MessageFrom.app,
+                  to: MessageTo.ebsIsolated,
+                  type: MessageTypes.response,
+                  isSuccess: false)));
+      if (response.type != MessageTypes.pong) {
         throw Exception('No pong');
       }
       _logger.info('PONG');

@@ -12,9 +12,11 @@ final _logger = Logger('IsolatedMainManager');
 class _IsolatedInterface {
   final Isolate isolate;
   SendPort? sendPort;
+  WebSocket? socket;
 
   void clear() {
     isolate.kill(priority: Isolate.immediate);
+    socket?.close();
     sendPort = null;
   }
 
@@ -128,6 +130,7 @@ class IsolatedMainManager {
         final isolate = _isolates[broadcasterId]!;
 
         isolate.sendPort = message.data!['send_port'];
+        isolate.socket = socket;
         break;
 
       case MessageTypes.response:

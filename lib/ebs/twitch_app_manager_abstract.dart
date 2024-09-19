@@ -45,7 +45,6 @@ abstract class TwitchAppManagerAbstract {
 
     Future<void> retry(String errorMessage) async {
       if (_hasConnectedToEbsCompleter != null) return;
-      // TODO Fix only trying to reconnect once
       _logger.severe(errorMessage);
       // Do some clean up
       _isConnectedToEbs = false;
@@ -67,6 +66,7 @@ abstract class TwitchAppManagerAbstract {
           Uri.parse('$ebsUri/app/connect?broadcasterId=$broadcasterId'));
       await _socket!.ready;
     } catch (e) {
+      _hasConnectedToEbsCompleter = null;
       retry('Could not connect to EBS');
       return;
     }
