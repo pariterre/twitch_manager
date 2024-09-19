@@ -33,8 +33,8 @@ abstract class TwitchAppManagerAbstract {
   bool get isConnectedToEbs => _isConnectedToEbs;
   Completer<bool>? _hasConnectedToEbsCompleter;
   StreamSubscription? _ebsStreamSubscription;
-  final onEbsHasConnected = TwitchListener();
-  final onEbsHasDisconnected = TwitchListener();
+  final onEbsHasConnected = TwitchListener<Function()>();
+  final onEbsHasDisconnected = TwitchListener<Function()>();
 
   ///
   /// Connect to the EBS server, to get the [broadcasterId] the developer can

@@ -53,6 +53,12 @@ abstract class TwitchEbsManagerAbstract {
 
     TwitchApi.initialize(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
 
+    // Inform the frontend that the streamer has connected
+    communicator.sendMessage(MessageProtocol(
+        from: MessageFrom.app,
+        to: MessageTo.frontend,
+        type: MessageTypes.handShake));
+
     // Keep the connexion alive
     Timer.periodic(const Duration(minutes: 5), _keepAlive);
   }
@@ -62,7 +68,7 @@ abstract class TwitchEbsManagerAbstract {
       case MessageTypes.handShake:
         switch (message.from) {
           case MessageFrom.app:
-            // Do nothing, the handshake is handled by the main and the constructor
+            // Do nothing, the handshake is handled by creating the current instance
             break;
           case MessageFrom.frontend:
             final isSuccess = await _frontendHasRegistered(

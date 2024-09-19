@@ -29,15 +29,16 @@ class TwitchFrontendManager implements TwitchManager {
 
   /// Main constructor for the TwitchFrontendManager.
   /// [appInfo] is all the required information of the current extension.
-  /// [onConnectedToTwitchService] is the callback to be called when the frontend has connected.
-  /// This is useful to perform actions when the frontend is ready to be used.
-  /// [pubSubCallback] is the callback to be called when the frontend has received a PubSub message.
-  /// If not provided, the manager will not listen to PubSub messages.
+  /// [isTwitchUserIdRequired] is a flag to indicate if the Twitch user ID is required.
+  /// If it is required, the user will be prompted to log in to Twitch.
+  /// [onHasConnected] is a callback to be called when the connection is established.
+  /// It is basically the same as the [onHasConnected] listener, but is added
+  /// before the connection is established. While the [onHasConnected] listener
+  /// is added after the connection is established (therefore, never called)
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
-    Function()? onConnectedToTwitchService,
-    Function(MessageProtocol message)? pubSubCallback,
+    Function()? onHasConnected,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
@@ -47,13 +48,9 @@ class TwitchFrontendManager implements TwitchManager {
     final manager = TwitchFrontendManager._(appInfo, authenticator, apiToEbs);
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
-    if (onConnectedToTwitchService != null) {
-      authenticator.onHasConnected.listen(onConnectedToTwitchService);
-    }
+    if (onHasConnected != null) manager.onHasConnected.listen(onHasConnected);
+    authenticator.onHasConnected.listen(manager._notifyOnHasConnected);
     authenticator.listenToPubSub('broadcast', manager._pubSubCallback);
-    if (pubSubCallback != null) {
-      authenticator.listenToPubSub('broadcast', pubSubCallback);
-    }
     manager.connect(isTwitchUserIdRequired: isTwitchUserIdRequired);
 
     _logger.config('Manager is ready to be used');
@@ -70,6 +67,16 @@ class TwitchFrontendManager implements TwitchManager {
   Future<void> connect({bool isTwitchUserIdRequired = false}) async {
     await authenticator.connect(
         appInfo: appInfo, isTwitchUserIdRequired: isTwitchUserIdRequired);
+  }
+
+  @override
+  final onHasConnected = TwitchListener<Function()>();
+
+  final onStreamerHasConnected = TwitchListener<Function()>();
+  final onStreamerHasDisconnected = TwitchListener<Function()>();
+
+  void _notifyOnHasConnected() {
+    onHasConnected.notifyListeners((callback) => callback());
   }
 
   @override
@@ -134,29 +141,38 @@ class TwitchFrontendManager implements TwitchManager {
   }
 
   @override
-  final onHasConnected = TwitchListener();
-
-  @override
   TwitchListener<Function> get onHasDisconnected =>
       throw 'It is not possible to listen to the disconnection of the frontend';
 
   ///
+  /// This provides a way to listen to messages received from the PubSub.
+  final onMessageReceived = TwitchListener<Function(MessageProtocol)>();
+
+  ///
   /// Intercept internal messages from the PubSub and behave accordingly
   Future<void> _pubSubCallback(MessageProtocol message) async {
-    _logger.info('Received PubSub message: ${message.toString()}');
+    _logger.fine('Received PubSub message: ${message.type.toString()}');
 
     try {
       switch (message.type) {
         case MessageTypes.handShake:
           _logger.info('Streamer connected to the extension');
           await _registerToExtension();
-          break;
+          onStreamerHasConnected.notifyListeners((callback) => callback());
+          return;
         case MessageTypes.disconnect:
+          _logger.info('Streamer disconnected from the extension');
+          onStreamerHasDisconnected.notifyListeners((callback) => callback());
+          return;
         case MessageTypes.ping:
         case MessageTypes.pong:
+          // These should not be received by the frontend
+          return;
         case MessageTypes.get:
         case MessageTypes.put:
         case MessageTypes.response:
+          // Pass these to the listeners
+          onMessageReceived.notifyListeners((callback) => callback(message));
           break;
       }
     } catch (e) {

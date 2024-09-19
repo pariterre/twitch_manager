@@ -151,7 +151,7 @@ class TwitchAppManager implements TwitchManager {
   }
 
   @override
-  final onHasConnected = TwitchListener();
+  final onHasConnected = TwitchListener<Function()>();
 
   ///
   /// Disconnect and clean the saved OAUTH keys
@@ -171,7 +171,7 @@ class TwitchAppManager implements TwitchManager {
   }
 
   @override
-  final onHasDisconnected = TwitchListener();
+  final onHasDisconnected = TwitchListener<Function()>();
 
   ///
   /// Formally initialize the connexion with Twitch for all the relevent services

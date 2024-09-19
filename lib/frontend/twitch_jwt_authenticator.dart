@@ -40,7 +40,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
   ///
   /// Provide a callback when the connection is established
-  final onHasConnected = TwitchListener();
+  final onHasConnected = TwitchListener<Function()>();
 
   @override
   Future<void> connect({
