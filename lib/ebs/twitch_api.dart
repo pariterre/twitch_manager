@@ -4,7 +4,10 @@ import 'dart:math';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
+
+final _logger = Logger('TwitchApi');
 
 class _Bearer {
   final String token;
@@ -20,6 +23,8 @@ class TwitchApi {
   static TwitchApi? _instance;
   static TwitchApi get instance {
     if (_instance == null) {
+      _logger.severe(
+          'TwitchManagerExtension is not initialized, call initialize() first');
       throw Exception(
           'TwitchManagerExtension is not initialized, call initialize() first');
     }
@@ -31,6 +36,7 @@ class TwitchApi {
     required TwitchEbsInfo ebsInfo,
   }) async {
     if (_instance != null) {
+      _logger.severe('TwitchManagerExtension is already initialized');
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
@@ -66,75 +72,88 @@ class TwitchApi {
   }
 
   Future<int?> userId({required String login}) async {
-    final bearer = await _getExtensionBearerToken();
-    final response = await _getApiRequest(
-        endPoint: 'helix/users',
-        bearer: bearer,
-        queryParameters: {'login': login});
-
     try {
+      final bearer = await _getExtensionBearerToken();
+      final response = await _getApiRequest(
+          endPoint: 'helix/users',
+          bearer: bearer,
+          queryParameters: {'login': login});
+
       return int.parse(json.decode(response.body)['data'][0]['id']);
     } catch (e) {
+      _logger.severe('Error getting user id: $e');
       return null;
     }
   }
 
   Future<String?> displayName({required int userId}) async {
-    final bearer = await _getExtensionBearerToken();
-    final response = await _getApiRequest(
-        endPoint: 'helix/users',
-        bearer: bearer,
-        queryParameters: {'id': userId.toString()});
-
     try {
+      final bearer = await _getExtensionBearerToken();
+      final response = await _getApiRequest(
+          endPoint: 'helix/users',
+          bearer: bearer,
+          queryParameters: {'id': userId.toString()});
+
       return json.decode(response.body)['data'][0]['display_name'];
     } catch (e) {
+      _logger.severe('Error getting display name: $e');
       return null;
     }
   }
 
   Future<String?> login({required int userId}) async {
-    final bearer = await _getExtensionBearerToken();
-    final response = await _getApiRequest(
-        endPoint: 'helix/users',
-        bearer: bearer,
-        queryParameters: {'id': userId.toString()});
-
     try {
+      final bearer = await _getExtensionBearerToken();
+      final response = await _getApiRequest(
+          endPoint: 'helix/users',
+          bearer: bearer,
+          queryParameters: {'id': userId.toString()});
+
       return json.decode(response.body)['data'][0]['login'];
     } catch (e) {
+      _logger.severe('Error getting login: $e');
       return null;
     }
   }
 
   Future<http.Response> sendChatMessage(String message,
       {bool sendUnderExtensionName = true}) async {
-    return await _postApiRequest(
-      endPoint: sendUnderExtensionName
-          ? 'helix/extensions/chat'
-          : 'helix/chat/messages',
-      bearer: sendUnderExtensionName
-          ? await _getSharedBearerToken()
-          : await _getExtensionBearerToken(),
-      queryParameters: {'broadcaster_id': broadcasterId.toString()},
-      body: {
-        'text': message,
-        'extension_id': ebsInfo.extensionId,
-        'extension_version': ebsInfo.extensionVersion,
-      },
-    );
+    try {
+      return await _postApiRequest(
+        endPoint: sendUnderExtensionName
+            ? 'helix/extensions/chat'
+            : 'helix/chat/messages',
+        bearer: sendUnderExtensionName
+            ? await _getSharedBearerToken()
+            : await _getExtensionBearerToken(),
+        queryParameters: {'broadcaster_id': broadcasterId.toString()},
+        body: {
+          'text': message,
+          'extension_id': ebsInfo.extensionId,
+          'extension_version': ebsInfo.extensionVersion,
+        },
+      );
+    } catch (e) {
+      _logger.severe('Error sending chat message: $e');
+      return http.Response('Error', 500);
+    }
   }
 
   Future<http.Response> sendPubsubMessage(Map<String, dynamic> message) async {
-    return await _postApiRequest(
-      endPoint: 'helix/extensions/pubsub',
-      bearer: await _getSharedBearerToken(),
-      body: {
-        'message': jsonEncode(message).replaceAll('"', '\''),
-        'broadcaster_id': broadcasterId.toString(),
-        'target': ['broadcast']
-      },
-    );
+    try {
+      return await _postApiRequest(
+        endPoint: 'helix/extensions/pubsub',
+        bearer: await _getSharedBearerToken(),
+        body: {
+          'message': jsonEncode(message).replaceAll('"', '\''),
+          'broadcaster_id': broadcasterId.toString(),
+          'target': ['broadcast']
+        },
+      );
+    } catch (e) {
+      _logger.severe('Error sending pubsub message: $e');
+      return http.Response('Error', 500);
+    }
   }
 
   Future<http.Response> _getApiRequest({
@@ -186,6 +205,9 @@ class TwitchApi {
         'grant_type': 'client_credentials',
       });
       final data = json.decode(response.body);
+      if (data['access_token'] == null) {
+        throw Exception('Error getting extension bearer token ($data)');
+      }
       _extensionBearer = _Bearer(data['access_token'],
           expiration:
               DateTime.now().add(Duration(seconds: data['expires_in'])));
