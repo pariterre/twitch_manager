@@ -88,14 +88,10 @@ class TwitchFrontendManager implements TwitchManager {
   /// Send a message to the App based on the [type] of message.
   Future<MessageProtocol> sendMessageToApp(MessageProtocol message) async {
     try {
-      final response = await apiToEbs.postRequest(
-          message.type,
-          message
-              .copyWith(
-                  from: MessageFrom.frontend,
-                  to: MessageTo.app,
-                  type: message.type)
-              .toJson());
+      final response = await apiToEbs.postRequest(message
+          .copyWith(
+              from: MessageFrom.frontend, to: MessageTo.app, type: message.type)
+          .toJson());
       _logger.info('Response from App: $response');
       return MessageProtocol.fromJson(response);
     } catch (e) {
@@ -121,13 +117,11 @@ class TwitchFrontendManager implements TwitchManager {
     }
 
     try {
-      final response = await apiToEbs.postRequest(
-          message.type,
-          MessageProtocol(
-                  from: MessageFrom.frontend,
-                  to: MessageTo.ebsIsolated,
-                  type: message.type)
-              .toJson());
+      final response = await apiToEbs.postRequest(MessageProtocol(
+              from: MessageFrom.frontend,
+              to: MessageTo.ebsIsolated,
+              type: message.type)
+          .toJson());
       _logger.info('Reponse from EBS: $response');
       return MessageProtocol.fromJson(response);
     } catch (e) {

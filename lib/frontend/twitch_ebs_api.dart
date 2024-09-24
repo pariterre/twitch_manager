@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
-import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 
 final _logger = Logger('TwitchEbsApi');
@@ -20,55 +19,18 @@ class TwitchEbsApi {
   TwitchEbsApi({required this.appInfo, required this.authenticator});
 
   ///
-  /// This method sends a GET request to the EBS server. The [endpoint] is the
-  /// path to the endpoint on the EBS server. The method expect the endpoint
-  /// to include the leading slash (if required). The method returns a Map<String, dynamic>
-  /// with the response from the EBS server. If the endpoint is not found,
-  /// the method will throw an exception.
-  Future<Map<String, dynamic>> getRequest(MessageTypes endpoint) async {
-    try {
-      return await _sendGetRequestToEbs(
-          Uri.parse('${appInfo.ebsUri}/${endpoint.name}'), authenticator);
-    } catch (e) {
-      _logger.info('Error making request: $e');
-      return {'status': 'NOK', 'error_message': e.toString()};
-    }
-  }
-
-  ///
   /// This method sends a POST request to the EBS server. The [endpoint] is the
   /// path to the endpoint on the EBS server. The method expect the endpoint
   /// to include the leading slash (if required). The method returns a Map<String, dynamic>
   /// with the response from the EBS server. If the endpoint is not found,
   /// the method will throw an exception.
-  Future<Map<String, dynamic>> postRequest(MessageTypes endpoint,
-      [Map<String, dynamic>? body]) async {
+  Future<Map<String, dynamic>> postRequest(Map<String, dynamic>? body) async {
     try {
-      return await _sendPostRequestToEbs(
-          Uri.parse('${appInfo.ebsUri}/${endpoint.name}'), authenticator, body);
+      return await _sendPostRequestToEbs(appInfo.ebsUri, authenticator, body);
     } catch (e) {
       _logger.info('Error making request: $e');
       return {'status': 'NOK', 'error_message': e.toString()};
     }
-  }
-}
-
-Future<Map<String, dynamic>> _sendGetRequestToEbs(
-    Uri endpoint, TwitchJwtAuthenticator authenticator) async {
-  // Making a simple GET request with the bearer token
-  try {
-    final response = await http.get(endpoint, headers: {
-      'Authorization': 'Bearer ${authenticator.ebsToken}',
-      'Content-Type': 'application/json',
-    });
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Request failed with status: ${response.statusCode}');
-    }
-  } catch (e) {
-    throw Exception('Error making request: $e');
   }
 }
 

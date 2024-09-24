@@ -143,11 +143,8 @@ Future<void> _handleOptionsRequest(HttpRequest request,
 
 Future<void> _handleGetHttpRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
-  if (request.uri.path.contains('/app/')) {
+  if (request.uri.path.contains('/app')) {
     _gardedHandleRequest(request, _handleAppHttpGetRequest, ebsInfo: ebsInfo);
-  } else if (request.uri.path.contains('/frontend/')) {
-    await _gardedHandleRequest(request, _handleFrontendHttpRequest,
-        ebsInfo: ebsInfo);
   } else {
     throw InvalidEndpointException();
   }
@@ -155,7 +152,7 @@ Future<void> _handleGetHttpRequest(HttpRequest request,
 
 Future<void> _handlPostHttpRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
-  if (request.uri.path.contains('/frontend/')) {
+  if (request.uri.path.contains('/frontend')) {
     await _handleFrontendHttpRequest(request, ebsInfo: ebsInfo);
   } else {
     throw InvalidEndpointException();
