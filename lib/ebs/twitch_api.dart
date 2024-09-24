@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
@@ -48,28 +47,6 @@ class TwitchApi {
 
   final int broadcasterId;
   final TwitchEbsInfo ebsInfo;
-
-  Future<Uri> getAuthorizationExtensionBearerUri() async {
-    // Generate a random 16-bigs hexadecimal state
-    final state = List.generate(16, (index) => Random().nextInt(16))
-        .map((e) => e.toRadixString(16))
-        .join();
-
-    final authorizationUrl = Uri.https('id.twitch.tv', 'oauth2/authorize', {
-      'response_type': 'code',
-      'client_id': ebsInfo.extensionId,
-      'redirect_uri': 'https://localhost',
-      'scope': 'user:write:chat user:bot',
-      'state': state,
-    });
-
-    // TODO Connect to the backend to get the code using an http get request
-    // This should be done in the config page of the extension
-    print('Navigate to the following URL to authorize the extension:');
-    print(authorizationUrl);
-
-    return authorizationUrl;
-  }
 
   Future<int?> userId({required String login}) async {
     try {
