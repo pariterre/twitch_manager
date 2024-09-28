@@ -14,7 +14,7 @@ Future<void> _handleFrontendHttpRequest(HttpRequest request,
 
   // Parse the body of the POST request
   final body = await utf8.decoder.bind(request).join();
-  final message = MessageProtocol.fromJson(jsonDecode(body));
+  final message = MessageProtocol.decode(body);
   final data = message.data ?? {};
 
   // Get the message of the POST request

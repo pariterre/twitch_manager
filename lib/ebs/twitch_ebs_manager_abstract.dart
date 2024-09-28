@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/utils/completers.dart';
@@ -99,8 +100,36 @@ abstract class TwitchEbsManagerAbstract {
             type: MessageTypes.disconnect));
         break;
       case MessageTypes.get:
+        // Get request are passed to the inherited class, but before, we check if
+        // it is supposed to be a request from a bit transaction, in which case
+        // we need to validate the transaction before continuing
+        if (message.transaction != null) {
+          if (!_isBitsTransactionReceiptValid(
+              message.transaction!.transactionReceipt)) {
+            return communicator.sendErrorReponse(
+                message.copyWith(
+                    from: MessageFrom.ebsIsolated,
+                    to: MessageTo.app,
+                    type: MessageTypes.response),
+                'Bits transaction receipt is not valid');
+          }
+        }
         return handleGetRequest(message);
       case MessageTypes.put:
+        // Get request are passed to the inherited class, but before, we check if
+        // it is supposed to be a request from a bit transaction, in which case
+        // we need to validate the transaction before continuing
+        if (message.transaction != null) {
+          if (!_isBitsTransactionReceiptValid(
+              message.transaction!.transactionReceipt)) {
+            return communicator.sendErrorReponse(
+                message.copyWith(
+                    from: MessageFrom.ebsIsolated,
+                    to: MessageTo.app,
+                    type: MessageTypes.response),
+                'Bits transaction receipt is not valid');
+          }
+        }
         return handlePutRequest(message);
       case MessageTypes.response:
       case MessageTypes.pong:
@@ -108,6 +137,17 @@ abstract class TwitchEbsManagerAbstract {
             .complete(message.internalIsolate?['completer_id'], data: message);
       case MessageTypes.ping:
         return;
+    }
+  }
+
+  bool _isBitsTransactionReceiptValid(String transactionReceipt) {
+    try {
+      JWT.verify(transactionReceipt,
+          SecretKey(ebsInfo.extensionSecret!, isBase64Encoded: true));
+      return true;
+    } catch (e) {
+      _logger.severe('Error validating bits transaction receipt: $e');
+      return false;
     }
   }
 

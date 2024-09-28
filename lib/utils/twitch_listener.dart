@@ -20,6 +20,8 @@ class TwitchListener<T extends Function> {
   void notifyListeners(void Function(T) callback) =>
       _listeners.forEach(callback);
 
+  int get length => _listeners.length;
+
   ///
   /// List of active listeners to notify.
   final List<T> _listeners = [];

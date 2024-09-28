@@ -1,6 +1,8 @@
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart'
     if (dart.library.js) 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_web.dart'
     if (dart.library.io) 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_desktop.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/twitch_utils.dart';
 
 class OnAuthorizedResponse {
   final String channelId;
@@ -38,6 +40,12 @@ class TwitchJsExtension {
       TwtichJsExtensionActions();
   static TwtichJsExtensionActions get actions =>
       _twitchJsExtensionActionsInstance;
+
+  ///
+  /// This is an object to call the TwitchJsExtensionBitsBase
+  static final TwitchJsExtensionBits _twitchJsExtensionBitsInstance =
+      TwitchJsExtensionBits();
+  static TwitchJsExtensionBits get bits => _twitchJsExtensionBitsInstance;
 }
 
 class TwtichJsExtensionActions {
@@ -47,4 +55,41 @@ class TwtichJsExtensionActions {
   /// to share their ID with the extension. If the user accepts, the extension
   /// will receive the user's ID from now on.
   void requestIdShare() => getTwitchJsExtensionActions.requestIdShare();
+}
+
+class TwitchJsExtensionBits {
+  ///
+  /// This method requests the products from the Twitch Extension. If this is
+  /// called, it will pop up a dialog in the Twitch Extension asking the user
+  /// to share their ID with the extension. If the user accepts, the extension
+  /// will receive the user's ID from now on.
+  Future<List<BitsProduct>> getProducts() async =>
+      await getTwitchJsExtensionBits.getProducts();
+
+  ///
+  /// Listener that is called when a transaction is completed. This is the developer's
+  /// responsability to listen to this event and also to cancel the listener when
+  /// it is not needed anymore.
+  TwitchListener<dynamic Function(BitsTransactionObject)>
+      get onTransactionCompleted =>
+          getTwitchJsExtensionBits.onTransactionCompleted;
+
+  ///
+  /// Listener that is called when a transaction is cancelled. This is the developer's
+  /// responsability to listen to this event and also to cancel the listener when
+  /// it is not needed anymore.
+  TwitchListener<dynamic Function()> get onTransactionCancelled =>
+      getTwitchJsExtensionBits.onTransactionCancelled;
+
+  ///
+  /// This method sets the use of the loopback for testing. It creates a false transaction
+  /// that is not sent to the Twitch Extension, but it is called as if it was.
+  /// This is useful for testing the bits flow without having to actually buy the bits.
+  /// Unfortunately, this does not create a valid BitsTransactionObject.
+  void setUseLoopback(bool useLoopBack) =>
+      getTwitchJsExtensionBits.setUseLoopback(useLoopBack);
+
+  ///
+  /// This method uses bits
+  void useBits(String sku) => getTwitchJsExtensionBits.useBits(sku);
 }

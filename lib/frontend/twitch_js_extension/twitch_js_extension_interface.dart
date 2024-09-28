@@ -1,4 +1,6 @@
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/twitch_utils.dart';
 
 ///
 /// Define an interface to call the Twitch Extension JavaScript API
@@ -23,3 +25,15 @@ abstract class TwitchJsExtensionActionsBase {
 TwitchJsExtensionActionsBase get getTwitchJsExtensionActions =>
     throw UnsupportedError(
         'Cannot create an instance of TwitchJsExtenionsActionsBase');
+
+abstract class TwitchJsExtensionBitsBase {
+  Future<List<BitsProduct>> getProducts();
+  TwitchListener<Function(BitsTransactionObject)> get onTransactionCompleted;
+  TwitchListener<Function()> get onTransactionCancelled;
+  void setUseLoopback(bool useLoopBack);
+  void useBits(String sku);
+}
+
+TwitchJsExtensionBitsBase get getTwitchJsExtensionBits =>
+    throw UnsupportedError(
+        'Cannot create an instance of TwitchJsExtenionsBitsBase');

@@ -1,9 +1,9 @@
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/abstract/twitch_manager.dart';
 import 'package:twitch_manager/frontend/twitch_ebs_api.dart';
-import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
+import 'package:twitch_manager/twitch_frontend.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 final _logger = Logger('TwitchFrontendManager');
@@ -22,6 +22,13 @@ class TwitchFrontendManager implements TwitchManager {
 
   @override
   bool get isConnected => authenticator.isConnected;
+
+  ///
+  /// This is a convenient accessor to the Bits API of the Twitch Extension.
+  /// To use this, the extension must be authorized first. To do so, navigate to
+  /// the web page for Twitch developers and add click on "Bits activated" in the
+  /// monetization section.
+  TwitchJsExtensionBits get bits => TwitchJsExtension.bits;
 
   ///
   /// Internal constructor of the Twitch Manager
@@ -86,11 +93,15 @@ class TwitchFrontendManager implements TwitchManager {
 
   ///
   /// Send a message to the App based on the [type] of message.
-  Future<MessageProtocol> sendMessageToApp(MessageProtocol message) async {
+  Future<MessageProtocol> sendMessageToApp(MessageProtocol message,
+      {BitsTransactionObject? transaction}) async {
     try {
       final response = await apiToEbs.postRequest(message
           .copyWith(
-              from: MessageFrom.frontend, to: MessageTo.app, type: message.type)
+              from: MessageFrom.frontend,
+              to: MessageTo.app,
+              type: message.type,
+              transaction: transaction)
           .toJson());
       _logger.info('Response from App: $response');
       return MessageProtocol.fromJson(response);
@@ -108,7 +119,8 @@ class TwitchFrontendManager implements TwitchManager {
   /// Send a message to the EBS based on the [type] of message.
   /// This is mostly for internal stuff. Usually, you will want to send a message
   /// to the App instead using [sendMessageToApp].
-  Future<MessageProtocol> sendMessageToEbs(MessageProtocol message) async {
+  Future<MessageProtocol> sendMessageToEbs(MessageProtocol message,
+      {BitsTransactionObject? transaction}) async {
     if (message.type == MessageTypes.get || message.type == MessageTypes.put) {
       _logger
           .severe('Cannot send a message of type ${message.type} to the EBS');
@@ -120,7 +132,8 @@ class TwitchFrontendManager implements TwitchManager {
       final response = await apiToEbs.postRequest(MessageProtocol(
               from: MessageFrom.frontend,
               to: MessageTo.ebsIsolated,
-              type: message.type)
+              type: message.type,
+              transaction: transaction)
           .toJson());
       _logger.info('Reponse from EBS: $response');
       return MessageProtocol.fromJson(response);
