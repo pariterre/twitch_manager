@@ -6,3 +6,4 @@ export 'package:twitch_manager/ebs/twitch_api.dart';
 export 'package:twitch_manager/ebs/twitch_app_manager_abstract.dart';
 export 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 export 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
+export 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';

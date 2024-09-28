@@ -104,8 +104,7 @@ abstract class TwitchEbsManagerAbstract {
         // it is supposed to be a request from a bit transaction, in which case
         // we need to validate the transaction before continuing
         if (message.transaction != null) {
-          if (!_isBitsTransactionReceiptValid(
-              message.transaction!.transactionReceipt)) {
+          if (extractTransactionReceipt(message) == null) {
             return communicator.sendErrorReponse(
                 message.copyWith(
                     from: MessageFrom.ebsIsolated,
@@ -120,8 +119,7 @@ abstract class TwitchEbsManagerAbstract {
         // it is supposed to be a request from a bit transaction, in which case
         // we need to validate the transaction before continuing
         if (message.transaction != null) {
-          if (!_isBitsTransactionReceiptValid(
-              message.transaction!.transactionReceipt)) {
+          if (extractTransactionReceipt(message) == null) {
             return communicator.sendErrorReponse(
                 message.copyWith(
                     from: MessageFrom.ebsIsolated,
@@ -140,14 +138,15 @@ abstract class TwitchEbsManagerAbstract {
     }
   }
 
-  bool _isBitsTransactionReceiptValid(String transactionReceipt) {
+  ExtractedTransactionReceipt? extractTransactionReceipt(
+      MessageProtocol message) {
     try {
-      JWT.verify(transactionReceipt,
-          SecretKey(ebsInfo.extensionSecret!, isBase64Encoded: true));
-      return true;
+      final jwt = JWT.verify(message.transaction!.transactionReceipt,
+          SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
+      return ExtractedTransactionReceipt.fromJson(jwt.payload);
     } catch (e) {
       _logger.severe('Error validating bits transaction receipt: $e');
-      return false;
+      return null;
     }
   }
 

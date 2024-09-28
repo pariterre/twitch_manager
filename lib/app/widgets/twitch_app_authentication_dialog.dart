@@ -91,7 +91,7 @@ class _TwitchAppAuthenticationDialogState
     }
 
     // If we get here, we are done authenticating
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    Future.delayed(const Duration(milliseconds: 500)).then((_) {
       widget.onConnexionEstablished(_manager!);
     });
   }

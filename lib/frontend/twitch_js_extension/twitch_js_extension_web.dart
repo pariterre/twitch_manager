@@ -117,7 +117,7 @@ BitsProduct _bitsProductFromJsMap(Map<String, dynamic> map) => BitsProduct(
 
 // Factory constructor to create a Cost object from a Dart map
 _costFromJsMap(Map<String, dynamic> map) => Cost(
-      amount: map['amount'] as String,
+      amount: int.tryParse(map['amount'] as String) ?? -1,
       type: map['type'] as String,
     );
 

@@ -15,7 +15,7 @@ class BitsTransactionObject {
 
   @override
   String toString() {
-    return 'userId: $userId, displayName: $displayName, initiator: $initiator, transactionReceipt: $transactionReceipt';
+    return 'userId: $userId, display_name: $displayName, initiator: $initiator, transaction_receipt: $transactionReceipt';
   }
 
   Map<String, dynamic> toJson() {
@@ -29,10 +29,33 @@ class BitsTransactionObject {
 
   static BitsTransactionObject fromJson(Map<String, dynamic> map) {
     return BitsTransactionObject(
-      userId: map['user_id'] as String,
-      displayName: map['display_name'] as String,
-      initiator: map['initiator'] as String,
+      userId: map['user_id'] as String? ?? '',
+      displayName: map['display_name'] as String? ?? '',
+      initiator: map['initiator'] as String? ?? '',
       transactionReceipt: map['transaction_receipt'] as String? ?? '',
+    );
+  }
+}
+
+class ExtractedTransactionReceipt {
+  int userId;
+  BitsProduct product;
+
+  ExtractedTransactionReceipt({
+    required this.userId,
+    required this.product,
+  });
+
+  @override
+  String toString() {
+    return 'user_id: $userId, product: $product';
+  }
+
+  static ExtractedTransactionReceipt fromJson(Map<String, dynamic> map) {
+    return ExtractedTransactionReceipt(
+      userId: int.tryParse(map['data']['userId'] as String? ?? '') ?? -1,
+      product:
+          BitsProduct.fromJson(map['data']['product'] as Map<String, dynamic>),
     );
   }
 }
@@ -47,17 +70,26 @@ class BitsProduct {
     required this.sku,
     required this.displayName,
     required this.cost,
-    required this.inDevelopment,
+    this.inDevelopment = false,
   });
 
   @override
   String toString() {
-    return 'sku: $sku, displayName: $displayName, cost: $cost, inDevelopment: $inDevelopment';
+    return 'sku: $sku, display_name: $displayName, cost: $cost, in_development: $inDevelopment';
+  }
+
+  static BitsProduct fromJson(Map<String, dynamic> map) {
+    return BitsProduct(
+      sku: map['sku'] as String? ?? '',
+      displayName: map['displayName'] as String? ?? '',
+      cost: Cost.fromJson(map['cost'] as Map<String, dynamic>),
+      inDevelopment: map['inDevelopment'] as bool? ?? false,
+    );
   }
 }
 
 class Cost {
-  final String amount;
+  final int amount;
   final String type;
 
   Cost({
@@ -68,5 +100,13 @@ class Cost {
   @override
   String toString() {
     return 'amount: $amount, type: $type';
+  }
+
+  static Cost fromJson(Map<String, dynamic> map) {
+    var amount = map['amount'] ?? -1;
+    if (amount is String) {
+      amount = int.tryParse(amount) ?? -1;
+    }
+    return Cost(amount: amount, type: map['type'] as String? ?? '');
   }
 }
