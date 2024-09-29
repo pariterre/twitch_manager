@@ -171,6 +171,7 @@ class TwitchFrontendManager implements TwitchManager {
           _logger.info('Streamer disconnected from the extension');
           onStreamerHasDisconnected.notifyListeners((callback) => callback());
           return;
+        case MessageTypes.bitTransaction:
         case MessageTypes.ping:
         case MessageTypes.pong:
           // These should not be received by the frontend

@@ -146,6 +146,7 @@ class IsolatedMainManager {
       case MessageTypes.pong:
       case MessageTypes.get:
       case MessageTypes.put:
+      case MessageTypes.bitTransaction:
         _logger.severe('Message type not handled: ${message.type}');
         // Do nothing
         break;

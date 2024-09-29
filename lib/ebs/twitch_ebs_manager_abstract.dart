@@ -71,6 +71,7 @@ abstract class TwitchEbsManagerAbstract {
           case MessageFrom.app:
             // Do nothing, the handshake is handled by creating the current instance
             break;
+
           case MessageFrom.frontend:
             final isSuccess = await _frontendHasRegistered(
                 userId: message.data!['user_id'],
@@ -87,6 +88,7 @@ abstract class TwitchEbsManagerAbstract {
             throw Exception('Invalid handshake');
         }
         break;
+
       case MessageTypes.disconnect:
         // This is probably overkill, but we want to make sure the game is ended
         // So send back to the main a message to disconnect
@@ -99,36 +101,51 @@ abstract class TwitchEbsManagerAbstract {
             to: MessageTo.ebsMain,
             type: MessageTypes.disconnect));
         break;
+
       case MessageTypes.get:
-        // Get request are passed to the inherited class, but before, we check if
-        // it is supposed to be a request from a bit transaction, in which case
-        // we need to validate the transaction before continuing
+        // Get request are passed to the inherited class, but legacy behavior
+        // allows to handle bit transactions as well.
         if (message.transaction != null) {
-          if (extractTransactionReceipt(message) == null) {
-            return communicator.sendErrorReponse(
-                message.copyWith(
-                    from: MessageFrom.ebsIsolated,
-                    to: MessageTo.app,
-                    type: MessageTypes.response),
-                'Bits transaction receipt is not valid');
-          }
+          await _handleIncomingMessage(message.copyWith(
+              from: message.from,
+              to: message.to,
+              type: MessageTypes.bitTransaction));
         }
         return handleGetRequest(message);
+
       case MessageTypes.put:
-        // Get request are passed to the inherited class, but before, we check if
-        // it is supposed to be a request from a bit transaction, in which case
-        // we need to validate the transaction before continuing
+        // Get request are passed to the inherited class, but legacy behavior
+        // allows to handle bit transactions as well.
         if (message.transaction != null) {
-          if (extractTransactionReceipt(message) == null) {
-            return communicator.sendErrorReponse(
-                message.copyWith(
-                    from: MessageFrom.ebsIsolated,
-                    to: MessageTo.app,
-                    type: MessageTypes.response),
-                'Bits transaction receipt is not valid');
-          }
+          await _handleIncomingMessage(message.copyWith(
+              from: message.from,
+              to: message.to,
+              type: MessageTypes.bitTransaction));
         }
         return handlePutRequest(message);
+
+      case MessageTypes.bitTransaction:
+        if (message.transaction == null) {
+          return communicator.sendErrorReponse(
+              message.copyWith(
+                  from: MessageFrom.ebsIsolated,
+                  to: MessageTo.app,
+                  type: MessageTypes.response),
+              'Bits transaction is missing');
+        }
+
+        final transactionReceipt = _extractTransactionReceipt(message);
+        if (transactionReceipt == null) {
+          return communicator.sendErrorReponse(
+              message.copyWith(
+                  from: MessageFrom.ebsIsolated,
+                  to: MessageTo.app,
+                  type: MessageTypes.response),
+              'Bits transaction receipt is not valid');
+        }
+
+        return handleBitsTransaction(message, transactionReceipt);
+
       case MessageTypes.response:
       case MessageTypes.pong:
         return communicator.completers
@@ -138,7 +155,7 @@ abstract class TwitchEbsManagerAbstract {
     }
   }
 
-  ExtractedTransactionReceipt? extractTransactionReceipt(
+  ExtractedTransactionReceipt? _extractTransactionReceipt(
       MessageProtocol message) {
     try {
       final jwt = JWT.verify(message.transaction!.transactionReceipt,
@@ -159,6 +176,12 @@ abstract class TwitchEbsManagerAbstract {
   /// Handle a message from the frontend. This must be implemented by the inherited class.
   /// This actually implements the logic of the communication between the frontend and the isolated.
   Future<void> handlePutRequest(MessageProtocol message);
+
+  ///
+  /// Handle a bits transaction. This must be implemented by the inherited class.
+  /// This actually implements the logic of the bits transaction.
+  Future<void> handleBitsTransaction(
+      MessageProtocol message, ExtractedTransactionReceipt transactionReceipt);
 
   ///
   /// Handle a message from the frontend to register to the game

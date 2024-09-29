@@ -168,9 +168,7 @@ abstract class TwitchAppManagerAbstract {
   ///
   /// Handle the messages received from the EBS server
   Future<void> _handleMessageFromEbs(MessageProtocol message) async {
-    final messageType = message.type;
-
-    switch (messageType) {
+    switch (message.type) {
       case MessageTypes.handShake:
         _logger.info('EBS server has connected');
         _hasConnectedToEbsCompleter?.complete(true);
@@ -199,6 +197,9 @@ abstract class TwitchAppManagerAbstract {
       case MessageTypes.put:
         await handlePutRequest(message);
         break;
+      case MessageTypes.bitTransaction:
+        throw Exception(
+            'Bit transactions message are supposed to be handled by the EBS');
     }
   }
 }

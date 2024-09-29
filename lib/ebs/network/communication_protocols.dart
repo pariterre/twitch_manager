@@ -24,6 +24,7 @@ enum MessageTypes {
   pong,
   get,
   put,
+  bitTransaction,
   response,
   disconnect;
 }
