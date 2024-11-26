@@ -78,7 +78,7 @@ class _TwitchActions {
   external void requestIdShare();
 }
 
-class TwitchJsExtensionActionWeb implements TwitchJsExtensionActionsBase {
+class TwitchJsExtensionActionsWeb implements TwitchJsExtensionActionsBase {
   @override
   void requestIdShare() => _twitchActions.requestIdShare();
 }
@@ -175,13 +175,35 @@ class TwitchJsExtensionBitsWeb implements TwitchJsExtensionBitsBase {
   void useBits(String sku) => _twitchBits.useBits(sku);
 }
 
+@JS('Twitch.ext.viewer')
+external _TwitchViewer get _twitchViewer;
+
+@JS()
+@anonymous
+class _TwitchViewer {
+  external String opaqueId;
+  external String? id;
+}
+
+class TwitchJsExtensionViewerWeb implements TwitchJsExtensionViewerBase {
+  @override
+  String get opaqueId => _twitchViewer.opaqueId;
+
+  @override
+  String? get id => _twitchViewer.id;
+}
+
 final TwitchJsExtensionWeb _instance = TwitchJsExtensionWeb();
 TwitchJsExtensionBase get getTwitchJsExtension => _instance;
 
 final TwitchJsExtensionActionsBase _actionsInstance =
-    TwitchJsExtensionActionWeb();
+    TwitchJsExtensionActionsWeb();
 TwitchJsExtensionActionsBase get getTwitchJsExtensionActions =>
     _actionsInstance;
 
 final TwitchJsExtensionBitsBase _bitsInstance = TwitchJsExtensionBitsWeb();
 TwitchJsExtensionBitsBase get getTwitchJsExtensionBits => _bitsInstance;
+
+final TwitchJsExtensionViewerBase _viewerInstance =
+    TwitchJsExtensionViewerWeb();
+TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer => _viewerInstance;

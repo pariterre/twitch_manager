@@ -37,3 +37,12 @@ abstract class TwitchJsExtensionBitsBase {
 TwitchJsExtensionBitsBase get getTwitchJsExtensionBits =>
     throw UnsupportedError(
         'Cannot create an instance of TwitchJsExtenionsBitsBase');
+
+abstract class TwitchJsExtensionViewerBase {
+  String get opaqueId;
+  String? get id;
+}
+
+TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer =>
+    throw UnsupportedError(
+        'Cannot create an instance of TwitchJsExtenionsViewerBase');

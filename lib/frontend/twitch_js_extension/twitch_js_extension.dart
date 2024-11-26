@@ -46,6 +46,12 @@ class TwitchJsExtension {
   static final TwitchJsExtensionBits _twitchJsExtensionBitsInstance =
       TwitchJsExtensionBits();
   static TwitchJsExtensionBits get bits => _twitchJsExtensionBitsInstance;
+
+  ///
+  /// This is an object to call the TwitchJsExtensionViewerBase
+  static final TwtichJsExtensionViewer _twitchJsExtensionViewerInstance =
+      TwtichJsExtensionViewer();
+  static TwtichJsExtensionViewer get viewer => _twitchJsExtensionViewerInstance;
 }
 
 class TwtichJsExtensionActions {
@@ -92,4 +98,14 @@ class TwitchJsExtensionBits {
   ///
   /// This method uses bits
   void useBits(String sku) => getTwitchJsExtensionBits.useBits(sku);
+}
+
+class TwtichJsExtensionViewer {
+  ///
+  /// The opaque id of the viewer
+  String get opaqueId => getTwitchJsExtensionViewer.opaqueId;
+
+  ///
+  /// The id of the viewer (null if the access was not granted)
+  String? get id => getTwitchJsExtensionViewer.id;
 }

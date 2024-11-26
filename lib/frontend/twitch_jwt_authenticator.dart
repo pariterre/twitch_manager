@@ -51,10 +51,13 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     TwitchJsExtension.onAuthorized((OnAuthorizedResponse response) {
       // Request the authorization of the real user id, if the app needs it
       if (isTwitchUserIdRequired) {
-        while (response.userId.isEmpty || response.userId[0] != 'U') {
+        if (TwitchJsExtension.viewer.id == null) {
           _logger.info(
               'Requesting the real user id (current user id: ${response.userId})');
           TwitchJsExtension.actions.requestIdShare();
+          // Do not call the onAuthorizedCallback just yet as when the id will
+          // be shared, the onAuthorized callback will be called again
+          return;
         }
         _logger.info('Real user id is authorized');
       } else {

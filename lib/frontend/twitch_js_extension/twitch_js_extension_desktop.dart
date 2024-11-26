@@ -21,7 +21,7 @@ class TwitchJsExtensionDesktop implements TwitchJsExtensionBase {
 final TwitchJsExtensionDesktop _instance = TwitchJsExtensionDesktop();
 TwitchJsExtensionBase get getTwitchJsExtension => _instance;
 
-class TwitchJsExtensionActionDesktop implements TwitchJsExtensionActionsBase {
+class TwitchJsExtensionActionsDesktop implements TwitchJsExtensionActionsBase {
   @override
   void requestIdShare() {
     // This method will never be called in the desktop version
@@ -29,7 +29,7 @@ class TwitchJsExtensionActionDesktop implements TwitchJsExtensionActionsBase {
 }
 
 final TwitchJsExtensionActionsBase _actionsInstance =
-    TwitchJsExtensionActionDesktop();
+    TwitchJsExtensionActionsDesktop();
 TwitchJsExtensionActionsBase get getTwitchJsExtensionActions =>
     _actionsInstance;
 
@@ -55,3 +55,15 @@ class TwitchJsExtensionBitsDesktop implements TwitchJsExtensionBitsBase {
 
 final TwitchJsExtensionBitsBase _bitsInstance = TwitchJsExtensionBitsDesktop();
 TwitchJsExtensionBitsBase get getTwitchJsExtensionBits => _bitsInstance;
+
+class TwitchJsExtensionViewerDesktop implements TwitchJsExtensionViewerBase {
+  @override
+  String get opaqueId => throw UnimplementedError();
+
+  @override
+  String? get id => throw UnimplementedError();
+}
+
+final TwitchJsExtensionViewerBase _viewerInstance =
+    TwitchJsExtensionViewerDesktop();
+TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer => _viewerInstance;
