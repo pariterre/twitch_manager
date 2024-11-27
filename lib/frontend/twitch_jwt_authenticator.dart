@@ -39,6 +39,15 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   }
 
   ///
+  /// The non-obfuscated user id of the frontend. This required [isTwitchUserIdRequired]
+  /// to be true when calling the [connect] method
+  String? get userId => TwitchJsExtension.viewer.id;
+
+  void requestIdShare() {
+    TwitchJsExtension.actions.requestIdShare();
+  }
+
+  ///
   /// Provide a callback when the connection is established
   final onHasConnected = TwitchListener<Function()>();
 
@@ -54,7 +63,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
         if (TwitchJsExtension.viewer.id == null) {
           _logger.info(
               'Requesting the real user id (current user id: ${response.userId})');
-          TwitchJsExtension.actions.requestIdShare();
+          requestIdShare();
           // Do not call the onAuthorizedCallback just yet as when the id will
           // be shared, the onAuthorized callback will be called again
           return;
