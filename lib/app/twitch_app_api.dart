@@ -671,7 +671,9 @@ class TwitchApiMock extends TwitchAppApi {
     if (reward.rewardRedemption.isEmpty) return false;
     if (_rewardRedemptions.any((e) =>
         e.rewardRedemptionId != reward.rewardRedemptionId &&
-        e.rewardRedemption == reward.rewardRedemption)) return false;
+        e.rewardRedemption == reward.rewardRedemption)) {
+      return false;
+    }
 
     _rewardRedemptions
         .removeWhere((e) => e.rewardRedemptionId == reward.rewardRedemptionId);
