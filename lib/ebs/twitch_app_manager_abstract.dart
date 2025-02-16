@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/twitch_utils.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 
 final _logger = Logger('TwitchAppManagerAbstract');
 
 abstract class TwitchAppManagerAbstract {
-  WebSocketChannel? _socket;
+  WebSocket? _socket;
   final Uri? ebsUri;
 
   int? _broadcasterId;
@@ -29,10 +29,9 @@ abstract class TwitchAppManagerAbstract {
 
   ///
   /// Connect to the EBS server
-  bool _isConnectedToEbs = false;
-  bool get isConnectedToEbs => _isConnectedToEbs;
-  Completer<bool>? _hasConnectedToEbsCompleter;
-  StreamSubscription? _ebsStreamSubscription;
+  bool get isConnectedToEbs =>
+      _socket?.connection.state is Connected ||
+      _socket?.connection.state is Reconnected;
   final onEbsHasConnected = TwitchListener<Function()>();
   final onEbsHasDisconnected = TwitchListener<Function()>();
 
@@ -43,71 +42,37 @@ abstract class TwitchAppManagerAbstract {
     _logger.info('Connecting to EBS server');
     _broadcasterId = broadcasterId;
 
-    Future<void> retry(String errorMessage) async {
-      if (_hasConnectedToEbsCompleter != null) return;
-      _logger.severe(errorMessage);
-      // Do some clean up
-      _isConnectedToEbs = false;
-      _ebsStreamSubscription?.cancel();
-      _logger.severe('Reconnecting to EBS in 10 seconds');
-      await Future.delayed(const Duration(seconds: 10));
-      connect(broadcasterId);
-    }
-
     if (ebsUri == null) return;
 
-    // If we already are connecting, return the future
-    if (_hasConnectedToEbsCompleter != null) return;
-    _hasConnectedToEbsCompleter = Completer();
-
     // Connect to EBS server
-    try {
-      _socket = WebSocketChannel.connect(
-          Uri.parse('$ebsUri/app/connect?broadcasterId=$broadcasterId'));
-      await _socket!.ready;
-    } catch (e) {
-      _hasConnectedToEbsCompleter = null;
-      retry('Could not connect to EBS');
-      return;
-    }
+    // TODO Add some kind of bearer token to the connexion?
+    _socket = WebSocket(
+        Uri.parse('$ebsUri/app/connect?broadcasterId=$broadcasterId'),
+        backoff: const ConstantBackoff(Duration(seconds: 10)));
 
-    // Listen to the messages from the EBS server
-    _ebsStreamSubscription = _socket!.stream.listen(
-      (message) async {
-        try {
-          await _handleMessageFromEbs(MessageProtocol.decode(message));
-        } catch (e) {
-          // Do nothing, this is to prevent the program from crashing
-          // When ill-formatted messages are received
-          _logger.severe('Error while handling message from EBS: $e');
-        }
-      },
-      onDone: () {
-        _socket?.sink.close();
+    // Handle connection state changes
+    _socket!.connection.listen((state) {
+      if (state is Connected || state is Reconnected) {
+        _logger.info('Connected to the EBS server');
+        onEbsHasConnected.notifyListeners((callback) => callback());
+      } else if (state is Disconnected) {
+        _logger.severe('Disconnected from EBS');
         onEbsHasDisconnected.notifyListeners((callback) => callback());
-        retry('Connection closed by the EBS server');
-      },
-      onError: (error) {
-        _socket?.sink.close();
-        onEbsHasDisconnected.notifyListeners((callback) => callback());
-        retry('Error with communicating to the EBS server: $error');
-      },
-    );
+      } else if (state is Reconnecting) {
+        _logger.warning('Reconnecting to EBS...');
+      }
+    });
 
-    try {
-      final isConnected = await _hasConnectedToEbsCompleter!.future
-          .timeout(const Duration(seconds: 30), onTimeout: () => false);
-      if (!isConnected) throw Exception('Timeout');
-    } catch (e) {
-      _hasConnectedToEbsCompleter = null;
-      return retry('Error while connecting to EBS: $e');
-    }
-
-    _logger.info('Connected to the EBS server');
-    _hasConnectedToEbsCompleter = null;
-    _isConnectedToEbs = true;
-    onEbsHasConnected.notifyListeners((callback) => callback());
-    return;
+    // Listen for messages from the EBS server
+    _socket!.messages.listen((message) async {
+      try {
+        await _handleMessageFromEbs(MessageProtocol.decode(message));
+      } catch (e) {
+        // Do nothing, this is to prevent the program from crashing
+        // When ill-formatted messages are received
+        _logger.severe('Error while handling message from EBS: $e');
+      }
+    });
   }
 
   ///
@@ -122,7 +87,7 @@ abstract class TwitchAppManagerAbstract {
           type: message.type,
           data: (message.data ?? {})..addAll({'broadcaster_id': broadcasterId}),
           internalClient: {'completer_id': completerId});
-      _socket!.sink.add(augmentedMessage.encode());
+      _socket!.send(augmentedMessage.encode());
 
       return _completers.get(completerId)!.future;
     } catch (e) {
@@ -141,7 +106,7 @@ abstract class TwitchAppManagerAbstract {
           type: message.type,
           data: (message.data ?? {})
             ..addAll({'broadcaster_id': broadcasterId}));
-      _socket!.sink.add(augmentedMessage.encode());
+      _socket!.send(augmentedMessage.encode());
     } catch (e) {
       _logger.severe('Error while sending message to EBS: $e');
     }
@@ -171,7 +136,6 @@ abstract class TwitchAppManagerAbstract {
     switch (message.type) {
       case MessageTypes.handShake:
         _logger.info('EBS server has connected');
-        _hasConnectedToEbsCompleter?.complete(true);
         return;
       case MessageTypes.ping:
         _logger.info('Ping received, sending pong');

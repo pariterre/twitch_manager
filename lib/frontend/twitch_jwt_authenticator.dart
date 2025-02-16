@@ -101,9 +101,9 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
       _isConnected = true;
       onHasConnected.notifyListeners((callback) => callback());
-      _logger.info('Successully connected to the EBS server');
+      _logger.info('Successully connected to the Twitch backend');
     } catch (e) {
-      _logger.severe('Error registering to the EBS server: $e');
+      _logger.severe('Error registering to the Twitch backend: $e');
       _ebsToken = null;
       _bearerKey = null;
 

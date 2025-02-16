@@ -12,8 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   url_launcher: ^6.3.0
-  web_socket_client: ^0.1.4
-  web_socket_channel: ^3.0.1
+  web_socket_client: ^0.1.5
   flutter_secure_storage: ^9.2.2
   logging: ^1.2.0
   js: ^0.6.3
