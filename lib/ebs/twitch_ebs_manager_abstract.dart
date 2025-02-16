@@ -57,7 +57,7 @@ abstract class TwitchEbsManagerAbstract {
     // Inform the frontend that the streamer has connected
     communicator.sendMessage(MessageProtocol(
         from: MessageFrom.app,
-        to: MessageTo.frontend,
+        to: MessageTo.pubsub,
         type: MessageTypes.handShake));
 
     // Keep the connexion alive
@@ -94,7 +94,7 @@ abstract class TwitchEbsManagerAbstract {
         // So send back to the main a message to disconnect
         await communicator.sendMessage(MessageProtocol(
             from: MessageFrom.ebsIsolated,
-            to: MessageTo.frontend,
+            to: MessageTo.pubsub,
             type: MessageTypes.disconnect));
         communicator.sendMessage(MessageProtocol(
             from: MessageFrom.ebsIsolated,
@@ -299,7 +299,7 @@ class Communicator {
   Future<void> sendReponse(MessageProtocol message) async {
     sendMessage(message.copyWith(
         from: MessageFrom.ebsIsolated,
-        to: message.to == MessageTo.frontend ? MessageTo.ebsMain : message.to,
+        to: message.to == MessageTo.pubsub ? MessageTo.ebsMain : message.to,
         type: MessageTypes.response));
   }
 
@@ -332,12 +332,13 @@ class Communicator {
   /// Send a message to main while expecting an actual response. This is
   /// useful we needs to wait for a response from the main.
   /// [message] the message to send
-  /// returns a future that will be completed when the main responds
+  /// returns a future that will be completed when the main responds. This sends
+  /// a normal request (no response) if the target is pubsub
   Future<MessageProtocol> sendQuestion(MessageProtocol message) async {
     final completerId = completers.spawn();
     final completer = completers.get(completerId)!;
 
-    if (message.to == MessageTo.frontend) {
+    if (message.to == MessageTo.pubsub) {
       await _sendMessage(message);
     } else {
       await _sendMessage(message.copyWith(
