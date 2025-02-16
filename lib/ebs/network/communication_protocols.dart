@@ -15,6 +15,7 @@ enum MessageTo {
   ebsMain,
   ebsIsolated,
   frontend,
+  pubsub,
   generic;
 }
 

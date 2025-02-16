@@ -353,7 +353,7 @@ class Communicator {
   }
 
   Future<void> _sendMessage(MessageProtocol message) async {
-    if (message.to == MessageTo.frontend) {
+    if (message.to == MessageTo.pubsub) {
       final response =
           await TwitchApi.instance.sendPubsubMessage(message.toJson());
       if (response.statusCode != 204) {

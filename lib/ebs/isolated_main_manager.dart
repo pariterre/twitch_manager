@@ -12,15 +12,16 @@ final _logger = Logger('IsolatedMainManager');
 class _IsolatedInterface {
   final Isolate isolate;
   SendPort? sendPort;
-  WebSocket? socket;
+  WebSocket socket;
+  final List<WebSocket> frontendSockets = [];
 
   void clear() {
     isolate.kill(priority: Isolate.immediate);
-    socket?.close();
+    socket.close();
     sendPort = null;
   }
 
-  _IsolatedInterface({required this.isolate});
+  _IsolatedInterface({required this.isolate, required this.socket});
 }
 
 class IsolatedMainManager {
@@ -67,27 +68,26 @@ class IsolatedMainManager {
   final Map<int, _IsolatedInterface> _isolates = {};
 
   ///
-  /// Launch a new game
-  /// Returns if a new game was indeed created. If false, it means we should not
-  /// listen to the websocket anymore as it is already connected to a game.
+  /// Launch a new game if needed
   Future<void> registerNewBroadcaster(int broadcasterId,
       {required WebSocket socket, required TwitchEbsInfo ebsInfo}) async {
     final mainReceivePort = ReceivePort();
 
     // Establish communication with the worker isolate
     mainReceivePort.listen((message) => _handleMessageFromIsolated(
-        MessageProtocol.fromJson(message), socket, broadcasterId));
+        MessageProtocol.fromJson(message), broadcasterId));
 
     // Create a new game
     if (!_isolates.containsKey(broadcasterId)) {
       _logger.info('Starting a new connexion (broadcasterId: $broadcasterId)');
       _isolates[broadcasterId] = _IsolatedInterface(
           isolate: await Isolate.spawn(twitchEbsManagerSpawner, {
-        'broadcaster_id': broadcasterId,
-        'ebs_info': ebsInfo,
-        'send_port': mainReceivePort.sendPort,
-        'ebs_manager_factory': _twitchEbsManagerFactory,
-      }));
+            'broadcaster_id': broadcasterId,
+            'ebs_info': ebsInfo,
+            'send_port': mainReceivePort.sendPort,
+            'ebs_manager_factory': _twitchEbsManagerFactory,
+          }),
+          socket: socket);
     }
   }
 
@@ -101,18 +101,20 @@ class IsolatedMainManager {
   }
 
   Future<void> _handleMessageFromIsolated(
-      MessageProtocol message, WebSocket socket, int broadcasterId) async {
+      MessageProtocol message, int broadcasterId) async {
     try {
       switch (message.to) {
         case MessageTo.ebsMain:
-          await _handleMessageFromIsolatedToMain(
-              message, socket, broadcasterId);
+          await _handleMessageFromIsolatedToMain(message, broadcasterId);
           break;
         case MessageTo.app:
-          await _handleMessageFromIsolatedToApp(message, socket);
+          await _handleMessageFromIsolatedToApp(message, broadcasterId);
           break;
         case MessageTo.frontend:
-          await _handleMessageFromIsolatedToFrontends(message, socket);
+          await _handleMessageFromIsolatedToFrontends(message, broadcasterId);
+          break;
+        case MessageTo.pubsub:
+          await _handleMessageFromIsolatedToPubsub(message, broadcasterId);
           break;
         case MessageTo.ebsIsolated:
         case MessageTo.generic:
@@ -124,13 +126,12 @@ class IsolatedMainManager {
   }
 
   Future<void> _handleMessageFromIsolatedToMain(
-      MessageProtocol message, WebSocket socket, int broadcasterId) async {
+      MessageProtocol message, int broadcasterId) async {
     switch (message.type) {
       case MessageTypes.handShake:
         final isolate = _isolates[broadcasterId]!;
 
         isolate.sendPort = message.data!['send_port'];
-        isolate.socket = socket;
         break;
 
       case MessageTypes.response:
@@ -154,14 +155,22 @@ class IsolatedMainManager {
   }
 
   Future<void> _handleMessageFromIsolatedToApp(
-      MessageProtocol message, WebSocket socket) async {
-    socket.add(message.encode());
+      MessageProtocol message, int broadcasterId) async {
+    _isolates[broadcasterId]?.socket.add(message.encode());
   }
 
   Future<void> _handleMessageFromIsolatedToFrontends(
-      MessageProtocol message, WebSocket socket) async {
-    _logger.severe(
-        'Message to frontend are supposed to be sent from the isolated');
+      MessageProtocol message, int broadcasterId) async {
+    final encodedMessage = message.encode();
+    _isolates[broadcasterId]
+        ?.frontendSockets
+        .forEach((socket) => socket.add(encodedMessage));
+  }
+
+  Future<void> _handleMessageFromIsolatedToPubsub(
+      MessageProtocol message, int broadcasterId) async {
+    _logger
+        .severe('Message to pubsub are supposed to be sent from the isolated');
   }
 
   Future<void> messageFromAppToIsolated(
