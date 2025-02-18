@@ -9,22 +9,95 @@ import 'package:twitch_manager/utils/completers.dart';
 
 final _logger = Logger('IsolatedMainManager');
 
-class _IsolatedInterface {
+class _FrontendUser {
+  final String opaqueId;
+  final int? userId;
+  final WebSocket socket;
+
+  _FrontendUser({
+    required this.opaqueId,
+    required this.userId,
+    required this.socket,
+  });
+}
+
+class _IsolatedClientInterface {
+  int broadcasterId;
   final Isolate isolate;
   SendPort? sendPort;
   WebSocket socket;
-  final List<WebSocket> frontendSockets = [];
+  final List<_FrontendUser> frontendUsers = [];
+
+  _IsolatedClientInterface(
+      {required this.isolate,
+      required this.broadcasterId,
+      required this.socket}) {
+    _logger.info('IsolatedInterface created');
+
+    // Listen to the socket
+    socket.listen(
+        (message) => MainIsolatedManager.instance
+            .messageFromAppToIsolated(MessageProtocol.decode(message), socket),
+        onDone: () => _handleClientConnexionTerminated(),
+        onError: ((handleError) => _handleClientConnexionTerminated()));
+  }
+
+  void _handleClientConnexionTerminated() {
+    // This will ultimately call the clear method, same as if the client was
+    // asking to disconnect themselves
+    MainIsolatedManager.instance.messageFromAppToIsolated(
+        MessageProtocol(
+            from: MessageFrom.ebsMain,
+            to: MessageTo.ebsIsolated,
+            type: MessageTypes.disconnect,
+            data: {'broadcaster_id': broadcasterId}),
+        socket);
+  }
+
+  void addFrontendUser(_FrontendUser frontendUser) {
+    frontendUsers.add(frontendUser);
+
+    frontendUser.socket.listen(
+        (message) => _handleMessageFromFrontend(
+            MessageProtocol.decode(message), frontendUser),
+        onDone: () => _handleFrontendUserConnexionTerminated(frontendUser),
+        onError: ((handleError) =>
+            _handleFrontendUserConnexionTerminated(frontendUser)));
+  }
+
+  void _handleMessageFromFrontend(
+      MessageProtocol message, _FrontendUser frontendUser) {
+    MainIsolatedManager.instance.messageFromFrontendToIsolated(
+        message: message.copyWith(
+            from: message.from,
+            to: message.to,
+            type: message.type,
+            data: message.data ?? {}
+              ..addAll({
+                'broadcaster_id': broadcasterId,
+                'user_id': frontendUser.userId,
+                'opaque_id': frontendUser.opaqueId
+              })));
+  }
+
+  void _handleFrontendUserConnexionTerminated(_FrontendUser user) {
+    frontendUsers.remove(user);
+    user.socket.close();
+  }
 
   void clear() {
     isolate.kill(priority: Isolate.immediate);
     socket.close();
+    // TODO move them to a different holder
+    for (var user in frontendUsers) {
+      user.socket.close();
+    }
+    frontendUsers.clear();
     sendPort = null;
   }
-
-  _IsolatedInterface({required this.isolate, required this.socket});
 }
 
-class IsolatedMainManager {
+class MainIsolatedManager {
   final TwitchEbsManagerAbstract Function({
     required int broadcasterId,
     required TwitchEbsInfo ebsInfo,
@@ -32,8 +105,8 @@ class IsolatedMainManager {
   }) _twitchEbsManagerFactory;
 
   // Prepare the singleton instance
-  static IsolatedMainManager? _instance;
-  static IsolatedMainManager get instance {
+  static MainIsolatedManager? _instance;
+  static MainIsolatedManager get instance {
     if (_instance == null) {
       throw Exception('IsolatedMainManager not initialized, please call, '
           'IsolatedMainManager.initialize before using it');
@@ -53,10 +126,10 @@ class IsolatedMainManager {
     }
 
     _instance =
-        IsolatedMainManager._(twitchEbsManagerFactory: twitchEbsManagerFactory);
+        MainIsolatedManager._(twitchEbsManagerFactory: twitchEbsManagerFactory);
   }
 
-  IsolatedMainManager._(
+  MainIsolatedManager._(
       {required TwitchEbsManagerAbstract Function({
         required int broadcasterId,
         required TwitchEbsInfo ebsInfo,
@@ -65,12 +138,14 @@ class IsolatedMainManager {
       : _twitchEbsManagerFactory = twitchEbsManagerFactory;
 
   final _completers = Completers();
-  final Map<int, _IsolatedInterface> _isolates = {};
+  final Map<int, _IsolatedClientInterface> _isolates = {};
 
   ///
   /// Launch a new game if needed
-  Future<void> registerNewBroadcaster(int broadcasterId,
-      {required WebSocket socket, required TwitchEbsInfo ebsInfo}) async {
+  Future<void> registerNewBroadcaster(
+      {required int broadcasterId,
+      required WebSocket socket,
+      required TwitchEbsInfo ebsInfo}) async {
     final mainReceivePort = ReceivePort();
 
     // Establish communication with the worker isolate
@@ -80,7 +155,8 @@ class IsolatedMainManager {
     // Create a new game
     if (!_isolates.containsKey(broadcasterId)) {
       _logger.info('Starting a new connexion (broadcasterId: $broadcasterId)');
-      _isolates[broadcasterId] = _IsolatedInterface(
+      _isolates[broadcasterId] = _IsolatedClientInterface(
+          broadcasterId: broadcasterId,
           isolate: await Isolate.spawn(twitchEbsManagerSpawner, {
             'broadcaster_id': broadcasterId,
             'ebs_info': ebsInfo,
@@ -89,6 +165,25 @@ class IsolatedMainManager {
           }),
           socket: socket);
     }
+  }
+
+  Future<bool> registerNewFrontendUser({
+    required int broadcasterId,
+    required String opaqueId,
+    required int? userId,
+    required WebSocket socket,
+  }) async {
+    // If there is no current game started, we can't register a new user
+    // TODO Change this so it holds the connexion until the game is started
+    if (!_isolates.containsKey(broadcasterId)) {
+      _logger.severe('No active game with id: $broadcasterId');
+      return false;
+    }
+
+    _isolates[broadcasterId]!.addFrontendUser(
+        _FrontendUser(opaqueId: opaqueId, userId: userId, socket: socket));
+
+    return true;
   }
 
   ///
@@ -163,8 +258,8 @@ class IsolatedMainManager {
       MessageProtocol message, int broadcasterId) async {
     final encodedMessage = message.encode();
     _isolates[broadcasterId]
-        ?.frontendSockets
-        .forEach((socket) => socket.add(encodedMessage));
+        ?.frontendUsers
+        .forEach((user) => user.socket.add(encodedMessage));
   }
 
   Future<void> _handleMessageFromIsolatedToPubsub(

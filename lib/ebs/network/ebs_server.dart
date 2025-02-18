@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -26,7 +25,7 @@ void startEbsServer(
   final httpServer = await _startServer(parameters);
 
   // Initialize the isolated manager so it can create new isolates
-  IsolatedMainManager.initialize(twitchEbsManagerFactory);
+  MainIsolatedManager.initialize(twitchEbsManagerFactory);
 
   await for (final request in httpServer) {
     final ipAddress = request.connectionInfo?.remoteAddress.address;
@@ -63,8 +62,6 @@ void startEbsServer(
       _gardedHandleRequest(request, _handleOptionsRequest, ebsInfo: ebsInfo);
     } else if (request.method == 'GET') {
       _gardedHandleRequest(request, _handleGetHttpRequest, ebsInfo: ebsInfo);
-    } else if (request.method == 'POST') {
-      _gardedHandleRequest(request, _handlPostHttpRequest, ebsInfo: ebsInfo);
     } else {
       _sendErrorResponse(
           request,
@@ -115,7 +112,7 @@ Future<void> _gardedHandleRequest(HttpRequest request,
             to: MessageTo.generic,
             type: MessageTypes.response,
             isSuccess: false,
-            data: {'error_message': 'Connexion to WebSocketd refused'}));
+            data: {'error_message': 'Connexion to WebSocket refused'}));
   } catch (e) {
     _sendErrorResponse(
         request,
@@ -136,7 +133,7 @@ Future<void> _handleOptionsRequest(HttpRequest request,
   request.response
     ..statusCode = HttpStatus.ok
     ..headers.add('Access-Control-Allow-Origin', '*')
-    ..headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    ..headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
     ..headers.add('Access-Control-Allow-Headers', 'Authorization, Content-Type')
     ..close();
 }
@@ -144,38 +141,26 @@ Future<void> _handleOptionsRequest(HttpRequest request,
 Future<void> _handleGetHttpRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
   if (request.uri.path.contains('/app')) {
-    _gardedHandleRequest(request, _handleAppHttpGetRequest, ebsInfo: ebsInfo);
+    await _handleAppGetRequest(request, ebsInfo: ebsInfo);
+  } else if (request.uri.path.contains('/frontend')) {
+    await _handleFrontendGetRequest(request, ebsInfo: ebsInfo);
   } else {
     throw InvalidEndpointException();
   }
-}
-
-Future<void> _handlPostHttpRequest(HttpRequest request,
-    {required TwitchEbsInfo ebsInfo}) async {
-  if (request.uri.path.contains('/frontend')) {
-    await _handleFrontendHttpRequest(request, ebsInfo: ebsInfo);
-  } else {
-    throw InvalidEndpointException();
-  }
-}
-
-_sendSuccessResponse(HttpRequest request, MessageProtocol message) {
-  _logger.info('Sending success response: ${message.data}');
-  request.response
-    ..statusCode = HttpStatus.ok
-    ..headers.add('Access-Control-Allow-Origin', '*')
-    ..write(message.encode())
-    ..close();
 }
 
 _sendErrorResponse(
     HttpRequest request, int statusCode, MessageProtocol message) {
   _logger.severe('Sending error response: ${message.data}');
-  request.response
-    ..statusCode = statusCode
-    ..headers.add('Access-Control-Allow-Origin', '*')
-    ..write(message.encode())
-    ..close();
+  try {
+    request.response
+      ..statusCode = statusCode
+      ..headers.add('Access-Control-Allow-Origin', '*')
+      ..write(message.encode());
+  } catch (e) {
+    _logger.severe('Error while sending error response: $e');
+  }
+  request.response.close();
 }
 
 Future<HttpServer> _startServer(NetworkParameters parameters) async {

@@ -35,6 +35,6 @@ class ConnexionToWebSocketdRefusedException implements Exception {
 
   @override
   String toString() {
-    return 'Connexion to WebSocketd refused';
+    return 'Connexion to WebSocket refused';
   }
 }

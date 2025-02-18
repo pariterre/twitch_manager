@@ -1,15 +1,15 @@
 part of 'package:twitch_manager/ebs/network/ebs_server.dart';
 
-Future<void> _handleAppHttpGetRequest(HttpRequest request,
+Future<void> _handleAppGetRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
   if (request.uri.path.contains('/connect')) {
-    await _handleConnectToWebSocketRequest(request, ebsInfo: ebsInfo);
+    await _handleAppConnectToWebSocketRequest(request, ebsInfo: ebsInfo);
   } else {
     throw InvalidEndpointException();
   }
 }
 
-Future<void> _handleConnectToWebSocketRequest(HttpRequest request,
+Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
   try {
     final socket = await WebSocketTransformer.upgrade(request);
@@ -30,28 +30,9 @@ Future<void> _handleConnectToWebSocketRequest(HttpRequest request,
     }
 
     _logger.info('New App connexion (broadcasterId: $broadcasterId)');
-    await IsolatedMainManager.instance.registerNewBroadcaster(broadcasterId,
-        socket: socket, ebsInfo: ebsInfo);
-
-    // Establish a persistent communication with the App
-    socket
-        .listen((message) => IsolatedMainManager.instance
-            .messageFromAppToIsolated(MessageProtocol.decode(message), socket))
-        .onDone(
-          () => _handleConnexionTerminated(broadcasterId, socket),
-        );
+    await MainIsolatedManager.instance.registerNewBroadcaster(
+        broadcasterId: broadcasterId, socket: socket, ebsInfo: ebsInfo);
   } catch (e) {
     throw ConnexionToWebSocketdRefusedException();
   }
-}
-
-Future<void> _handleConnexionTerminated(
-    int broadcasterId, WebSocket socket) async {
-  IsolatedMainManager.instance.messageFromAppToIsolated(
-      MessageProtocol(
-          from: MessageFrom.ebsMain,
-          to: MessageTo.ebsIsolated,
-          type: MessageTypes.disconnect,
-          data: {'broadcaster_id': broadcasterId}),
-      socket);
 }

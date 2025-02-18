@@ -1,6 +1,15 @@
 part of 'package:twitch_manager/ebs/network/ebs_server.dart';
 
-Future<void> _handleFrontendHttpRequest(HttpRequest request,
+Future<void> _handleFrontendGetRequest(HttpRequest request,
+    {required TwitchEbsInfo ebsInfo}) async {
+  if (request.uri.path.contains('/connect')) {
+    await _handleFrontendConnectToWebSocketRequest(request, ebsInfo: ebsInfo);
+  } else {
+    throw InvalidEndpointException();
+  }
+}
+
+Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
   _logger.info('Answering GET request to ${request.uri.path}');
 
@@ -8,53 +17,46 @@ Future<void> _handleFrontendHttpRequest(HttpRequest request,
   // otherwise an exception is thrown
   final payload = _extractJwtPayload(request, ebsInfo: ebsInfo);
 
-  final broadcasterId = int.parse(payload?['channel_id']);
+  final broadcasterId = int.tryParse(payload?['channel_id']);
+  final opaqueId = payload?['opaque_user_id'] as String?;
   final userId = int.tryParse(payload?['user_id']);
-  final opaqueUserId = payload?['opaque_user_id'];
-
-  // Parse the body of the POST request
-  final body = await utf8.decoder.bind(request).join();
-  final message = MessageProtocol.decode(body);
-  final data = message.data ?? {};
-
-  // Get the message of the POST request
-  final response = await IsolatedMainManager.instance
-      .messageFromFrontendToIsolated(
-          message: message.copyWith(
-              from: message.from,
-              to: message.to,
-              type: message.type,
-              data: data
-                ..addAll({
-                  'broadcaster_id': broadcasterId,
-                  'user_id': userId,
-                  'opaque_id': opaqueUserId
-                })));
-
-  final isSuccess = response.isSuccess ?? false;
-  if (!isSuccess) {
-    try {
-      final errorMessage = response.data!['error_message'] as String;
-      if (errorMessage == UnauthorizedException().toString()) {
-        throw UnauthorizedException();
-      } else if (errorMessage == InvalidEndpointException().toString()) {
-        throw InvalidEndpointException();
-      } else {
-        throw Exception();
-      }
-    } catch (e) {
-      throw Exception();
-    }
+  if (broadcasterId == null) {
+    _logger.severe('No broadcasterId found');
+    throw UnauthorizedException();
+  }
+  if (opaqueId == null) {
+    _logger.severe('No opaqueId found');
+    throw UnauthorizedException();
   }
 
-  _sendSuccessResponse(request, response);
+  // Upgrade the request to a WebSocket connection
+  late final WebSocket socket;
+  try {
+    socket = await WebSocketTransformer.upgrade(request);
+  } catch (e) {
+    throw ConnexionToWebSocketdRefusedException();
+  }
+
+  _logger.info('New frontend connexion (broadcasterId: $broadcasterId)');
+  final isSuccess = await MainIsolatedManager.instance.registerNewFrontendUser(
+      broadcasterId: broadcasterId,
+      socket: socket,
+      opaqueId: opaqueId,
+      userId: userId);
+
+  if (!isSuccess) {
+    _logger.severe('Failed to register the new frontend user');
+    throw ConnexionToWebSocketdRefusedException();
+  }
 }
 
 Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) {
-  // Extract the Authorization header
-  final authHeader = request.headers['Authorization']?.first;
-  if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+  // For some reason, it is not possible to pass headers to the WebSocket. So
+  // we hack it by passing the token in the protocols field. This will be
+  // stored in the Sec-WebSocket-Protocol header.
+  final authHeader = request.headers['sec-websocket-protocol']?.first;
+  if (authHeader == null || !authHeader.startsWith('Bearer-')) {
     throw UnauthorizedException();
   }
 // Extract the Bearer token by removing 'Bearer ' from the start

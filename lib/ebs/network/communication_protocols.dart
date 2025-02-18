@@ -42,6 +42,7 @@ class MessageProtocol {
   final Map<String, dynamic>? internalMain;
   final Map<String, dynamic>? internalIsolate;
   final Map<String, dynamic>? internalClient;
+  final Map<String, dynamic>? internalFrontend;
 
   MessageProtocol({
     required this.from,
@@ -53,6 +54,7 @@ class MessageProtocol {
     this.internalMain,
     this.internalIsolate,
     this.internalClient,
+    this.internalFrontend,
   });
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +67,7 @@ class MessageProtocol {
         'internal_main': internalMain,
         'internal_isolate': internalIsolate,
         'internal_client': internalClient,
+        'internal_frontend': internalFrontend,
       };
   String encode() => jsonEncode(toJson());
 
@@ -81,6 +84,7 @@ class MessageProtocol {
       internalMain: json['internal_main'],
       internalIsolate: json['internal_isolate'],
       internalClient: json['internal_client'],
+      internalFrontend: json['internal_frontend'],
     );
   }
 
@@ -98,6 +102,7 @@ class MessageProtocol {
     Map<String, dynamic>? internalMain,
     Map<String, dynamic>? internalIsolate,
     Map<String, dynamic>? internalClient,
+    Map<String, dynamic>? internalFrontend,
   }) =>
       MessageProtocol(
         from: from,
@@ -109,5 +114,6 @@ class MessageProtocol {
         internalMain: internalMain ??= this.internalMain,
         internalIsolate: internalIsolate ??= this.internalIsolate,
         internalClient: internalClient ??= this.internalClient,
+        internalFrontend: internalFrontend ??= this.internalFrontend,
       );
 }

@@ -56,24 +56,31 @@ class TwitchFrontendManager implements TwitchManager {
 
     // Connect to the EBS and relay the onHasConnected event to the manager listeners
     if (onHasConnected != null) manager.onHasConnected.listen(onHasConnected);
-    authenticator.onHasConnected.listen(manager._notifyOnHasConnected);
-    authenticator.listenToPubSub('broadcast', manager._pubSubCallback);
+    authenticator.listenToPubSub('broadcast', manager._onMessageReceived);
     manager.connect(isTwitchUserIdRequired: isTwitchUserIdRequired);
 
     _logger.config('Manager is ready to be used');
-
-    // Try to register to the extension. This will fail if the streamer did not
-    // start the extension yet, just ignore it. When the streamer is ready, the
-    // extension will send a handshake message to the frontend which will also
-    // register it to the extension.
-    await manager._registerToExtension();
     return manager;
+  }
+
+  Future<void> _connectToEbs() async {
+    await apiToEbs.connect(onMessageReceived: _onMessageReceived);
+    authenticator.onHasConnected.cancel(_connectToEbs);
   }
 
   @override
   Future<void> connect({bool isTwitchUserIdRequired = false}) async {
+    if (isConnected) {
+      _logger.warning('Already connected to the Twitch API');
+      return;
+    }
+
+    authenticator.onHasConnected.listen(_connectToEbs);
+    authenticator.onHasConnected.listen(_notifyOnHasConnected);
     await authenticator.connect(
         appInfo: appInfo, isTwitchUserIdRequired: isTwitchUserIdRequired);
+
+    _logger.info('Connected to the Twitch API');
   }
 
   @override
@@ -96,15 +103,11 @@ class TwitchFrontendManager implements TwitchManager {
   Future<MessageProtocol> sendMessageToApp(MessageProtocol message,
       {BitsTransactionObject? transaction}) async {
     try {
-      final response = await apiToEbs.postRequest(message
-          .copyWith(
-              from: MessageFrom.frontend,
-              to: MessageTo.app,
-              type: message.type,
-              transaction: transaction)
-          .toJson());
-      _logger.info('Response from App: $response');
-      return MessageProtocol.fromJson(response);
+      return await apiToEbs.send(message.copyWith(
+          from: MessageFrom.frontend,
+          to: MessageTo.app,
+          type: message.type,
+          transaction: transaction));
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
       return MessageProtocol(
@@ -129,14 +132,11 @@ class TwitchFrontendManager implements TwitchManager {
     }
 
     try {
-      final response = await apiToEbs.postRequest(MessageProtocol(
-              from: MessageFrom.frontend,
-              to: MessageTo.ebsIsolated,
-              type: message.type,
-              transaction: transaction)
-          .toJson());
-      _logger.info('Reponse from EBS: $response');
-      return MessageProtocol.fromJson(response);
+      return await apiToEbs.send(MessageProtocol(
+          from: MessageFrom.frontend,
+          to: MessageTo.ebsIsolated,
+          type: message.type,
+          transaction: transaction));
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
       return MessageProtocol(
@@ -157,14 +157,13 @@ class TwitchFrontendManager implements TwitchManager {
 
   ///
   /// Intercept internal messages from the PubSub and behave accordingly
-  Future<void> _pubSubCallback(MessageProtocol message) async {
+  Future<void> _onMessageReceived(MessageProtocol message) async {
     _logger.fine('Received PubSub message: ${message.type.toString()}');
 
     try {
       switch (message.type) {
         case MessageTypes.handShake:
           _logger.info('Streamer connected to the extension');
-          await _registerToExtension();
           onStreamerHasConnected.notifyListeners((callback) => callback());
           return;
         case MessageTypes.disconnect:
@@ -186,20 +185,5 @@ class TwitchFrontendManager implements TwitchManager {
     } catch (e) {
       _logger.severe('Error while handling PubSub message: $e');
     }
-  }
-
-  Future<void> _registerToExtension() async {
-    final response = await sendMessageToEbs(MessageProtocol(
-        from: MessageFrom.frontend,
-        to: MessageTo.ebsMain,
-        type: MessageTypes.handShake));
-    final isSuccess = response.isSuccess ?? false;
-    if (!isSuccess) {
-      _logger.info(
-          'Cannot register to extension, as the streamer did not started it yet');
-      return;
-    }
-
-    _logger.info('Registered to extension');
   }
 }
