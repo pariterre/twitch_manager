@@ -264,7 +264,7 @@ abstract class TwitchEbsManagerAbstract {
 class Communicator {
   final _receivePort = ReceivePort();
   final SendPort _sendPort;
-  final completers = Completers();
+  final completers = Completers<MessageProtocol>();
   Future<void> complete(
       {required int? completerId, required dynamic data}) async {
     if (completerId == null) return;
@@ -348,9 +348,8 @@ class Communicator {
           internalIsolate: {'completer_id': completerId}));
     }
 
-    final response = await completer.future.timeout(const Duration(seconds: 30),
+    return await completer.future.timeout(const Duration(seconds: 30),
         onTimeout: () => throw Exception('Timeout'));
-    return response as MessageProtocol;
   }
 
   Future<void> _sendMessage(MessageProtocol message) async {

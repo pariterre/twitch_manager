@@ -38,16 +38,11 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   }
 
   _logger.info('New frontend connexion (broadcasterId: $broadcasterId)');
-  final isSuccess = await MainIsolatedManager.instance.registerNewFrontendUser(
+  MainIsolatedManager.instance.registerNewFrontendUser(
       broadcasterId: broadcasterId,
       socket: socket,
       opaqueId: opaqueId,
       userId: userId);
-
-  if (!isSuccess) {
-    _logger.severe('Failed to register the new frontend user');
-    throw ConnexionToWebSocketdRefusedException();
-  }
 }
 
 Map<String, dynamic>? _extractJwtPayload(HttpRequest request,

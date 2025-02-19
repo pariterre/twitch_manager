@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
+import 'package:twitch_manager/twitch_utils.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 final _logger = Logger('TwitchEbsApi');
@@ -17,7 +18,7 @@ class TwitchEbsApi {
   final TwitchFrontendInfo appInfo;
   final TwitchJwtAuthenticator authenticator;
   WebSocket? _socket;
-  final List<Completer<MessageProtocol>> _pendingRequests = [];
+  final _completers = Completers<MessageProtocol>();
 
   Function(MessageProtocol)? _onMessageReceivedCallback;
 
@@ -46,30 +47,41 @@ class TwitchEbsApi {
     );
 
     // Handle connection state changes
-    _socket!.connection.listen((state) {
+    _socket!.connection.listen((state) async {
       if (state is Connected || state is Reconnected) {
         _logger.info('Connected to the EBS server');
+        await send(MessageProtocol(
+          from: MessageFrom.ebsMain,
+          to: MessageTo.frontend,
+          type: MessageTypes.handShake,
+        ));
+        onMessageReceived(MessageProtocol(
+          from: MessageFrom.ebsMain,
+          to: MessageTo.frontend,
+          type: MessageTypes.handShake,
+        ));
       } else if (state is Disconnected) {
-        // TODO Send a message to the frontend to inform that the connection is lost
         _logger.severe('Disconnected from EBS');
+        onMessageReceived(MessageProtocol(
+          from: MessageFrom.ebsMain,
+          to: MessageTo.frontend,
+          type: MessageTypes.disconnect,
+        ));
       } else if (state is Reconnecting) {
         _logger.warning('Reconnecting to EBS...');
       }
     });
 
     // Listen for messages from the EBS server
-    _socket!.messages.listen((message) async {
+    _socket!.messages.listen((raw) async {
       try {
-        final decodedMessage = MessageProtocol.decode(message);
-
-        if (decodedMessage.type == MessageTypes.response &&
-            _pendingRequests
-                .contains(decodedMessage.internalFrontend?['completer_id'])) {
-          final completer = _pendingRequests
-              .removeAt(decodedMessage.internalFrontend?['completer_id']);
-          completer.complete(decodedMessage);
+        final message = MessageProtocol.decode(raw);
+        final completer = _completers
+            .get(message.internalFrontend?['completer_id'] as int? ?? -1);
+        if (message.type == MessageTypes.response && completer != null) {
+          completer.complete(message);
         } else {
-          _onMessageReceivedCallback!(decodedMessage);
+          _onMessageReceivedCallback!(message);
         }
       } catch (e) {
         // Do nothing, this is to prevent the program from crashing
@@ -88,14 +100,16 @@ class TwitchEbsApi {
       throw Exception('Socket is not connected');
     }
 
-    final completer = Completer<MessageProtocol>();
+    final completerId = _completers.spawn();
     _socket!.send(message.copyWith(
         from: MessageFrom.frontend,
         to: message.to,
         type: message.type,
-        internalFrontend: {'completer_id': _pendingRequests.length}).encode());
-
-    return completer.future.timeout(const Duration(seconds: 10), onTimeout: () {
+        internalFrontend: {'completer_id': completerId}).encode());
+    return await _completers
+        .get(completerId)!
+        .future
+        .timeout(const Duration(seconds: 10), onTimeout: () {
       throw TimeoutException('Request to EBS timed out');
     });
   }

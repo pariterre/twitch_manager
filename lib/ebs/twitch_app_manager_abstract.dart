@@ -22,7 +22,7 @@ abstract class TwitchAppManagerAbstract {
 
   ///
   /// Add a way to complete requests
-  final _completers = Completers();
+  final _completers = Completers<MessageProtocol>();
 
   /// Setup a method to wait for the TwitchManager
   TwitchAppManagerAbstract({required this.ebsUri});
@@ -77,7 +77,7 @@ abstract class TwitchAppManagerAbstract {
 
   ///
   /// Send a message to the EBS server
-  Future<dynamic> sendQuestionToEbs(MessageProtocol message) {
+  Future<MessageProtocol> sendQuestionToEbs(MessageProtocol message) {
     try {
       final completerId = _completers.spawn();
 

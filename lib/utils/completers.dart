@@ -1,10 +1,14 @@
 import 'dart:async';
 
-class Completers {
-  final Map<int, Completer> _completers = {};
+import 'package:logging/logging.dart';
+
+final _logger = Logger('Completers');
+
+class Completers<T> {
+  final Map<int, Completer<T>> _completers = {};
 
   int spawn() {
-    final completer = Completer();
+    final completer = Completer<T>();
     // Create a unique id for the completer based on salted hashcode
     final id = _completers.hashCode + DateTime.now().hashCode;
     _completers[id] = completer;
@@ -15,10 +19,14 @@ class Completers {
     return id;
   }
 
-  Completer? get(int id) => _completers[id];
+  Completer<T>? get(int id) => _completers[id];
 
-  void complete(int id, {required dynamic data}) {
-    final completer = _completers[id]!;
-    completer.complete(data);
+  void complete(int id, {required T data}) {
+    try {
+      final completer = _completers[id]!;
+      completer.complete(data);
+    } catch (e) {
+      _logger.severe('Error while completing completer: $e');
+    }
   }
 }

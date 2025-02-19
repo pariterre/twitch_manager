@@ -66,34 +66,49 @@ class _IsolatedClientInterface {
   }
 
   void _handleMessageFromFrontend(
-      MessageProtocol message, _FrontendUser frontendUser) {
-    MainIsolatedManager.instance.messageFromFrontendToIsolated(
-        message: message.copyWith(
-            from: message.from,
-            to: message.to,
-            type: message.type,
-            data: message.data ?? {}
-              ..addAll({
-                'broadcaster_id': broadcasterId,
-                'user_id': frontendUser.userId,
-                'opaque_id': frontendUser.opaqueId
-              })));
+      MessageProtocol message, _FrontendUser frontendUser) async {
+    try {
+      final response =
+          await MainIsolatedManager.instance.messageFromFrontendToIsolated(
+              message: message.copyWith(
+                  from: message.from,
+                  to: message.to,
+                  type: message.type,
+                  data: message.data ?? {}
+                    ..addAll({
+                      'broadcaster_id': broadcasterId,
+                      'user_id': frontendUser.userId,
+                      'opaque_id': frontendUser.opaqueId
+                    })));
+
+      frontendUser.socket.add(response.encode());
+    } catch (e) {
+      _logger.severe('Error while handling message from frontend: $e');
+      _handleFrontendUserConnexionTerminated(frontendUser);
+    }
   }
 
   void _handleFrontendUserConnexionTerminated(_FrontendUser user) {
-    frontendUsers.remove(user);
-    user.socket.close();
+    try {
+      frontendUsers.remove(user);
+      user.socket.close();
+    } catch (e) {
+      _logger.severe('Error while handling frontend user disconnection: $e');
+    }
   }
 
   void clear() {
-    isolate.kill(priority: Isolate.immediate);
-    socket.close();
-    // TODO move them to a different holder
-    for (var user in frontendUsers) {
-      user.socket.close();
+    try {
+      isolate.kill(priority: Isolate.immediate);
+      socket.close();
+      for (var user in frontendUsers) {
+        user.socket.close();
+      }
+      frontendUsers.clear();
+      sendPort = null;
+    } catch (e) {
+      _logger.severe('Error while clearing the isolate: $e');
     }
-    frontendUsers.clear();
-    sendPort = null;
   }
 }
 
@@ -137,7 +152,7 @@ class MainIsolatedManager {
       }) twitchEbsManagerFactory})
       : _twitchEbsManagerFactory = twitchEbsManagerFactory;
 
-  final _completers = Completers();
+  final _completers = Completers<MessageProtocol>();
   final Map<int, _IsolatedClientInterface> _isolates = {};
 
   ///
@@ -167,23 +182,29 @@ class MainIsolatedManager {
     }
   }
 
-  Future<bool> registerNewFrontendUser({
+  Future<void> registerNewFrontendUser({
     required int broadcasterId,
     required String opaqueId,
     required int? userId,
     required WebSocket socket,
   }) async {
-    // If there is no current game started, we can't register a new user
-    // TODO Change this so it holds the connexion until the game is started
-    if (!_isolates.containsKey(broadcasterId)) {
-      _logger.severe('No active game with id: $broadcasterId');
-      return false;
+    try {
+      // Wait for the game to be created
+      while (!_isolates.containsKey(broadcasterId)) {
+        if (socket.closeCode != null) {
+          return;
+        }
+
+        _logger.fine('No active game with id: $broadcasterId');
+        await Future.delayed(const Duration(seconds: 10));
+      }
+
+      _isolates[broadcasterId]!.addFrontendUser(
+          _FrontendUser(opaqueId: opaqueId, userId: userId, socket: socket));
+    } catch (e) {
+      socket.close();
+      return;
     }
-
-    _isolates[broadcasterId]!.addFrontendUser(
-        _FrontendUser(opaqueId: opaqueId, userId: userId, socket: socket));
-
-    return true;
   }
 
   ///
@@ -206,6 +227,7 @@ class MainIsolatedManager {
           await _handleMessageFromIsolatedToApp(message, broadcasterId);
           break;
         case MessageTo.frontend:
+          // TODO: Fix the messaging to frontends
           await _handleMessageFromIsolatedToFrontends(message, broadcasterId);
           break;
         case MessageTo.pubsub:
