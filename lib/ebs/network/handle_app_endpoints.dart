@@ -19,8 +19,8 @@ Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
     if (broadcasterId == null) {
       _logger.severe('No broadcasterId found');
       socket.add(MessageProtocol(
-              from: MessageFrom.generic,
               to: MessageTo.app,
+              from: MessageFrom.generic,
               type: MessageTypes.response,
               isSuccess: false,
               data: {'error_message': NoBroadcasterIdException().toString()})

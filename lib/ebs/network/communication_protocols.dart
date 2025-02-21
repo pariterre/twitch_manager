@@ -5,17 +5,17 @@ import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_
 enum MessageFrom {
   app,
   ebsMain,
-  ebsIsolated,
+  ebs,
   frontend,
   generic;
 }
 
 enum MessageTo {
   app,
-  ebsMain,
-  ebsIsolated,
+  ebs,
   frontend,
   pubsub,
+  ebsMain,
   generic;
 }
 
@@ -45,8 +45,8 @@ class MessageProtocol {
   final Map<String, dynamic>? internalFrontend;
 
   MessageProtocol({
-    required this.from,
     required this.to,
+    required this.from,
     required this.type,
     this.data,
     this.transaction,
@@ -58,8 +58,8 @@ class MessageProtocol {
   });
 
   Map<String, dynamic> toJson() => {
-        'from': from.index,
         'to': to.index,
+        'from': from.index,
         'type': type.index,
         'data': data,
         'transaction': transaction?.toJson(),
@@ -73,8 +73,8 @@ class MessageProtocol {
 
   factory MessageProtocol.fromJson(Map<String, dynamic> json) {
     return MessageProtocol(
-      from: MessageFrom.values[json['from']],
       to: MessageTo.values[json['to']],
+      from: MessageFrom.values[json['from']],
       type: MessageTypes.values[json['type']],
       data: json['data'],
       transaction: json['transaction'] != null
@@ -93,8 +93,8 @@ class MessageProtocol {
   }
 
   MessageProtocol copyWith({
-    required MessageFrom from,
     required MessageTo to,
+    required MessageFrom from,
     required MessageTypes type,
     Map<String, dynamic>? data,
     BitsTransactionObject? transaction,
@@ -105,8 +105,8 @@ class MessageProtocol {
     Map<String, dynamic>? internalFrontend,
   }) =>
       MessageProtocol(
-        from: from,
         to: to,
+        from: from,
         type: type,
         data: data ??= this.data,
         transaction: transaction ??= this.transaction,
@@ -116,4 +116,9 @@ class MessageProtocol {
         internalClient: internalClient ??= this.internalClient,
         internalFrontend: internalFrontend ??= this.internalFrontend,
       );
+
+  @override
+  String toString() {
+    return encode();
+  }
 }

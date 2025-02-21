@@ -114,8 +114,8 @@ abstract class TwitchAppManagerAbstract {
 
   void sendResponseToEbs(MessageProtocol message) {
     sendMessageToEbs(message.copyWith(
+      to: MessageTo.ebs,
       from: MessageFrom.app,
-      to: MessageTo.ebsIsolated,
       type: MessageTypes.response,
     ));
   }
@@ -140,9 +140,10 @@ abstract class TwitchAppManagerAbstract {
       case MessageTypes.ping:
         _logger.info('Ping received, sending pong');
         sendMessageToEbs(message.copyWith(
-            from: MessageFrom.app,
-            to: MessageTo.ebsIsolated,
-            type: MessageTypes.pong));
+          to: MessageTo.ebs,
+          from: MessageFrom.app,
+          type: MessageTypes.pong,
+        ));
         return;
       case MessageTypes.pong:
       case MessageTypes.response:

@@ -50,21 +50,24 @@ class TwitchEbsApi {
     _socket!.connection.listen((state) async {
       if (state is Connected || state is Reconnected) {
         _logger.info('Connected to the EBS server');
-        await send(MessageProtocol(
-          from: MessageFrom.ebsMain,
-          to: MessageTo.frontend,
-          type: MessageTypes.handShake,
-        ));
-        onMessageReceived(MessageProtocol(
-          from: MessageFrom.ebsMain,
-          to: MessageTo.frontend,
-          type: MessageTypes.handShake,
-        ));
+        try {
+          final response = await send(MessageProtocol(
+            to: MessageTo.ebs,
+            from: MessageFrom.frontend,
+            type: MessageTypes.handShake,
+          ));
+          onMessageReceived(response.copyWith(
+              to: MessageTo.frontend,
+              from: MessageFrom.ebs,
+              type: MessageTypes.handShake));
+        } catch (e) {
+          _logger.severe('Error while sending handshake to EBS: $e');
+        }
       } else if (state is Disconnected) {
         _logger.severe('Disconnected from EBS');
         onMessageReceived(MessageProtocol(
-          from: MessageFrom.ebsMain,
           to: MessageTo.frontend,
+          from: MessageFrom.ebsMain,
           type: MessageTypes.disconnect,
         ));
       } else if (state is Reconnecting) {

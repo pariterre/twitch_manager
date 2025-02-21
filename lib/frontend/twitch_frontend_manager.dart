@@ -104,15 +104,15 @@ class TwitchFrontendManager implements TwitchManager {
       {BitsTransactionObject? transaction}) async {
     try {
       return await apiToEbs.send(message.copyWith(
-          from: MessageFrom.frontend,
           to: MessageTo.app,
+          from: MessageFrom.frontend,
           type: message.type,
           transaction: transaction));
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
       return MessageProtocol(
-          from: MessageFrom.app,
           to: MessageTo.frontend,
+          from: MessageFrom.app,
           type: MessageTypes.response,
           isSuccess: false);
     }
@@ -133,15 +133,15 @@ class TwitchFrontendManager implements TwitchManager {
 
     try {
       return await apiToEbs.send(MessageProtocol(
+          to: MessageTo.ebs,
           from: MessageFrom.frontend,
-          to: MessageTo.ebsIsolated,
           type: message.type,
           transaction: transaction));
     } catch (e) {
       _logger.severe('Failed to send message to EBS: $e');
       return MessageProtocol(
-          from: MessageFrom.ebsMain,
           to: MessageTo.frontend,
+          from: MessageFrom.ebsMain,
           type: MessageTypes.response,
           isSuccess: false);
     }

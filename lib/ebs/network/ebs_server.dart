@@ -34,8 +34,8 @@ void startEbsServer(
           request,
           HttpStatus.forbidden,
           MessageProtocol(
-              from: MessageFrom.generic,
               to: MessageTo.generic,
+              from: MessageFrom.generic,
               type: MessageTypes.response,
               isSuccess: false,
               data: {'error_message': 'Connexion refused'}));
@@ -50,8 +50,8 @@ void startEbsServer(
           request,
           HttpStatus.tooManyRequests,
           MessageProtocol(
-              from: MessageFrom.generic,
               to: MessageTo.generic,
+              from: MessageFrom.generic,
               type: MessageTypes.response,
               isSuccess: false,
               data: {'error_message': 'Rate limited'}));
@@ -67,8 +67,8 @@ void startEbsServer(
           request,
           HttpStatus.methodNotAllowed,
           MessageProtocol(
-              from: MessageFrom.generic,
               to: MessageTo.generic,
+              from: MessageFrom.generic,
               type: MessageTypes.response,
               isSuccess: false,
               data: {
@@ -88,8 +88,8 @@ Future<void> _gardedHandleRequest(HttpRequest request,
         request,
         HttpStatus.notFound,
         MessageProtocol(
-            from: MessageFrom.generic,
             to: MessageTo.generic,
+            from: MessageFrom.generic,
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'Invalid endpoint'}));
@@ -98,8 +98,8 @@ Future<void> _gardedHandleRequest(HttpRequest request,
         request,
         HttpStatus.unauthorized,
         MessageProtocol(
-            from: MessageFrom.generic,
             to: MessageTo.generic,
+            from: MessageFrom.generic,
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'Unauthorized'}));
@@ -108,8 +108,8 @@ Future<void> _gardedHandleRequest(HttpRequest request,
         request,
         HttpStatus.serviceUnavailable,
         MessageProtocol(
-            from: MessageFrom.generic,
             to: MessageTo.generic,
+            from: MessageFrom.generic,
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'Connexion to WebSocket refused'}));
@@ -118,8 +118,8 @@ Future<void> _gardedHandleRequest(HttpRequest request,
         request,
         HttpStatus.internalServerError,
         MessageProtocol(
-            from: MessageFrom.generic,
             to: MessageTo.generic,
+            from: MessageFrom.generic,
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'An error occurred: ${e.toString()}'}));

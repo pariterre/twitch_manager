@@ -56,8 +56,8 @@ abstract class TwitchEbsManagerAbstract {
 
     // Inform the frontend that the streamer has connected
     communicator.sendMessage(MessageProtocol(
-        from: MessageFrom.app,
         to: MessageTo.pubsub,
+        from: MessageFrom.app,
         type: MessageTypes.handShake));
 
     // Keep the connexion alive
@@ -77,13 +77,13 @@ abstract class TwitchEbsManagerAbstract {
                 userId: message.data!['user_id'],
                 opaqueId: message.data!['opaque_id']);
             communicator.sendReponse(message.copyWith(
-                from: MessageFrom.ebsIsolated,
                 to: MessageTo.ebsMain,
+                from: MessageFrom.ebs,
                 type: MessageTypes.response,
                 isSuccess: isSuccess));
             break;
           case MessageFrom.ebsMain:
-          case MessageFrom.ebsIsolated:
+          case MessageFrom.ebs:
           case MessageFrom.generic:
             throw Exception('Invalid handshake');
         }
@@ -93,12 +93,12 @@ abstract class TwitchEbsManagerAbstract {
         // This is probably overkill, but we want to make sure the game is ended
         // So send back to the main a message to disconnect
         await communicator.sendMessage(MessageProtocol(
-            from: MessageFrom.ebsIsolated,
             to: MessageTo.pubsub,
+            from: MessageFrom.ebs,
             type: MessageTypes.disconnect));
         communicator.sendMessage(MessageProtocol(
-            from: MessageFrom.ebsIsolated,
             to: MessageTo.ebsMain,
+            from: MessageFrom.ebs,
             type: MessageTypes.disconnect));
         break;
 
@@ -128,8 +128,8 @@ abstract class TwitchEbsManagerAbstract {
         if (message.transaction == null) {
           return communicator.sendErrorReponse(
               message.copyWith(
-                  from: MessageFrom.ebsIsolated,
                   to: MessageTo.app,
+                  from: MessageFrom.ebs,
                   type: MessageTypes.response),
               'Bits transaction is missing');
         }
@@ -138,8 +138,8 @@ abstract class TwitchEbsManagerAbstract {
         if (transactionReceipt == null) {
           return communicator.sendErrorReponse(
               message.copyWith(
-                  from: MessageFrom.ebsIsolated,
                   to: MessageTo.app,
+                  from: MessageFrom.ebs,
                   type: MessageTypes.response),
               'Bits transaction receipt is not valid');
         }
@@ -231,14 +231,14 @@ abstract class TwitchEbsManagerAbstract {
       _logger.info('PING');
       final response = (await communicator
           .sendQuestion(MessageProtocol(
-            from: MessageFrom.ebsIsolated,
             to: MessageTo.app,
+            from: MessageFrom.ebs,
             type: MessageTypes.ping,
           ))
           .timeout(const Duration(seconds: 30),
               onTimeout: () => MessageProtocol(
+                  to: MessageTo.ebs,
                   from: MessageFrom.app,
-                  to: MessageTo.ebsIsolated,
                   type: MessageTypes.response,
                   isSuccess: false)));
       if (response.type != MessageTypes.pong) {
@@ -255,8 +255,8 @@ abstract class TwitchEbsManagerAbstract {
   void kill() {
     _logger.info('Killing the isolated instance');
     communicator.sendMessage(MessageProtocol(
-        from: MessageFrom.ebsIsolated,
         to: MessageTo.ebsMain,
+        from: MessageFrom.ebs,
         type: MessageTypes.disconnect));
   }
 }
@@ -276,14 +276,14 @@ class Communicator {
       : _sendPort = sendPort {
     // Send the SendPort to the main isolate, so it can communicate back to the isolate
     sendMessage(MessageProtocol(
-        from: MessageFrom.ebsIsolated,
         to: MessageTo.ebsMain,
+        from: MessageFrom.ebs,
         type: MessageTypes.handShake,
         data: {'send_port': _receivePort.sendPort}));
 
     sendMessage(MessageProtocol(
-      from: MessageFrom.ebsIsolated,
       to: MessageTo.app,
+      from: MessageFrom.ebs,
       type: MessageTypes.handShake,
       isSuccess: true,
     ));
@@ -298,7 +298,7 @@ class Communicator {
   /// to respond with the fields [to], [isSuccess] and [data] filled.
   Future<void> sendReponse(MessageProtocol message) async {
     sendMessage(message.copyWith(
-        from: MessageFrom.ebsIsolated,
+        from: MessageFrom.ebs,
         to: message.to == MessageTo.pubsub ? MessageTo.ebsMain : message.to,
         type: MessageTypes.response));
   }
@@ -310,7 +310,7 @@ class Communicator {
   Future<void> sendErrorReponse(
           MessageProtocol message, String errorMessage) async =>
       sendMessage(message.copyWith(
-          from: MessageFrom.ebsIsolated,
+          from: MessageFrom.ebs,
           to: message.to,
           type: MessageTypes.response,
           isSuccess: false,

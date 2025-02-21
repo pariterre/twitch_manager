@@ -47,8 +47,8 @@ class _IsolatedClientInterface {
     // asking to disconnect themselves
     MainIsolatedManager.instance.messageFromAppToIsolated(
         MessageProtocol(
+            to: MessageTo.ebs,
             from: MessageFrom.ebsMain,
-            to: MessageTo.ebsIsolated,
             type: MessageTypes.disconnect,
             data: {'broadcaster_id': broadcasterId}),
         socket);
@@ -227,13 +227,12 @@ class MainIsolatedManager {
           await _handleMessageFromIsolatedToApp(message, broadcasterId);
           break;
         case MessageTo.frontend:
-          // TODO: Fix the messaging to frontends
           await _handleMessageFromIsolatedToFrontends(message, broadcasterId);
           break;
         case MessageTo.pubsub:
           await _handleMessageFromIsolatedToPubsub(message, broadcasterId);
           break;
-        case MessageTo.ebsIsolated:
+        case MessageTo.ebs:
         case MessageTo.generic:
           throw InvalidTargetException();
       }
@@ -278,6 +277,14 @@ class MainIsolatedManager {
 
   Future<void> _handleMessageFromIsolatedToFrontends(
       MessageProtocol message, int broadcasterId) async {
+    if (message.internalMain?['completer_id'] != null) {
+      // If this message is for a specific completer, complete it and let the
+      // completer send the response
+      final completerId = message.internalMain!['completer_id'] as int;
+      _completers.complete(completerId, data: message);
+      return;
+    }
+
     final encodedMessage = message.encode();
     _isolates[broadcasterId]
         ?.frontendUsers
@@ -312,8 +319,8 @@ class MainIsolatedManager {
     if (sendPort == null) {
       _logger.info('No active game with id: $broadcasterId');
       return MessageProtocol(
-          from: MessageFrom.ebsIsolated,
           to: MessageTo.frontend,
+          from: MessageFrom.ebs,
           type: MessageTypes.response,
           isSuccess: false,
           data: {'error_message': 'No active game with id: $broadcasterId'});
