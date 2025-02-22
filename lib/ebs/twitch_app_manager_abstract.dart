@@ -36,8 +36,8 @@ abstract class TwitchAppManagerAbstract {
   final onEbsHasDisconnected = TwitchListener<Function()>();
 
   ///
-  /// Connect to the EBS server, to get the [broadcasterId] the developer can
-  /// use the relevant info gathered from the TwitchAppManager
+  /// Connect to the EBS server.
+  /// To get the [broadcasterId] one should use [TwitchAppManager.api.streamerId].
   Future<void> connect(int broadcasterId) async {
     _logger.info('Connecting to EBS server');
     _broadcasterId = broadcasterId;
@@ -45,7 +45,6 @@ abstract class TwitchAppManagerAbstract {
     if (ebsUri == null) return;
 
     // Connect to EBS server
-    // TODO Add some kind of bearer token to the connexion?
     _socket = WebSocket(
         Uri.parse('$ebsUri/app/connect?broadcasterId=$broadcasterId'),
         backoff: const ConstantBackoff(Duration(seconds: 10)));
