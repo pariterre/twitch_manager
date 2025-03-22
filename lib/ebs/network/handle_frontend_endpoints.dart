@@ -32,7 +32,17 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   // Upgrade the request to a WebSocket connection
   late final WebSocket socket;
   try {
-    socket = await WebSocketTransformer.upgrade(request);
+    // We must "choose" the Sec-WebSocket-Protocol here, otherwise the
+    // connection will be disconnected by some web browsers. Note this response
+    // is encrypted by the fact that https is used. It is therefore correct to
+    // send the shared secret in the response.
+    socket = await WebSocketTransformer.upgrade(request,
+        protocolSelector: (protocols) {
+      for (final protocol in protocols) {
+        if (protocol.startsWith('Bearer-')) return protocol;
+      }
+      throw ConnexionToWebSocketdRefusedException();
+    });
   } catch (e) {
     throw ConnexionToWebSocketdRefusedException();
   }
