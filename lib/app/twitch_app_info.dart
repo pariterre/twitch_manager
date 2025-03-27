@@ -14,7 +14,7 @@ class TwitchAppInfo extends TwitchInfo {
 
   ///
   /// The URI that points to a server that handles the response from Twitch.
-  /// The server is implemented in [ressources/authentication_server]. This is the
+  /// The server is implemented in [resources/authentication_server]. This is the
   /// backend called by the [twitchRedirectUri] to get the authentication token from
   /// Twitch and redirect it to the app.
   final Uri authenticationServerUri;
