@@ -39,11 +39,10 @@ class TwitchApi {
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
-    _instance =
-        TwitchApi._internal(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
+    _instance = TwitchApi._(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
   }
 
-  TwitchApi._internal({required this.broadcasterId, required this.ebsInfo});
+  TwitchApi._({required this.broadcasterId, required this.ebsInfo});
 
   final int broadcasterId;
   final TwitchEbsInfo ebsInfo;

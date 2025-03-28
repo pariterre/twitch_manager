@@ -60,7 +60,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
         context: context,
         builder: (ctx) => TwitchAppAuthenticationDialog(
               // Use a mocker to simulate the connexion, this is useful for testing
-              isMockActive: true,
+              useMocker: true,
               onConnexionEstablished: (manager) =>
                   Navigator.of(context).pop(manager),
               appInfo: TwitchAppInfo(
