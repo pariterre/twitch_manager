@@ -3,22 +3,44 @@
 /// as such:
 /// final myListener = TwitchListener<Function(String param1, bool param2)>();
 class TwitchListener<T extends Function> {
+  // Define a mutex to prevent adding/removing listeners while notifying
+  bool _isNotifying = false;
+
+  Future<void> _waitForNotifying() async {
+    while (_isNotifying) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
   ///
   /// Start listening.
-  void listen(T callback) => _listeners.add(callback);
+  Future<void> listen(T callback) async {
+    await _waitForNotifying();
+    _listeners.add(callback);
+  }
 
   ///
   /// Stop listening.
-  void cancel(T callback) => _listeners.remove(callback);
+  Future<void> cancel(T callback) async {
+    await _waitForNotifying();
+    _listeners.remove(callback);
+  }
 
   ///
   /// Stop all listeners.
-  void cancelAll() => _listeners.clear();
+  Future<void> cancelAll() async {
+    await _waitForNotifying();
+    _listeners.clear();
+  }
 
   ///
   /// Notify all listeners.
-  void notifyListeners(void Function(T) callback) =>
-      _listeners.forEach(callback);
+  Future<void> notifyListeners(void Function(T) callback) async {
+    await _waitForNotifying();
+    _isNotifying = true;
+    _listeners.forEach(callback);
+    _isNotifying = false;
+  }
 
   int get length => _listeners.length;
 
