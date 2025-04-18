@@ -1,5 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:js_util';
+import 'dart:js_interop';
 
 import 'package:js/js.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
@@ -19,22 +18,24 @@ external _TwitchExtension get _twitchExtension;
 ///
 /// Define the Twitch Extension JavaScript API
 @JS()
-@anonymous
-class _TwitchExtension {
-  external void onAuthorized(Function(_OnAuthorizedResponseJs auth) callback);
+@staticInterop
+class _TwitchExtension {}
+
+extension on _TwitchExtension {
+  external void onAuthorized(JSFunction callback);
 
   // Listen to PubSub messages
-  external void listen(
-    String target,
-    Function(String target, String contentType, String message) callback,
-  );
+  external void listen(String target, JSFunction callback);
 }
 
 ///
 /// Define the response from the Twitch Extension onAuthorized callback
 @JS()
 @anonymous
-class _OnAuthorizedResponseJs {
+@staticInterop
+class _OnAuthorizedResponseJs {}
+
+extension on _OnAuthorizedResponseJs {
   external String get channelId;
   external String get clientId;
   external String get token;
@@ -42,30 +43,31 @@ class _OnAuthorizedResponseJs {
   external String get userId;
 }
 
-OnAuthorizedResponse _fromReponseJsToReponse(
-    _OnAuthorizedResponseJs responseJs) {
-  return OnAuthorizedResponse(
-    channelId: responseJs.channelId,
-    clientId: responseJs.clientId,
-    token: responseJs.token,
-    helixToken: responseJs.helixToken,
-    userId: responseJs.userId,
-  );
-}
-
 ///
 /// Define an interface to call the Twitch Extension JavaScript API
 class TwitchJsExtensionWeb implements TwitchJsExtensionBase {
   @override
   void onAuthorized(Function(OnAuthorizedResponse auth) callback) {
-    _twitchExtension.onAuthorized(allowInterop(
-        (responseJs) => callback(_fromReponseJsToReponse(responseJs))));
+    _twitchExtension.onAuthorized(((JSAny jsObj) {
+      final auth = jsObj as _OnAuthorizedResponseJs;
+      callback(OnAuthorizedResponse(
+        channelId: auth.channelId,
+        clientId: auth.clientId,
+        token: auth.token,
+        helixToken: auth.helixToken,
+        userId: auth.userId,
+      ));
+    }).toJS);
   }
 
   @override
   void listen(String target,
       Function(String target, String contentType, String message) callback) {
-    _twitchExtension.listen(target, allowInterop(callback));
+    _twitchExtension.listen(
+        target,
+        ((JSAny target, JSAny contentType, JSAny message) {
+          callback(target as String, contentType as String, message as String);
+        }).toJS);
   }
 }
 
@@ -73,8 +75,10 @@ class TwitchJsExtensionWeb implements TwitchJsExtensionBase {
 external _TwitchActions get _twitchActions;
 
 @JS()
-@anonymous
-class _TwitchActions {
+@staticInterop
+class _TwitchActions {}
+
+extension on _TwitchActions {
   external void requestIdShare();
 }
 
@@ -87,67 +91,85 @@ class TwitchJsExtensionActionsWeb implements TwitchJsExtensionActionsBase {
 external _TwitchBits get _twitchBits;
 
 @JS()
+@staticInterop
+class _TwitchBits {}
+
+extension on _TwitchBits {
+  external JSPromise getProducts();
+  external void onTransactionComplete(JSFunction callback);
+  external void onTransactionCancelled(JSFunction callback);
+  external void setUseLoopback(bool useLoopBack);
+  external void useBits(String sku);
+}
+
+@JS()
 @anonymous
-class _BitsTransactionObjectJs {
+@staticInterop
+class _BitsProductJs {}
+
+extension on _BitsProductJs {
+  external String get sku;
+  external String get displayName;
+  external bool get inDevelopment;
+  external _BitsCostJs get cost;
+}
+
+@JS()
+@anonymous
+@staticInterop
+class _BitsCostJs {}
+
+extension on _BitsCostJs {
+  external String get amount;
+  external String get type;
+}
+
+@JS()
+@anonymous
+@staticInterop
+class _BitsTransactionObjectJs {}
+
+extension on _BitsTransactionObjectJs {
   external String get userId;
   external String get displayName;
   external int get initiator;
   external String get transactionReceipt;
 }
 
-@JS()
-@anonymous
-class _TwitchBits {
-  external dynamic getProducts();
-  external void onTransactionComplete(
-      Function(_BitsTransactionObjectJs transaction) callback);
-  external void onTransactionCancelled(Function() callback);
-  external void setUseLoopback(bool useLoopBack);
-  external void useBits(String sku);
-}
-
-// Factory constructor to create a Product from a Dart map
-BitsProduct _bitsProductFromJsMap(Map<String, dynamic> map) => BitsProduct(
-      sku: map['sku'] as String,
-      displayName: map['displayName'] as String,
-      cost: _costFromJsMap(
-          Map<String, dynamic>.from(dartify(map['cost']) as Map)),
-      inDevelopment: map['inDevelopment'] as bool,
-    );
-
-// Factory constructor to create a Cost object from a Dart map
-_costFromJsMap(Map<String, dynamic> map) => Cost(
-      amount: int.tryParse(map['amount'] as String) ?? -1,
-      type: map['type'] as String,
-    );
-
 class TwitchJsExtensionBitsWeb implements TwitchJsExtensionBitsBase {
-  ///
-  /// Constructor
   TwitchJsExtensionBitsWeb() {
-    _twitchBits.onTransactionComplete(allowInterop(
-        (transactionJs) => _handleOnTransactionCompleted(transactionJs)));
-    _twitchBits.onTransactionCancelled(
-        allowInterop(() => _handleOnTransactionCancelled()));
+    _twitchBits.onTransactionComplete(((JSAny transaction) {
+      _handleOnTransactionCompleted(transaction as _BitsTransactionObjectJs);
+    }).toJS);
+
+    _twitchBits.onTransactionCancelled((() {
+      _handleOnTransactionCancelled();
+    }).toJS);
   }
 
   @override
   Future<List<BitsProduct>> getProducts() async {
-    // Convert the JS Promise to a Dart Future
-    List jsList = await promiseToFuture(_twitchBits.getProducts());
-
-    // Convert the JS objects to Dart objects
-    return jsList
-        .map((item) => _bitsProductFromJsMap(
-            Map<String, dynamic>.from(dartify(item) as Map)))
+    final jsArray = await _twitchBits.getProducts().toDart as JSArray;
+    return jsArray.toDart
+        .cast<_BitsProductJs>()
+        .map((jsProduct) => BitsProduct(
+              sku: jsProduct.sku,
+              displayName: jsProduct.displayName,
+              inDevelopment: jsProduct.inDevelopment,
+              cost: Cost(
+                amount: int.tryParse(jsProduct.cost.amount) ?? -1,
+                type: jsProduct.cost.type,
+              ),
+            ))
         .toList();
   }
 
   final _onTransactionCompleted =
       TwitchListener<Function(BitsTransactionObject)>();
   @override
-  TwitchListener<Function(BitsTransactionObject p1)>
-      get onTransactionCompleted => _onTransactionCompleted;
+  TwitchListener<Function(BitsTransactionObject)> get onTransactionCompleted =>
+      _onTransactionCompleted;
+
   void _handleOnTransactionCompleted(_BitsTransactionObjectJs transactionJs) {
     final transaction = BitsTransactionObject(
         userId: transactionJs.userId,
@@ -163,8 +185,10 @@ class TwitchJsExtensionBitsWeb implements TwitchJsExtensionBitsBase {
   @override
   TwitchListener<Function()> get onTransactionCancelled =>
       _onTransactionCancelled;
-  void _handleOnTransactionCancelled() =>
-      _onTransactionCancelled.notifyListeners((callback) => callback());
+
+  void _handleOnTransactionCancelled() {
+    _onTransactionCancelled.notifyListeners((callback) => callback());
+  }
 
   @override
   void setUseLoopback(bool useLoopBack) {
@@ -172,17 +196,21 @@ class TwitchJsExtensionBitsWeb implements TwitchJsExtensionBitsBase {
   }
 
   @override
-  void useBits(String sku) => _twitchBits.useBits(sku);
+  void useBits(String sku) {
+    _twitchBits.useBits(sku);
+  }
 }
 
 @JS('Twitch.ext.viewer')
 external _TwitchViewer get _twitchViewer;
 
 @JS()
-@anonymous
-class _TwitchViewer {
-  external String opaqueId;
-  external String? id;
+@staticInterop
+class _TwitchViewer {}
+
+extension on _TwitchViewer {
+  external String get opaqueId;
+  external String? get id;
 }
 
 class TwitchJsExtensionViewerWeb implements TwitchJsExtensionViewerBase {
