@@ -64,11 +64,20 @@ Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
   if (authHeader == null || !authHeader.startsWith('Bearer-')) {
     throw UnauthorizedException();
   }
-// Extract the Bearer token by removing 'Bearer ' from the start
+  // Extract the Bearer token by removing 'Bearer ' from the start
   final bearer = authHeader.substring(7);
-  // If the token is invalid, an exception is thrown
-  final decodedJwt = JWT.verify(
-      bearer, SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
-
-  return decodedJwt.payload;
+  try {
+    final decodedJwt = JWT.verify(
+        bearer, SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
+    return decodedJwt.payload;
+  } on JWTExpiredException {
+    // If the problem is only that JWT is expired, we log it, but we still accept
+    _logger.warning('JWT token is expired, but we still accept it...');
+    final decodedJwt = JWT.decode(bearer);
+    return decodedJwt.payload;
+  } catch (e) {
+    // If the token is invalid, an exception is thrown
+    _logger.severe('JWT token is invalid: $e');
+    throw UnauthorizedException();
+  }
 }
