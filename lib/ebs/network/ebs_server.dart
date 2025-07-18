@@ -17,11 +17,11 @@ final _logger = Logger('EbsServer');
 void startEbsServer(
     {required NetworkParameters parameters,
     required TwitchEbsInfo ebsInfo,
-    required TwitchEbsManagerAbstract Function(
-            {required int broadcasterId,
-            required TwitchEbsInfo ebsInfo,
-            required SendPort sendPort})
-        twitchEbsManagerFactory}) async {
+    required TwitchEbsManagerAbstract Function({
+      required int broadcasterId,
+      required TwitchEbsInfo ebsInfo,
+      required SendPort sendPort,
+    }) twitchEbsManagerFactory}) async {
   final httpServer = await _startServer(parameters);
 
   // Initialize the isolated manager so it can create new isolates

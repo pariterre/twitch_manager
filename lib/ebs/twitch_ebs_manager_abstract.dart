@@ -44,15 +44,23 @@ abstract class TwitchEbsManagerAbstract {
   ///
   /// Constructor for the IsolatedInstanceManagerAbstract. This must be called
   /// by the inherited class.
+  /// A mocked twitchApi via [mockedTwitchApi] can be sent so it is used to communicate
+  /// with the Twitch API. Otherwise a new instance is initialized with the
+  /// broadcasterId and ebsInfo.
   TwitchEbsManagerAbstract(
       {required int broadcasterId,
       required this.ebsInfo,
-      required SendPort sendPort}) {
+      required SendPort sendPort,
+      Future<void> Function(
+              {required int broadcasterId, required TwitchEbsInfo ebsInfo})?
+          twitchApiInitializer}) {
     _logger.info('Isolated created for streamer: $broadcasterId');
 
     communicator = Communicator(manager: this, sendPort: sendPort);
 
-    TwitchApi.initialize(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
+    twitchApiInitializer == null
+        ? TwitchApi.initialize(broadcasterId: broadcasterId, ebsInfo: ebsInfo)
+        : twitchApiInitializer(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
 
     // Inform the frontend that the streamer has connected
     communicator.sendMessage(MessageProtocol(

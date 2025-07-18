@@ -41,15 +41,18 @@ class TwitchFrontendManager implements TwitchManager {
   /// [onHasConnected] is a callback to be called when the connection is established.
   /// It is basically the same as the [onHasConnected] listener, but is added
   /// before the connection is established. While the [onHasConnected] listener
-  /// is added after the connection is established (therefore, never called)
+  /// is added after the connection is established (therefore, never called).
+  /// [mockedAuthenticator] is a mocked authenticator to use for testing purposes.
+  /// If none is provided, the normal authenticator is used which will connect to the Twitch API.
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
     Function()? onHasConnected,
+    TwitchJwtAuthenticator? mockedAuthenticator,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
-    final authenticator = TwitchJwtAuthenticator();
+    final authenticator = mockedAuthenticator ?? TwitchJwtAuthenticator();
     final apiToEbs =
         TwitchEbsApi(appInfo: appInfo, authenticator: authenticator);
     final manager = TwitchFrontendManager._(appInfo, authenticator, apiToEbs);

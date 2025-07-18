@@ -42,6 +42,19 @@ class TwitchApi {
     _instance = TwitchApi._(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
   }
 
+  static Future<void> initializeMocker({
+    required int broadcasterId,
+    required TwitchEbsInfo ebsInfo,
+    required MockedTwitchApiTemplate mockedTwitchApi,
+  }) async {
+    if (TwitchApi._instance != null) {
+      _logger.severe('TwitchManagerExtension is already initialized');
+      throw Exception('TwitchManagerExtension is already initialized');
+    }
+
+    TwitchApi._instance = mockedTwitchApi;
+  }
+
   TwitchApi._({required this.broadcasterId, required this.ebsInfo});
 
   final int broadcasterId;
@@ -211,4 +224,10 @@ class TwitchApi {
     }
     return _sharedBearerToken!.token;
   }
+}
+
+class MockedTwitchApiTemplate extends TwitchApi {
+  MockedTwitchApiTemplate(
+      {required super.broadcasterId, required super.ebsInfo})
+      : super._();
 }
