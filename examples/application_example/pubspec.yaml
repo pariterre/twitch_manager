@@ -1,4 +1,4 @@
-name: example
+name: application_example
 description: An example on how to use twitch_manager API.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
@@ -18,7 +18,7 @@ dependencies:
     # See https://dart.dev/tools/pub/dependencies#version-constraints
     # The example app is bundled with the plugin so we use a path dependency on
     # the parent directory to use the current plugin's version.
-    path: ../
+    path: ../../
 
 
 dev_dependencies:

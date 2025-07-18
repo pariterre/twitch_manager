@@ -1,4 +1,4 @@
-import 'package:example/models/command_controller.dart';
+import 'package:application_example/models/command_controller.dart';
 import 'package:flutter/material.dart';
 
 class TwitchCommandFormField extends StatefulWidget {

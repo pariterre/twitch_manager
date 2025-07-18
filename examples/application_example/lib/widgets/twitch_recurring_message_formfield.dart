@@ -1,4 +1,4 @@
-import 'package:example/models/recurring_message_controller.dart';
+import 'package:application_example/models/recurring_message_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

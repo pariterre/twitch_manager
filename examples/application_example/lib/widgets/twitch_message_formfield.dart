@@ -1,4 +1,4 @@
-import 'package:example/models/instant_message_controller.dart';
+import 'package:application_example/models/instant_message_controller.dart';
 import 'package:flutter/material.dart';
 
 class TwitchMessageFormField extends StatefulWidget {

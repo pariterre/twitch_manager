@@ -1,9 +1,9 @@
-import 'package:example/models/command_controller.dart';
-import 'package:example/models/instant_message_controller.dart';
-import 'package:example/models/recurring_message_controller.dart';
-import 'package:example/widgets/twitch_command_formfield.dart';
-import 'package:example/widgets/twitch_message_formfield.dart';
-import 'package:example/widgets/twitch_recurring_message_formfield.dart';
+import 'package:application_example/models/command_controller.dart';
+import 'package:application_example/models/instant_message_controller.dart';
+import 'package:application_example/models/recurring_message_controller.dart';
+import 'package:application_example/widgets/twitch_command_formfield.dart';
+import 'package:application_example/widgets/twitch_message_formfield.dart';
+import 'package:application_example/widgets/twitch_recurring_message_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 

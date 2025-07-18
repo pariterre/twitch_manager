@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:example/main.dart';
+import 'package:application_example/main.dart';
 
 class ReccurringMessageController {
   ReccurringMessageController();
