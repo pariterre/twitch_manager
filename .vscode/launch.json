@@ -5,11 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Example",
-            "cwd": "example",
+            "name": "Example (Application)",
+            "cwd": "examples/application_example",
             "request": "launch",
             "type": "dart",
             "args": ["--web-browser-flag=--disable-web-security"]
-        }
+        },
+        {
+            "name": "Example (Extension EBS)",
+            "cwd": "examples/extension_example/ebs",
+            "request": "launch",
+            "type": "dart",
+            "env": {
+                "EXTENSION_SECRET": "1234567890abcdef",
+            }
+        },
     ]
 }
