@@ -98,7 +98,7 @@ abstract class TwitchEbsManagerAbstract {
         break;
 
       case MessageTypes.disconnect:
-        // This is probably overkill, but we want to make sure the game is ended
+        // This is probably overkill, but we want to make sure the isolate is ended
         // So send back to the main a message to disconnect
         await communicator.sendMessage(MessageProtocol(
             to: MessageTo.pubsub,
@@ -192,12 +192,12 @@ abstract class TwitchEbsManagerAbstract {
       MessageProtocol message, ExtractedTransactionReceipt transactionReceipt);
 
   ///
-  /// Handle a message from the frontend to register to the game
+  /// Handle a message from the frontend to register to the client
   /// [userId] the twitch id of the user
   /// [opaqueId] the opaque id of the user (provided by the frontend)
   Future<bool> _frontendHasRegistered(
       {required int? userId, required String opaqueId}) async {
-    _logger.info('Registering to game');
+    _logger.info('Registering to client');
 
     // Do not lose time if the user is already registered
     if (userIdToOpaqueId.containsKey(userId)) return true;
@@ -233,8 +233,8 @@ abstract class TwitchEbsManagerAbstract {
   }
 
   ///
-  /// Keep the connexion alive. If it fails, the game is ended.
-  Future<void> _keepAlive(Timer keepGameManagerAlive) async {
+  /// Keep the connexion alive. If it fails, the connection is ended.
+  Future<void> _keepAlive(Timer keepAliveTimer) async {
     try {
       _logger.info('PING');
       final response = (await communicator
@@ -255,7 +255,7 @@ abstract class TwitchEbsManagerAbstract {
       _logger.info('PONG');
     } catch (e) {
       _logger.severe('App missed the ping, closing connexion');
-      keepGameManagerAlive.cancel();
+      keepAliveTimer.cancel();
       kill();
     }
   }

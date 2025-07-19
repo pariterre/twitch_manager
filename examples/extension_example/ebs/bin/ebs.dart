@@ -30,7 +30,7 @@ void main(List<String> arguments) async {
   final networkParameters = _processNetworkArguments(
     arguments,
     defaultHost: 'localhost',
-    defaultPort: 3010,
+    defaultPort: ConfigService.ebsPort,
   );
 
   startEbsServer(

@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:extension_ebs/models/messages.dart';
+import 'package:common/communication.dart';
+import 'package:common/state.dart';
 import 'package:extension_ebs/models/mocked_twitch_api.dart';
-import 'package:extension_ebs/models/state.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 
@@ -123,6 +123,8 @@ class EbsManager extends TwitchEbsManagerAbstract {
   /// It handles the messages and is expected to funnel the requests (after being
   /// treated) to whatever the [MessageTo] is set to.
   Future<void> _handleMessageFromApp(MessageProtocol message) async {
+    print('Received message from app: ${message.data}');
+
     try {
       switch (message.to) {
         case MessageTo.ebs:
@@ -138,9 +140,8 @@ class EbsManager extends TwitchEbsManagerAbstract {
           );
           switch (messageType) {
             case ToFrontendMessages.state:
-              currentState = State.deserialize(
-                message.data!['state'] as Map<String, dynamic>,
-              );
+              // Store the current just because we can
+              currentState = State.deserialize(message.data!['state']);
               _sendStateToFrontend();
               break;
           }

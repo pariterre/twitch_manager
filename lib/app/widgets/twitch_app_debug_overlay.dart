@@ -33,6 +33,12 @@ class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
   late var _currentTwitchPosition = widget.startingPosition;
 
   @override
+  void didUpdateWidget(covariant TwitchAppDebugOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final debugPanelOptions = widget.manager.runtimeType == TwitchManagerMock
         ? (widget.manager as TwitchManagerMock).debugPanelOptions

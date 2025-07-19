@@ -1,7 +1,7 @@
 name: common
 description: Common resources for the Twitch Extension example.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+publish_to: 'none'
 
 environment:
   sdk: ^3.8.1

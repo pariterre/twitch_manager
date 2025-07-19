@@ -75,6 +75,10 @@ abstract class TwitchAppManagerAbstract {
   }
 
   ///
+  /// Disconnect from the EBS server
+  // TODO to implement a proper disconnect method
+
+  ///
   /// Send a message to the EBS server
   Future<MessageProtocol> sendQuestionToEbs(MessageProtocol message) {
     try {

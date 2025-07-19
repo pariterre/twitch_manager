@@ -24,4 +24,10 @@ class ConfigService {
   ///
   /// The mocked Twitch shared secret
   static const mockedSharedSecret = 'abcdefghijklmnopqrstuvwxyz1234567890';
+
+  ///
+  /// The URI of the EBS server. If you are running the EBS server locally,
+  /// set this to `ws://localhost:3010`.
+  static const ebsPort = 3010;
+  static final ebsUri = Uri.parse('ws://localhost:$ebsPort');
 }

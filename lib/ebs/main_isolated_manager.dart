@@ -156,7 +156,7 @@ class MainIsolatedManager {
   final Map<int, _IsolatedClientInterface> _isolates = {};
 
   ///
-  /// Launch a new game if needed
+  /// Launch a new isolated if needed
   Future<void> registerNewBroadcaster(
       {required int broadcasterId,
       required WebSocket socket,
@@ -167,7 +167,7 @@ class MainIsolatedManager {
     mainReceivePort.listen((message) => _handleMessageFromIsolated(
         MessageProtocol.fromJson(message), broadcasterId));
 
-    // Create a new game
+    // Create a new isolated client interface if it does not exist
     if (!_isolates.containsKey(broadcasterId)) {
       _logger.info('Starting a new connexion (broadcasterId: $broadcasterId)');
       _isolates[broadcasterId] = _IsolatedClientInterface(
@@ -189,13 +189,13 @@ class MainIsolatedManager {
     required WebSocket socket,
   }) async {
     try {
-      // Wait for the game to be created
+      // Wait for the main client to be created
       while (!_isolates.containsKey(broadcasterId)) {
         if (socket.closeCode != null) {
           return;
         }
 
-        _logger.fine('No active game with id: $broadcasterId');
+        _logger.fine('No active client with id: $broadcasterId');
         await Future.delayed(const Duration(seconds: 10));
       }
 
@@ -208,7 +208,7 @@ class MainIsolatedManager {
   }
 
   ///
-  /// Stop all games
+  /// Stop all clients
   void killAllIsolates() {
     for (var interface in _isolates.values) {
       interface.clear();
@@ -303,7 +303,7 @@ class MainIsolatedManager {
 
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
-      _logger.info('No active game with id: $broadcasterId');
+      _logger.info('No active client with id: $broadcasterId');
       return;
     }
 
@@ -317,13 +317,13 @@ class MainIsolatedManager {
 
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
-      _logger.info('No active game with id: $broadcasterId');
+      _logger.info('No active client with id: $broadcasterId');
       return MessageProtocol(
           to: MessageTo.frontend,
           from: MessageFrom.ebs,
           type: MessageTypes.response,
           isSuccess: false,
-          data: {'error_message': 'No active game with id: $broadcasterId'});
+          data: {'error_message': 'No active client with id: $broadcasterId'});
     }
 
     // Relay the message to the worker isolate
@@ -343,7 +343,7 @@ class MainIsolatedManager {
   }) async {
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
-      _logger.info('No active game with id: $broadcasterId');
+      _logger.info('No active client with id: $broadcasterId');
       return;
     }
 
