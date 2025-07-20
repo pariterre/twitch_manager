@@ -245,6 +245,7 @@ class MainIsolatedManager {
       MessageProtocol message, int broadcasterId) async {
     switch (message.type) {
       case MessageTypes.handShake:
+        _logger.info('Isolated client with id: $broadcasterId has connected');
         final isolate = _isolates[broadcasterId]!;
 
         isolate.sendPort = message.data!['send_port'];
@@ -256,6 +257,7 @@ class MainIsolatedManager {
         break;
 
       case MessageTypes.disconnect:
+        _logger.info('Disconnecting client with id: $broadcasterId');
         _isolates.remove(broadcasterId)?.clear();
         break;
 

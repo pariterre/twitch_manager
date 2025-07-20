@@ -123,7 +123,9 @@ class EbsManager extends TwitchEbsManagerAbstract {
   /// It handles the messages and is expected to funnel the requests (after being
   /// treated) to whatever the [MessageTo] is set to.
   Future<void> _handleMessageFromApp(MessageProtocol message) async {
-    print('Received message from app: ${message.data}');
+    print(
+      'Received message from app: ${message.data?['state']['sharedMessage']}',
+    );
 
     try {
       switch (message.to) {

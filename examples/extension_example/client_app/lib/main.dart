@@ -95,12 +95,12 @@ class _MainScreenState extends State<MainScreen> {
   EbsServerManager? _ebsServerManager;
 
   void _incrementCounter() => setState(() {
+    _counter++;
     widget.stateManager.currentState = widget.stateManager.currentState
         .copyWith(sharedMessage: 'Button pressed $_counter times');
     _ebsServerManager?.sendStateToFrontends(
       newState: widget.stateManager.currentState,
     );
-    _counter++;
   });
 
   @override
@@ -209,6 +209,9 @@ class _MainScreenState extends State<MainScreen> {
   /// TwitchManager and stop listening to chat messages.
   Future<bool> disconnect() async {
     if (_twitchManager == null) return true;
+
+    await _ebsServerManager?.disconnect();
+    _ebsServerManager = null;
 
     await _twitchManager!.chat.onMessageReceived.cancel(_onMessageReceived);
     await _twitchManager!.disconnect();

@@ -91,7 +91,7 @@ class _TwitchAppAuthenticationDialogState
     }
 
     // If we get here, we are done authenticating
-    Future.delayed(const Duration(milliseconds: 500)).then((_) {
+    Future.delayed(const Duration(milliseconds: 50)).then((_) {
       widget.onConnexionEstablished(_manager!);
     });
   }
@@ -238,50 +238,54 @@ class _TwitchAppAuthenticationDialogState
               _checkForConnexionDone(skipSetState: true);
             }
 
-            return Transform.scale(
-              scale: 1080 / MediaQuery.of(context).size.width,
-              child: SingleChildScrollView(
-                child: Container(
-                    color: const Color.fromARGB(255, 119, 35, 215),
-                    width: 1080,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 40.0, bottom: 8),
-                          child: Text(
-                            'TWITCH AUTHENTICATION',
-                            style: TextStyle(fontSize: 40, color: Colors.white),
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(40.0),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                      color: const Color.fromARGB(255, 119, 35, 215),
+                      width: 1080,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 40.0, bottom: 8),
+                            child: Text(
+                              'TWITCH AUTHENTICATION',
+                              style:
+                                  TextStyle(fontSize: 40, color: Colors.white),
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 700,
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Please connect to your streamer account on Twitch on '
-                                'your default browser, then click on "Connect streamer". '
-                                'Afterwards, connect to your chatbot account on Twitch, '
-                                'then click on "Connect chatbot". If you don\'t have a '
-                                'chatbot, you can use your streamer account.\n',
-                                textAlign: TextAlign.justify,
-                                style: TextStyle(
-                                    fontSize: 28, color: Colors.white),
-                              ),
-                              if (_status == _ConnexionStatus.waitForUser)
-                                _buildButtons(),
-                              if (_status ==
-                                  _ConnexionStatus.waitForTwitchValidation)
-                                _buildBrowseTo(),
-                              if (_status == _ConnexionStatus.connected)
-                                _buildWaitingMessage(
-                                    'Please wait while we are logging you'),
-                              const SizedBox(height: 30),
-                            ],
+                          SizedBox(
+                            width: 700,
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Please connect to your streamer account on Twitch on '
+                                  'your default browser, then click on "Connect streamer". '
+                                  'Afterwards, connect to your chatbot account on Twitch, '
+                                  'then click on "Connect chatbot". If you don\'t have a '
+                                  'chatbot, you can use your streamer account.\n',
+                                  textAlign: TextAlign.justify,
+                                  style: TextStyle(
+                                      fontSize: 28, color: Colors.white),
+                                ),
+                                if (_status == _ConnexionStatus.waitForUser)
+                                  _buildButtons(),
+                                if (_status ==
+                                    _ConnexionStatus.waitForTwitchValidation)
+                                  _buildBrowseTo(),
+                                if (_status == _ConnexionStatus.connected)
+                                  _buildWaitingMessage(
+                                      'Connexion established, redirecting...'),
+                                const SizedBox(height: 30),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    )),
+                        ],
+                      )),
+                ),
               ),
             );
           }),

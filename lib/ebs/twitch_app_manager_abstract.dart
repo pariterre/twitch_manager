@@ -76,7 +76,10 @@ abstract class TwitchAppManagerAbstract {
 
   ///
   /// Disconnect from the EBS server
-  // TODO to implement a proper disconnect method
+  Future<void> disconnect() async {
+    _logger.info('Disconnecting from EBS server');
+    _socket?.close();
+  }
 
   ///
   /// Send a message to the EBS server
