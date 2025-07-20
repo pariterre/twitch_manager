@@ -15,6 +15,9 @@ class ConfigService {
   /// If your extension requires a user ID, set this to `true`.
   /// Please note you will have to set the proper scopes in the Twitch Developer Console.
   /// If your extension does not require a user ID, set this to `false`.
+  /// In frontend, the method `authenticator.requestIdShare();` of the `TwitchFrontendManager`
+  /// class can be called to prompt a message to the viewer to authorize the extension
+  /// to access their Twitch ID.
   static const bool userIdIsRequired = false;
 
   ///

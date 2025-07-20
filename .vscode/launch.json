@@ -24,5 +24,11 @@
             "request": "launch",
             "type": "dart"
         },
+        {
+            "name": "Example (Extension Frontend)",
+            "cwd": "examples/extension_example/frontend",
+            "request": "launch",
+            "type": "dart"
+        },
     ]
 }

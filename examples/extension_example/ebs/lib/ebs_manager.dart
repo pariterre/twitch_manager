@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:common/communication.dart';
 import 'package:common/state.dart';
-import 'package:extension_ebs/models/mocked_twitch_api.dart';
+import 'package:extension_ebs/mocked_twitch_api.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 
@@ -207,6 +207,10 @@ class EbsManager extends TwitchEbsManagerAbstract {
             ),
           );
           break;
+
+        case ToAppMessages.pressButtonPlease:
+          // Simply relay the message
+          await communicator.sendMessage(message);
       }
     } catch (e) {
       return communicator.sendErrorReponse(message, e.toString());

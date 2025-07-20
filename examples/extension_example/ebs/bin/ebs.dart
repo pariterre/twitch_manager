@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:common/common.dart';
-import 'package:extension_ebs/managers/ebs_manager.dart';
+import 'package:extension_ebs/ebs_manager.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 

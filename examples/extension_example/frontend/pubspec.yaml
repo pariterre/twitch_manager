@@ -1,0 +1,31 @@
+name: extension_frontend
+description: "An example of the frontend (viewer experience). This can be used for `panel`, `component` and `video` elements."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dart_jsonwebtoken: ^2.14.0
+  twitch_manager:
+    # When depending on this package from a real application you should use:
+    #   enhanced_containers: ^x.y.z
+    # See https://dart.dev/tools/pub/dependencies#version-constraints
+    # The example is bundled with the plugin so we use a path dependency on
+    # the parent directory to use the current plugin's version.
+    path: ../../..
+  common:
+    path: ../common
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

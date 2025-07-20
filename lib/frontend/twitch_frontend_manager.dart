@@ -22,6 +22,11 @@ class TwitchFrontendManager implements TwitchManager {
 
   @override
   bool get isConnected => authenticator.isConnected;
+  @override
+  bool get isNotConnected => !authenticator.isConnected;
+
+  bool get isStreamerConnected => apiToEbs.isStreamerConnected;
+  bool get isStreamerNotConnected => apiToEbs.isStreamerNotConnected;
 
   ///
   /// This is a convenient accessor to the Bits API of the Twitch Extension.
@@ -42,17 +47,20 @@ class TwitchFrontendManager implements TwitchManager {
   /// It is basically the same as the [onHasConnected] listener, but is added
   /// before the connection is established. While the [onHasConnected] listener
   /// is added after the connection is established (therefore, never called).
-  /// [mockedAuthenticator] is a mocked authenticator to use for testing purposes.
+  /// [mockedAuthenticatorInitializer] is an initializer for the authenticator.
+  /// It can be used to provide a mocked authenticator for testing purposes.
   /// If none is provided, the normal authenticator is used which will connect to the Twitch API.
   static Future<TwitchFrontendManager> factory({
     required TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
     Function()? onHasConnected,
-    TwitchJwtAuthenticator? mockedAuthenticator,
+    TwitchJwtAuthenticator Function()? mockedAuthenticatorInitializer,
   }) async {
     _logger.config('Creating the manager to the Twitch connexion...');
 
-    final authenticator = mockedAuthenticator ?? TwitchJwtAuthenticator();
+    final authenticator = mockedAuthenticatorInitializer == null
+        ? TwitchJwtAuthenticator()
+        : mockedAuthenticatorInitializer();
     final apiToEbs =
         TwitchEbsApi(appInfo: appInfo, authenticator: authenticator);
     final manager = TwitchFrontendManager._(appInfo, authenticator, apiToEbs);
@@ -62,12 +70,13 @@ class TwitchFrontendManager implements TwitchManager {
     authenticator.listenToPubSub('broadcast', manager._onMessageReceived);
     manager.connect(isTwitchUserIdRequired: isTwitchUserIdRequired);
 
-    _logger.config('Manager is ready to be used');
+    _logger
+        .config('Manager is ready to be used, but may not be connected yet.');
     return manager;
   }
 
   Future<void> _connectToEbs() async {
-    await apiToEbs.connect(onMessageReceived: _onMessageReceived);
+    await apiToEbs.connect(onResponseFromEbs: _onMessageReceived);
     authenticator.onHasConnected.cancel(_connectToEbs);
   }
 
@@ -89,8 +98,9 @@ class TwitchFrontendManager implements TwitchManager {
   @override
   final onHasConnected = TwitchListener<Function()>();
 
-  final onStreamerHasConnected = TwitchListener<Function()>();
-  final onStreamerHasDisconnected = TwitchListener<Function()>();
+  TwitchListener get onStreamerHasConnected => apiToEbs.onStreamerHasConnected;
+  TwitchListener get onStreamerHasDisconnected =>
+      apiToEbs.onStreamerHasDisconnected;
 
   void _notifyOnHasConnected() {
     onHasConnected.notifyListeners((callback) => callback());
@@ -166,13 +176,7 @@ class TwitchFrontendManager implements TwitchManager {
     try {
       switch (message.type) {
         case MessageTypes.handShake:
-          _logger.info('Streamer connected to the extension');
-          onStreamerHasConnected.notifyListeners((callback) => callback());
-          return;
         case MessageTypes.disconnect:
-          _logger.info('Streamer disconnected from the extension');
-          onStreamerHasDisconnected.notifyListeners((callback) => callback());
-          return;
         case MessageTypes.bitTransaction:
         case MessageTypes.ping:
         case MessageTypes.pong:

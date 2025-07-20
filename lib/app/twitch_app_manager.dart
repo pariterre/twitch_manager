@@ -79,6 +79,8 @@ class TwitchAppManager implements TwitchManager {
   bool _isConnected = false;
   @override
   bool get isConnected => _isConnected;
+  @override
+  bool get isNotConnected => !_isConnected;
 
   ///
   /// Internal constructor of the Twitch Manager

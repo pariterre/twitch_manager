@@ -7,7 +7,16 @@ import 'package:common/common.dart';
 const _useMocker = true;
 
 class StateManager {
-  state.State currentState = state.State(sharedMessage: 'Initial State');
+  state.State currentState = state.State(
+    sharedMessage: 'Button pressed 0 times',
+  );
+
+  void pressButtonRequest() {
+    if (_pressButton == null) return;
+    _pressButton!();
+  }
+
+  Function? _pressButton;
 }
 
 ///
@@ -92,13 +101,19 @@ class _MainScreenState extends State<MainScreen> {
   // Also, to connect to the EBS, one must know the broadcasterId, which is
   // easily fetched by the TwitchAppManager.
   TwitchAppManager? _twitchManager;
-  EbsServerManager? _ebsServerManager;
+  EbsServerManager? _twitchAppManager;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.stateManager._pressButton = _incrementCounter;
+  }
 
   void _incrementCounter() => setState(() {
     _counter++;
     widget.stateManager.currentState = widget.stateManager.currentState
         .copyWith(sharedMessage: 'Button pressed $_counter times');
-    _ebsServerManager?.sendStateToFrontends(
+    _twitchAppManager?.sendStateToFrontends(
       newState: widget.stateManager.currentState,
     );
   });
@@ -151,7 +166,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: widget.stateManager.pressButtonRequest,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
@@ -194,7 +209,7 @@ class _MainScreenState extends State<MainScreen> {
       'Hello everyone! This is a message from the client app.',
     );
 
-    _ebsServerManager = EbsServerManager(
+    _twitchAppManager = EbsServerManager(
       _twitchManager!,
       ebsUri: ConfigService.ebsUri,
       stateManager: widget.stateManager,
@@ -210,8 +225,8 @@ class _MainScreenState extends State<MainScreen> {
   Future<bool> disconnect() async {
     if (_twitchManager == null) return true;
 
-    await _ebsServerManager?.disconnect();
-    _ebsServerManager = null;
+    await _twitchAppManager?.disconnect();
+    _twitchAppManager = null;
 
     await _twitchManager!.chat.onMessageReceived.cancel(_onMessageReceived);
     await _twitchManager!.disconnect();

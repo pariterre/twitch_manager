@@ -30,4 +30,5 @@ mixin TwitchManager {
   ///
   /// If the streamer is connected
   bool get isConnected;
+  bool get isNotConnected => !isConnected;
 }

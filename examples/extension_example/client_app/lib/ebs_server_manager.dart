@@ -54,9 +54,26 @@ class EbsServerManager extends TwitchAppManagerAbstract {
       );
 
   ///
-  /// This method must be overridden to handle the messages received from the EBS server.
+  /// This method must be overridden to handle the messages received from the
+  /// EBS server.
   @override
   Future<void> handleGetRequest(MessageProtocol message) async {
+    return _handleAllRequests(message);
+  }
+
+  ///
+  /// This method must be overridden to handle the messages received from the
+  /// EBS server.
+  @override
+  Future<void> handlePutRequest(MessageProtocol message) async {
+    return _handleAllRequests(message);
+  }
+
+  ///
+  /// For simplicity sake, we handle all requests in the same way.
+  /// In a real case, you may want to separate the requests to handle them
+  /// differently.
+  Future<void> _handleAllRequests(MessageProtocol message) async {
     try {
       final messageType = ToAppMessages.values.byName(message.data!['type']);
 
@@ -79,6 +96,9 @@ class EbsServerManager extends TwitchAppManagerAbstract {
             ),
           );
           break;
+
+        case ToAppMessages.pressButtonPlease:
+          _stateManager.pressButtonRequest();
       }
     } catch (e) {
       debugPrint('Error while handling message from EBS: $e');
@@ -91,11 +111,5 @@ class EbsServerManager extends TwitchAppManagerAbstract {
         ),
       );
     }
-  }
-
-  @override
-  Future<void> handlePutRequest(MessageProtocol message) {
-    // There is no put request to handle in this example.
-    throw UnimplementedError();
   }
 }

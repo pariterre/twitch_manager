@@ -1,3 +1,3 @@
 enum ToFrontendMessages { state }
 
-enum ToAppMessages { requestState }
+enum ToAppMessages { requestState, pressButtonPlease }

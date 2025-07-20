@@ -6,7 +6,8 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   TwitchJwtAuthenticator();
 
   ///
-  /// ebsToken is the token that is used to authenticate the EBS to the Twitch API
+  /// The [ebsToken] is a token that is used to authenticate that the user is
+  /// an authenticated Twitch user when communicating with the EBS to the Twitch API.
   String? _ebsToken;
   String? get ebsToken {
     if (!isConnected) {
@@ -43,6 +44,9 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   /// to be true when calling the [connect] method
   String? get userId => TwitchJsExtension.viewer.id;
 
+  ///
+  /// Request the real user id from Twitch. This prompts a popup to the user
+  /// to authorize the extension to access their Twitch ID.
   void requestIdShare() {
     TwitchJsExtension.actions.requestIdShare();
   }
@@ -51,6 +55,13 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   /// Provide a callback when the connection is established
   final onHasConnected = TwitchListener<Function()>();
 
+  ///
+  /// Connect to the Twitch EBS server.
+  /// This method must be called before any other method.
+  /// [appInfo] is the information of the Twitch app.
+  /// [isTwitchUserIdRequired] is true if the app needs the real user id.
+  /// If true, the extension must be setup properly in the Twitch Developer Console
+  /// to allow the extension to request the user id.
   @override
   Future<void> connect({
     required covariant TwitchFrontendInfo appInfo,
@@ -76,6 +87,10 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     });
   }
 
+  ///
+  /// Listen to the PubSub messages from Twitch. PubSub messages are used
+  /// to a way to communicate with the Twitch API that will automatically
+  /// sends a message to all connected frontends.
   Future<void> listenToPubSub(
       String target, Function(MessageProtocol message) callback) async {
     TwitchJsExtension.listen(target,
@@ -89,7 +104,8 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     });
   }
 
-  // Define the onAuthorized callback function
+  ///
+  /// Define the onAuthorized callback function
   void _onAuthorizedCallback(OnAuthorizedResponse reponse) {
     _logger.info('Received auth token');
 
