@@ -63,6 +63,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
               useMocker: true,
               onConnexionEstablished: (manager) =>
                   Navigator.of(context).pop(manager),
+              onCancelConnexion: () {}, // Prevent from closing the dialog
               appInfo: TwitchAppInfo(
                 appName: 'My Lovely App',
                 twitchClientId: 'YOUR_CLIENT_ID_HERE',

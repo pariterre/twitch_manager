@@ -186,6 +186,7 @@ class _MainScreenState extends State<MainScreen> {
         onConnexionEstablished: (manager) {
           if (context.mounted) Navigator.of(context).pop(manager);
         },
+        onCancelConnexion: () {}, // Prevent from closing the dialog
         appInfo: widget.appInfo,
         reload: reloadIfPossible,
       ),
