@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_app_manager.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
+import 'package:twitch_manager/app/widgets/localized_texts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 ///
@@ -12,6 +14,8 @@ enum _ConnexionStatus {
   waitForTwitchValidation,
   connected,
 }
+
+const _twitchColor = Color.fromARGB(255, 119, 35, 215);
 
 Future<TwitchAppManager?> showTwitchAppAuthenticationDialog(
   BuildContext context, {
@@ -95,6 +99,12 @@ class _TwitchAppAuthenticationDialogState
           reload: widget.reload,
           saveKeySuffix: widget.saveKey);
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    LocalizedTexts.instance.findLocale(context);
+  }
+
   Future<void> _connectStreamer() async {
     if (_manager == null) return;
 
@@ -121,7 +131,7 @@ class _TwitchAppAuthenticationDialogState
 
     _status = _ConnexionStatus.connected;
     if (!skipSetState) {
-      setState(() {});
+      if (mounted) setState(() {});
     }
 
     // If we get here, we are done authenticating
@@ -147,7 +157,7 @@ class _TwitchAppAuthenticationDialogState
             child: Text(
           message,
           textAlign: TextAlign.justify,
-          style: const TextStyle(color: Colors.white, fontSize: 20),
+          style: const TextStyle(color: _twitchColor, fontSize: 20),
         )),
         const Padding(
           padding: EdgeInsets.all(16),
@@ -162,18 +172,17 @@ class _TwitchAppAuthenticationDialogState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'You will be redirected to the Twitch logging page. '
-            'If it does not happen automatically, please navigate to:',
+          Text(
+            LocalizedTexts.instance.redirectText,
             textAlign: TextAlign.justify,
-            style: TextStyle(color: Colors.white, fontSize: 20),
+            style: const TextStyle(color: _twitchColor, fontSize: 20),
           ),
           const SizedBox(height: 24),
           SelectableText(
             _redirectAddress!,
             textAlign: TextAlign.justify,
             style: const TextStyle(
-                color: Colors.white,
+                color: _twitchColor,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 decoration: TextDecoration.underline),
@@ -188,15 +197,16 @@ class _TwitchAppAuthenticationDialogState
                   await Clipboard.setData(
                       ClipboardData(text: _redirectAddress!));
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Copied to your clipboard !')));
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content:
+                          Text(LocalizedTexts.instance.copiedToClipboard)));
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
+                style: ElevatedButton.styleFrom(backgroundColor: _twitchColor),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    'Copy to clipboard',
-                    style: TextStyle(color: Colors.black, fontSize: 28),
+                    LocalizedTexts.instance.copyToClipboard,
+                    style: const TextStyle(color: Colors.white, fontSize: 28),
                   ),
                 ),
               ),
@@ -206,12 +216,12 @@ class _TwitchAppAuthenticationDialogState
                   Uri.parse(_redirectAddress!),
                   mode: LaunchMode.inAppWebView,
                 ),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
+                style: ElevatedButton.styleFrom(backgroundColor: _twitchColor),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    'Open in browser',
-                    style: TextStyle(color: Colors.black, fontSize: 28),
+                    LocalizedTexts.instance.openInBrowser,
+                    style: const TextStyle(color: Colors.white, fontSize: 28),
                   ),
                 ),
               ),
@@ -229,12 +239,12 @@ class _TwitchAppAuthenticationDialogState
           onPressed: _manager != null && _manager!.isStreamerConnected
               ? null
               : _connectStreamer,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-          child: const Padding(
-            padding: EdgeInsets.all(8.0),
+          style: ElevatedButton.styleFrom(backgroundColor: _twitchColor),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Connect streamer',
-              style: TextStyle(color: Colors.black, fontSize: 28),
+              LocalizedTexts.instance.connectStreamer,
+              style: const TextStyle(color: Colors.white, fontSize: 28),
             ),
           ),
         ),
@@ -244,12 +254,12 @@ class _TwitchAppAuthenticationDialogState
             onPressed: _manager == null || !_manager!.isStreamerConnected
                 ? null
                 : _connectChatbot,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
+            style: ElevatedButton.styleFrom(backgroundColor: _twitchColor),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
               child: Text(
-                'Connect chatbot',
-                style: TextStyle(color: Colors.black, fontSize: 28),
+                LocalizedTexts.instance.connectChatbot,
+                style: const TextStyle(color: Colors.white, fontSize: 28),
               ),
             ),
           ),
@@ -279,69 +289,79 @@ class _TwitchAppAuthenticationDialogState
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Container(
-                          color: const Color.fromARGB(255, 119, 35, 215),
-                          width: 1080,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Padding(
-                                    padding:
-                                        EdgeInsets.only(top: 40.0, bottom: 8),
-                                    child: Text(
-                                      'TWITCH AUTHENTICATION',
-                                      style: TextStyle(
-                                          fontSize: 40, color: Colors.white),
+                        color: Colors.white,
+                        child: Container(
+                            color: _twitchColor.withAlpha(10),
+                            width: 1080,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(height: 30),
+                                    Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SvgPicture.asset(
+                                            'assets/twitch_name.svg',
+                                            height: 100,
+                                            package: 'twitch_manager',
+                                          ),
+                                          const SizedBox(width: 20),
+                                          SvgPicture.asset(
+                                            'assets/twitch_logo.svg',
+                                            height: 100,
+                                            package: 'twitch_manager',
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 700,
-                                    child: Column(
-                                      children: [
-                                        const Text(
-                                          'Please connect to your streamer account on Twitch on '
-                                          'your default browser, then click on "Connect streamer". '
-                                          'Afterwards, connect to your chatbot account on Twitch, '
-                                          'then click on "Connect chatbot". If you don\'t have a '
-                                          'chatbot, you can use your streamer account.\n',
-                                          textAlign: TextAlign.justify,
-                                          style: TextStyle(
-                                              fontSize: 28,
-                                              color: Colors.white),
-                                        ),
-                                        if (_status ==
-                                            _ConnexionStatus.waitForUser)
-                                          _buildButtons(),
-                                        if (_status ==
-                                            _ConnexionStatus
-                                                .waitForTwitchValidation)
-                                          _buildBrowseTo(),
-                                        if (_status ==
-                                            _ConnexionStatus.connected)
-                                          _buildWaitingMessage(
-                                              'Connexion established, redirecting...'),
-                                        const SizedBox(height: 30),
-                                      ],
+                                    SizedBox(
+                                      width: 850,
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            LocalizedTexts.instance.mainText,
+                                            textAlign: TextAlign.justify,
+                                            style: const TextStyle(
+                                                fontSize: 28,
+                                                color: _twitchColor),
+                                          ),
+                                          if (_status ==
+                                              _ConnexionStatus.waitForUser)
+                                            _buildButtons(),
+                                          if (_status ==
+                                              _ConnexionStatus
+                                                  .waitForTwitchValidation)
+                                            _buildBrowseTo(),
+                                          if (_status ==
+                                              _ConnexionStatus.connected)
+                                            _buildWaitingMessage(LocalizedTexts
+                                                .instance.waitingForRedirect),
+                                          const SizedBox(height: 30),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Positioned(
-                                top: 10,
-                                right: 10,
-                                child: IconButton(
-                                  onPressed: () => widget.onCancelConnexion(),
-                                  icon: const Icon(
-                                    Icons.cancel_outlined,
-                                    color: Colors.white,
-                                    size: 30,
+                                  ],
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: IconButton(
+                                    onPressed: () => widget.onCancelConnexion(),
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: _twitchColor,
+                                      size: 30,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          )),
+                              ],
+                            )),
+                      ),
                     ),
                   ),
                 );

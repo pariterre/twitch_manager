@@ -81,3 +81,32 @@ flutter build web --web-renderer=html
 Once the folder is compiled, in order to send it to Twitch, it must be zip. I suggest to rename the `build/web` folder to either `video_component`, `panel`, `video_overlay` or `mobile`. Then, in the Twitch `Element Hosting`, you can refer to the respective folder using the `XXXX/index.html` path. Note, this zip file can be joined with all the App zip folders and the config folder.
 
 Moreover, in the `Capability` section of the Twitch Developer Dashboard, you must add your EBS domain to the `Allowlist for URL Fetching Domains` (do not forget to add the port if the port is required in the URI).
+
+### Localization
+
+If one wants to use the dialog that manages the Twitch authentication and have it localized (see `TwitchAppAuthenticationDialog`), then they must add the `flutter_localizations` package to the App `pubspec.yaml`:
+
+```yamldependencies:
+  flutter_localizations:
+    sdk: flutter
+```
+
+Then in the `MaterialApp`, one must add the following parameters:
+```dart
+import 'package:flutter_localizations/flutter_localizations.dart';  
+...
+MaterialApp(
+  localizationsDelegates: const [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: const [
+    Locale('en', ''), // English, no country code
+    Locale('fr', ''), // French, no country code
+    // Theses are the only two languages currently supported by Twitch
+  ],
+  ...
+)
+```
+
