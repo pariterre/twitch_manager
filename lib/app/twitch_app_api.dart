@@ -97,10 +97,48 @@ class TwitchAppApi {
       },
     );
 
+    // if ((jsonDecode(response.body) as Map<String, dynamic>)['status'] == 401) {
+    //   _logger.warning('Token has expired');
+    //   return await _refreshToken(refreshToken: refreshToken);
+    // }
+
     final isValid = _checkIfTokenIsValid(response);
     _logger.info('OAUTH token is ${isValid ? 'valid' : 'invalid'}');
     return isValid;
   }
+
+  // static Future<String?> _refreshToken(
+  //     {required TwitchAppInfo appInfo, required String refreshToken}) async {
+  //   // TODO Move the "refreshToken" and "getNewOauth" token to backend
+  //   _logger.info('Refreshing OAUTH token...');
+  //   final response = await http.post(
+  //     Uri.parse('https://id.twitch.tv/oauth2/token'),
+  //     headers: <String, String>{
+  //       HttpHeaders.contentTypeHeader: 'application/x-www-form-urlencoded',
+  //     },
+  //     body: {
+  //       'client_id': appInfo.twitchClientId,
+  //       'client_secret': appInfo.twitchClientSecret,
+  //       'grant_type': 'refresh_token',
+  //       'refresh_token': refreshToken,
+  //     },
+  //   );
+
+  //   if (response.statusCode != 200) {
+  //     _logger.warning('Error while refreshing token: ${response.body}');
+  //     return null;
+  //   }
+
+  //   final body = json.decode(response.body);
+  //   final newAccessToken = body['access_token'];
+  //   if (newAccessToken == null) {
+  //     _logger.warning('Error while refreshing token: ${response.body}');
+  //     return null;
+  //   }
+
+  //   _logger.info('OAUTH token refreshed');
+  //   return newAccessToken;
+  // }
 
   ///
   /// Get a new OAUTH for the user

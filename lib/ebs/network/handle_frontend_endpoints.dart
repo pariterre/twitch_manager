@@ -67,8 +67,8 @@ Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
   // Extract the Bearer token by removing 'Bearer ' from the start
   final bearer = authHeader.substring(7);
   try {
-    final decodedJwt = JWT.verify(
-        bearer, SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
+    final decodedJwt = JWT.verify(bearer,
+        SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true));
     return decodedJwt.payload;
   } on JWTExpiredException {
     // If the problem is only that JWT is expired, we log it, but we still accept

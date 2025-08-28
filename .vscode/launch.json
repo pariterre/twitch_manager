@@ -16,7 +16,7 @@
             "cwd": "examples/extension_example/ebs",
             "request": "launch",
             "type": "dart",
-            "env": { "EXTENSION_SECRET": "1234567890abcdef" }
+            "env": { "EXTENSION_API_CLIENT_SECRET": "1234567890abcdef" }
         },
         {
             "name": "Example (Extension Client App)",

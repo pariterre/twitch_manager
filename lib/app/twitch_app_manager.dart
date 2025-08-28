@@ -116,8 +116,10 @@ class TwitchAppManager implements TwitchManager {
     // it again here (mostly for connecting twitch events)
     await manager._connectToTwitchBackend();
 
-    manager.onHasConnected.notifyListeners((callback) => callback());
-    _logger.config('Manager is ready to be used');
+    if (manager.isConnected) {
+      manager.onHasConnected.notifyListeners((callback) => callback());
+      _logger.config('Manager is ready to be used');
+    }
     return manager;
   }
 
@@ -134,7 +136,8 @@ class TwitchAppManager implements TwitchManager {
         appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
     await _connectToTwitchBackend();
 
-    _logger.info('Streamer is connected to Twitch');
+    _logger
+        .info('Streamer is ${_isConnected ? '' : 'not '}connected to Twitch');
   }
 
   ///
@@ -251,6 +254,11 @@ class TwitchManagerMock extends TwitchAppManager {
     return _events! as TwitchEventsMock;
   }
 
+  ///
+  /// Main constructor of the Twitch Manager
+  TwitchManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
+      : super._(appInfo, TwitchAppAuthenticatorMock());
+
   /// Main constructor for the TwitchManager.
   /// [appInfo] is all the required information of the current app
   /// [loadPreviousSession] uses credidential from previous session if set to true.
@@ -260,8 +268,10 @@ class TwitchManagerMock extends TwitchAppManager {
     required TwitchAppInfo appInfo,
     TwitchDebugPanelOptions? debugPanelOptions,
   }) async {
-    return TwitchManagerMock._(
+    final instance = TwitchManagerMock._(
         appInfo, debugPanelOptions ?? TwitchDebugPanelOptions());
+    await instance._connectToTwitchBackend();
+    return instance;
   }
 
   @override
@@ -279,13 +289,6 @@ class TwitchManagerMock extends TwitchAppManager {
     Future<void> Function(String address)? onRequestBrowsing,
   }) async {
     await _connectToTwitchBackend();
-  }
-
-  ///
-  /// Main constructor of the Twitch Manager
-  TwitchManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
-      : super._(appInfo, TwitchAppAuthenticatorMock()) {
-    _connectToTwitchBackend();
   }
 
   ///

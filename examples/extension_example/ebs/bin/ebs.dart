@@ -144,21 +144,22 @@ void _setupLoggerFromArguments(List<String> arguments) {
 }
 
 TwitchEbsInfo getTwitchEbsInfo() {
-  final sharedSecret = _useTwitchMocker
+  final extensionSharedSecret = _useTwitchMocker
       ? ConfigService.mockedSharedSecret
-      : Platform.environment['SHARED_SECRET_KEY'];
-  if (sharedSecret == null) {
+      : Platform.environment['EXTENSION_SHARED_SECRET'];
+  if (extensionSharedSecret == null) {
     throw ArgumentError(
-      'No Twitch shared secret key provided, please provide one by setting '
-      'SHARED_SECRET_KEY environment variable',
+      'No Twitch shared secret provided, please provide one by setting '
+      'EXTENSION_SHARED_SECRET environment variable',
     );
   }
 
-  final extensionSecret = Platform.environment['EXTENSION_SECRET'];
-  if (extensionSecret == null) {
+  final extensionApiClientSecret =
+      Platform.environment['EXTENSION_API_CLIENT_SECRET'];
+  if (extensionApiClientSecret == null) {
     throw ArgumentError(
-      'No Twitch extension secret key provided, please provide one by setting '
-      'EXTENSION_SECRET environment variable',
+      'No Twitch extension API client secret key provided, please provide one by setting '
+      'EXTENSION_API_CLIENT_SECRET environment variable',
     );
   }
 
@@ -166,8 +167,8 @@ TwitchEbsInfo getTwitchEbsInfo() {
     appName: ConfigService.extensionName,
     twitchClientId: ConfigService.twitchClientId,
     extensionVersion: ConfigService.extensionVersion,
-    extensionSecret: extensionSecret,
-    sharedSecret: sharedSecret,
+    extensionApiClientSecret: extensionApiClientSecret,
+    extensionSharedSecret: extensionSharedSecret,
     isTwitchUserIdRequired: ConfigService.userIdIsRequired,
   );
 }

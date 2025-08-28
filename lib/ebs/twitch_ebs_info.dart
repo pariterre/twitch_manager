@@ -13,13 +13,13 @@ class TwitchEbsInfo extends TwitchInfo {
   /// The secret key of the extension. This is used to communicate with the
   /// Twitch API. It is secret and should never be shared, nor should it be
   /// stored in the code. It should be stored in the environment variables.
-  final String? extensionSecret;
+  final String? extensionApiClientSecret;
 
   ///
-  /// The shared secret key of the extension. This is used to communicate with
+  /// The extension secret key of the extension. This is used to communicate with
   /// the frontend. It is secret and should never be shared, nor should it be
   /// stored in the code. It should be stored in the environment variables.
-  final String? sharedSecret;
+  final String? extensionSharedSecret;
 
   ///
   /// If the app needs the Twitch user ID. This is used to identify the user
@@ -33,13 +33,13 @@ class TwitchEbsInfo extends TwitchInfo {
   /// [appName] is the name of the app. It is mainly for reference as it is not used
   /// [twitchClientId] the client ID of the app.
   /// [extensionVersion] the version of the extension.
-  /// [extensionSecret] the secret key of the extension.
+  /// [extensionSharedSecret] the secret key of the extension.
   TwitchEbsInfo({
     required super.appName,
     required super.twitchClientId,
     required this.extensionVersion,
-    required this.extensionSecret,
-    this.sharedSecret,
+    required this.extensionApiClientSecret,
+    this.extensionSharedSecret,
     this.isTwitchUserIdRequired = false,
   });
 }

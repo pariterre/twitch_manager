@@ -181,7 +181,7 @@ class TwitchApi {
 
   _Bearer? _extensionBearer;
   Future<String> _getExtensionBearerToken() async {
-    if (ebsInfo.extensionSecret == null) {
+    if (ebsInfo.extensionApiClientSecret == null) {
       throw ArgumentError('Extension secret is required, please generate one '
           'from the Twitch developer console');
     }
@@ -190,7 +190,7 @@ class TwitchApi {
       final response =
           await http.post(Uri.https('id.twitch.tv', 'oauth2/token'), body: {
         'client_id': ebsInfo.extensionId,
-        'client_secret': ebsInfo.extensionSecret,
+        'client_secret': ebsInfo.extensionApiClientSecret,
         'grant_type': 'client_credentials',
       });
       final data = json.decode(response.body);
@@ -218,7 +218,8 @@ class TwitchApi {
         }
       });
       _sharedBearerToken = _Bearer(
-          jwt.sign(SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true),
+          jwt.sign(
+              SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true),
               expiresIn: const Duration(days: 1)),
           expiration: DateTime.now().add(const Duration(days: 1)));
     }

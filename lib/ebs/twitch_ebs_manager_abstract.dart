@@ -167,7 +167,7 @@ abstract class TwitchEbsManagerAbstract {
       MessageProtocol message) {
     try {
       final jwt = JWT.verify(message.transaction!.transactionReceipt,
-          SecretKey(ebsInfo.sharedSecret!, isBase64Encoded: true));
+          SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true));
       return ExtractedTransactionReceipt.fromJson(jwt.payload);
     } catch (e) {
       _logger.severe('Error validating bits transaction receipt: $e');
