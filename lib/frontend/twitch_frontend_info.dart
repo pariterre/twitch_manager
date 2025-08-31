@@ -1,4 +1,5 @@
 import 'package:twitch_manager/abstract/twitch_info.dart';
+import 'package:twitch_manager/twitch_app.dart';
 
 class TwitchFrontendInfo extends TwitchInfo {
   ///
@@ -15,5 +16,7 @@ class TwitchFrontendInfo extends TwitchInfo {
   TwitchFrontendInfo({
     required super.appName,
     required this.ebsUri,
-  }) : super(twitchClientId: null);
+  }) : super(
+            twitchClientId: null,
+            authenticationFlow: TwitchAuthenticationFlow.notApplicable);
 }

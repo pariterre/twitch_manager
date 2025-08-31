@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:common/common.dart';
 import 'package:extension_ebs/ebs_manager.dart';
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_credentials.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 
 final _logger = Logger('EBS Server');
@@ -170,5 +171,8 @@ TwitchEbsInfo getTwitchEbsInfo() {
     extensionApiClientSecret: extensionApiClientSecret,
     extensionSharedSecret: extensionSharedSecret,
     isTwitchUserIdRequired: ConfigService.userIdIsRequired,
+    authenticationFlow: TwitchAuthenticationFlow.implicit,
+    credentialsStorage: TwitchEbsCredentialsStorageInMemory(),
+    privateKey: '1234567890',
   );
 }

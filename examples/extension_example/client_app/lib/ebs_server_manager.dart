@@ -20,7 +20,7 @@ class EbsServerManager extends TwitchAppManagerAbstract {
   /// EBS server if [ebsUri] is provided.
   EbsServerManager(
     TwitchAppManager twitchManager, {
-    required super.ebsUri,
+    required super.appInfo,
     required StateManager stateManager,
   }) : _stateManager = stateManager {
     onEbsHasConnected.listen(_onEbsHasConnected);

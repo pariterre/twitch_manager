@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_info.dart';
@@ -15,6 +16,17 @@ part 'package:twitch_manager/frontend/twitch_jwt_authenticator.dart';
 
 final _logger = Logger('TwitchAuthenticator');
 
+class AccessToken {
+  final String jwt;
+  String get accessToken => JWT.decode(jwt).payload['access_token'];
+
+  AccessToken.fromJwt({required JWT jwt})
+      : jwt = jwt.sign(SecretKey('dummy_key'));
+
+  String serialize() => jwt;
+  AccessToken.fromSerialized(String token) : jwt = token;
+}
+
 abstract class TwitchAuthenticator {
   ///
   /// The key to save the session
@@ -26,8 +38,8 @@ abstract class TwitchAuthenticator {
 
   ///
   /// The user bearer key
-  String? _bearerKey;
-  String? get bearerKey => _bearerKey;
+  AccessToken? _bearerKey;
+  AccessToken? get bearerKey => _bearerKey;
 
   ///
   /// If the user is connected
@@ -55,7 +67,7 @@ abstract class TwitchAuthenticator {
   Future<void> _saveSessions() async {
     _logger.config('Saving key');
     const storage = FlutterSecureStorage();
-    storage.write(key: 'bearer$saveKeySuffix', value: bearerKey);
+    storage.write(key: 'bearer$saveKeySuffix', value: bearerKey?.serialize());
   }
 
   ///
@@ -75,10 +87,17 @@ abstract class TwitchAuthenticator {
   }
 }
 
-Future<String?> _loadSession({required String key}) async {
+Future<AccessToken?> _loadSession({required String key}) async {
   const storage = FlutterSecureStorage();
-  final bearerKey = await storage.read(key: key);
-  return bearerKey != null && bearerKey.isNotEmpty ? bearerKey : null;
+  final storedBearerKey = await storage.read(key: key);
+  try {
+    return storedBearerKey != null && storedBearerKey.isNotEmpty
+        ? AccessToken.fromSerialized(storedBearerKey)
+        : null;
+  } catch (e) {
+    _logger.warning('Error while loading session: $e');
+    return null;
+  }
 }
 
 Future<void> _clearSession({required String key}) async {

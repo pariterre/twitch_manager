@@ -18,12 +18,16 @@ class MockedTwitchJwtAuthenticator extends TwitchJwtAuthenticator {
   /// This is normally automatically fetched by the TwitchManager, but in case
   /// of a mock, it cannot be retrieved.
   @override
-  String? get ebsToken {
-    return JWT({
-      'channel_id': channelId.toString(),
-      'opaque_user_id': opaqueUserId,
-      'user_id': userId,
-    }).sign(SecretKey(ConfigService.mockedSharedSecret, isBase64Encoded: true));
+  AccessToken? get ebsToken {
+    return AccessToken.fromSerialized(
+      JWT({
+        'channel_id': channelId.toString(),
+        'opaque_user_id': opaqueUserId,
+        'user_id': userId,
+      }).sign(
+        SecretKey(ConfigService.mockedSharedSecret, isBase64Encoded: true),
+      ),
+    );
   }
 
   ///

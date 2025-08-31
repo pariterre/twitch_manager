@@ -305,7 +305,8 @@ class TwitchEvents {
     final response = await post(
       Uri.parse(_twitchHelixUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_authenticator.bearerKey}',
+        HttpHeaders.authorizationHeader:
+            'Bearer ${_authenticator.bearerKey!.accessToken}',
         'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },
@@ -346,7 +347,8 @@ class TwitchEvents {
     await delete(
       Uri.parse(_twitchHelixUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer ${_authenticator.bearerKey}',
+        HttpHeaders.authorizationHeader:
+            'Bearer ${_authenticator.bearerKey!.accessToken}',
         'Client-Id': _appInfo.twitchClientId,
         'Content-Type': 'application/json',
       },

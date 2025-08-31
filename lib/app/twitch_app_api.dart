@@ -3,12 +3,14 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_events.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
+import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
@@ -87,13 +89,13 @@ class TwitchAppApi {
   /// Validates the current OAUTH key. This is mandatory as stated here:
   /// https://dev.twitch.tv/docs/authentication/validate-tokens/
   /// This only make sense for App (as opposed to extensions)
-  static Future<bool> validateOAuthToken({required String oAuthKey}) async {
+  static Future<bool> validateOAuthToken({required AccessToken token}) async {
     _logger.info('Validating OAUTH token...');
 
     final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oAuthKey',
+        HttpHeaders.authorizationHeader: 'Bearer ${token.accessToken}',
       },
     );
 
@@ -102,7 +104,7 @@ class TwitchAppApi {
     //   return await _refreshToken(refreshToken: refreshToken);
     // }
 
-    final isValid = _checkIfTokenIsValid(response);
+    final isValid = _checkIfResponseIsValid(response);
     _logger.info('OAUTH token is ${isValid ? 'valid' : 'invalid'}');
     return isValid;
   }
@@ -145,13 +147,50 @@ class TwitchAppApi {
   /// [appInfo] holds all the necessary information to connect.
   /// [onRequestBrowsing] is the callback to show which address the user must
   /// browse.
-  static Future<String?> getNewOAuth({
+  static Future<AccessToken?> getAccessToken({
     required TwitchAppInfo appInfo,
-    required Future<void> Function(String) onRequestBrowsing,
+    Future<void> Function(String)? onRequestBrowsing,
+    required AccessToken? previousAccessToken,
   }) async {
+    switch (appInfo.authenticationFlow) {
+      case TwitchAuthenticationFlow.implicit:
+        return await _getAccessTokenImplicitFlow(
+          appInfo: appInfo,
+          onRequestBrowsing: onRequestBrowsing,
+          previousAccessToken: previousAccessToken,
+        );
+      case TwitchAuthenticationFlow.authorizationCode:
+        return await _getAccessTokenAuthorizationCodeFlow(
+          appInfo: appInfo,
+          onRequestBrowsing: onRequestBrowsing,
+          previousAccessToken: previousAccessToken,
+        );
+      case TwitchAuthenticationFlow.notApplicable:
+        throw 'A method of authentication must be chosen to get a new OAuth token';
+    }
+  }
+
+  ///
+  /// Get a new OAUTH for the user using the implicit flow.
+  /// [appInfo] holds all the necessary information to connect.
+  /// [onRequestBrowsing] is the callback to show which address the user must
+  /// browse. If none is provided, only the validation step is performed.
+  static Future<AccessToken?> _getAccessTokenImplicitFlow({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String)? onRequestBrowsing,
+    required AccessToken? previousAccessToken,
+  }) async {
+    // Try to validate a previous JWT
+    if (previousAccessToken != null &&
+        await validateOAuthToken(token: previousAccessToken)) {
+      _logger.info('Previous JWT is still valid');
+      return previousAccessToken;
+    }
+    if (onRequestBrowsing == null) return null;
+
     // Generate a state so both Twitch and the Server knows the request is valid
     // and made by me
-    _logger.info('Getting new OAUTH...');
+    _logger.info('Getting new OAUTH using implicit flow...');
     final state = _generateSafeState();
 
     // Prepare the address the user should browse to.
@@ -159,7 +198,7 @@ class TwitchAppApi {
       'response_type': 'token',
       'client_id': appInfo.twitchClientId,
       'redirect_uri': appInfo.twitchRedirectUri.toString(),
-      'state': state
+      'state': state,
     }).toString();
     // We have to add scope by hand, otherwise the '+' is encoded
     browsingUri +=
@@ -192,7 +231,124 @@ class TwitchAppApi {
     }
 
     _logger.info('OAUTH received');
-    return oAuthKey;
+    // Convert the OAuth key to a JWT
+    return AccessToken.fromJwt(jwt: JWT({'access_token': oAuthKey}));
+  }
+
+  ///
+  /// Get a new OAUTH for the user using the authorization code flow.
+  /// [appInfo] holds all the necessary information to connect.
+  /// [onRequestBrowsing] is the callback to show which address the user must
+  /// browse. If none is provided, only the validation step is performed.
+  static Future<AccessToken?> _getAccessTokenAuthorizationCodeFlow({
+    required TwitchAppInfo appInfo,
+    required Future<void> Function(String)? onRequestBrowsing,
+    required AccessToken? previousAccessToken,
+  }) async {
+    // Generate a state so both Twitch and the Server knows the request is valid
+    // and made by me
+    _logger.info('Getting new OAUTH using authorization code flow...');
+
+    if (appInfo.ebsUri == null) {
+      throw 'Authorization code flow necessitates an EBS URI. Please set it in the TwitchAppInfo.';
+    }
+
+    final state = _generateSafeState();
+
+    // Call the EBS to get the a OAuth token for the current session
+    var uriBackend = appInfo.ebsUri!.replace(
+        scheme: appInfo.ebsUri!.scheme == 'wss' ? 'https' : 'http',
+        path: '/app/token',
+        queryParameters: {
+          'request_type': 'reload_token',
+          'previous_access_token': previousAccessToken?.serialize(),
+          'client_id': appInfo.twitchClientId,
+          'state': state,
+          'redirect_uri': appInfo.twitchRedirectUri.toString(),
+        });
+    try {
+      _logger.info('Try to fetch a previous access token...');
+      var response = await http.get(uriBackend);
+      if (response.statusCode == 200) {
+        final decodedBody = json.decode(response.body);
+        final token = decodedBody['access_token'];
+        if (token != null && state == decodedBody['state']) {
+          _logger.info('Received a token from EBS');
+          return AccessToken.fromSerialized(token);
+        }
+      }
+    } catch (e) {
+      // Continue normal execution (i.e. get a new access token)
+    }
+
+    if (onRequestBrowsing == null) {
+      _logger.warning('No browsing request provided, cannot proceed');
+      return null;
+    }
+
+    // Prepare the address the user should browse to.
+    String browsingUri = Uri.https('id.twitch.tv', '/oauth2/authorize', {
+      'client_id': appInfo.twitchClientId,
+      'redirect_uri': appInfo.twitchRedirectUri.toString(),
+      'response_type': 'code',
+      'state': state
+    }).toString();
+    // We have to add scope by hand, otherwise the '+' is encoded
+    browsingUri +=
+        '&scope=${appInfo.scope.map<String>((e) => e.toString()).join('+')}';
+
+    onRequestBrowsing(browsingUri);
+
+    // While they are browsing, we are waiting for the answer that will be sent
+    // to the server, by doing an HTTP get request with the state as query
+    Map<String, dynamic> body;
+    try {
+      final response = await http
+          .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
+      if (response.statusCode != 200) {
+        return null;
+      }
+      body = json.decode(response.body);
+    } on Exception {
+      return null;
+    }
+
+    // Parse the response to get the state and the OAuth key
+    final responseState = body['state'];
+    if (responseState != state) {
+      return null;
+    }
+    final code = body['code'];
+    if (code == null) {
+      return null;
+    }
+
+    // Call the EBS to get the a OAuth token for the current session
+    _logger.info('Exchanging code for access token...');
+    try {
+      final response = await http.get(uriBackend.replace(queryParameters: {
+        'request_type': 'new_token',
+        'client_id': appInfo.twitchClientId,
+        'state': state,
+        'code': code,
+        'redirect_uri': appInfo.twitchRedirectUri.toString(),
+      }));
+
+      if (response.statusCode != 200) {
+        _logger.warning('Error while exchanging code for access token');
+        return null;
+      }
+      final token = json.decode(response.body)['access_token'];
+      if (token == null || state != (body['state'])) {
+        _logger.warning('Error while exchanging code for access token');
+        return null;
+      }
+      _logger.info('OAUTH received');
+      return AccessToken.fromSerialized(token);
+    } catch (e) {
+      _logger.warning('Error while exchanging code for access token');
+      return null;
+    }
   }
 
   ///
@@ -500,7 +656,7 @@ class TwitchAppApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.bearerKey}',
+                  'Bearer ${_authenticator.bearerKey!.accessToken}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             });
@@ -512,7 +668,7 @@ class TwitchAppApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.bearerKey}',
+                  'Bearer ${_authenticator.bearerKey!.accessToken}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
@@ -525,7 +681,7 @@ class TwitchAppApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.bearerKey}',
+                  'Bearer ${_authenticator.bearerKey!.accessToken}',
               'Client-Id': _appInfo.twitchClientId,
               HttpHeaders.contentTypeHeader: 'application/json',
             },
@@ -538,7 +694,7 @@ class TwitchAppApi {
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
               HttpHeaders.authorizationHeader:
-                  'Bearer ${_authenticator.bearerKey}',
+                  'Bearer ${_authenticator.bearerKey!.accessToken}',
               'Client-Id': _appInfo.twitchClientId,
             });
         if (response.body.contains('error')) return null;
@@ -546,7 +702,7 @@ class TwitchAppApi {
     }
 
     // Make sure the token is still valid before continuing
-    if (!_checkIfTokenIsValid(response)) {
+    if (!_checkIfResponseIsValid(response)) {
       _logger.warning('Request failed as the token is invalid');
       return null;
     }
@@ -564,14 +720,14 @@ class TwitchAppApi {
   }
 
   ///
-  /// Fetch the user id from its [oAuthKey]
-  Future<int> _userId(String oAuthKey) async {
+  /// Fetch the user id from its [accessToken]
+  Future<int> _userId(AccessToken accessToken) async {
     _logger.info('Fetching user id...');
 
     final response = await http.get(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
-        HttpHeaders.authorizationHeader: 'Bearer $oAuthKey',
+        HttpHeaders.authorizationHeader: 'Bearer ${accessToken.accessToken}',
       },
     );
 
@@ -585,7 +741,7 @@ class TwitchAppApi {
   /// This method can be call by any of the user of authentication to inform
   /// that the token is now invalid.
   /// Returns true if it is, otherwise it returns false.
-  static bool _checkIfTokenIsValid(http.Response response) {
+  static bool _checkIfResponseIsValid(http.Response response) {
     _logger.info('Checking if token is valid...');
 
     final responseDecoded = jsonDecode(response.body) as Map;

@@ -12,8 +12,8 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
 
   ///
   /// The chatbot bearer key
-  String? _chatbotBearerKey;
-  String? get chatbotBearerKey => _chatbotBearerKey;
+  AccessToken? _chatbotBearerKey;
+  AccessToken? get chatbotBearerKey => _chatbotBearerKey;
 
   ///
   /// If the chatbot is connected
@@ -37,8 +37,8 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
     _isConnected = await _connectUserUsingOAuth(
       appInfo: appInfo,
       onRequestBrowsing: onRequestBrowsing,
-      getOAuthKey: () => bearerKey,
-      setOAuthKey: (value) => _bearerKey = value,
+      getPreviousAccessToken: () => bearerKey,
+      setAccessToken: (value) => _bearerKey = value,
     );
 
     if (appInfo.needChat && !appInfo.hasChatbot) {
@@ -69,6 +69,9 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
     bool tryNewOAuthKey = true,
   }) async {
     _logger.info('Connecting chatbot to Twitch');
+    if (onRequestBrowsing == null) {
+      throw 'No browsing request provided, cannot proceed';
+    }
 
     // if it is already connected, we are already done
     if (_isChatbotConnected) {
@@ -79,8 +82,8 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
     _isChatbotConnected = await _connectUserUsingOAuth(
       appInfo: appInfo,
       onRequestBrowsing: onRequestBrowsing,
-      getOAuthKey: () => chatbotBearerKey,
-      setOAuthKey: (value) => _chatbotBearerKey = value,
+      getPreviousAccessToken: () => chatbotBearerKey,
+      setAccessToken: (value) => _chatbotBearerKey = value,
     );
 
     _saveSessions();
@@ -95,70 +98,44 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
   /// [onRequestBrowsing] is the callback that authenticate through web browers.
   /// If it is not provided, then _connectUser only tries to validate the current
   /// OAuth key. If there is none, it simply returns.
-  /// [getOAuthKey] Callback to the current OAuth key of the user.
-  /// [setOAuthKey] Callback to set the OAuth key of the user.
-  /// If [tryNewOAuthKey] is false, then only the validation is performed, otherwise
-  /// a new OAuth key can generated
+  /// [getPreviousAccessToken] Callback to the current OAuth key of the user.
+  /// [setAccessToken] Callback to set the OAuth key of the user.
   Future<bool> _connectUserUsingOAuth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
-    required String? Function() getOAuthKey,
-    required void Function(String oAuthKey) setOAuthKey,
-    bool tryNewOAuthKey = true,
+    required AccessToken? Function() getPreviousAccessToken,
+    required void Function(AccessToken oAuthKey) setAccessToken,
   }) async {
     _logger.info('Connecting user to Twitch...');
 
-    bool isConnected = false;
-
-    // Try to validate the current OAuth key
-    if (getOAuthKey() != null) {
-      isConnected =
-          await TwitchAppApi.validateOAuthToken(oAuthKey: getOAuthKey()!);
-      _logger.info('OAuth key is ${isConnected ? '' : 'not'} valid');
-    }
-
-    if (!isConnected) {
-      if (!tryNewOAuthKey || onRequestBrowsing == null) {
-        _logger.severe('Could not connect to Twitch');
-        return false;
-      }
-
-      _logger.info('Requesting new OAuth key');
-      // Get a new OAuth key
-      final oauthKey = await TwitchAppApi.getNewOAuth(
-          appInfo: appInfo, onRequestBrowsing: onRequestBrowsing);
-      if (oauthKey == null) return false;
-      setOAuthKey(oauthKey);
-
-      // Try to reconnect, but only once [retry = false]
-      return _connectUserUsingOAuth(
-        appInfo: appInfo,
-        onRequestBrowsing: onRequestBrowsing,
-        getOAuthKey: getOAuthKey,
-        setOAuthKey: setOAuthKey,
-        tryNewOAuthKey: false,
-      );
-    }
+    // Get an access token
+    final token = await TwitchAppApi.getAccessToken(
+      appInfo: appInfo,
+      onRequestBrowsing: onRequestBrowsing,
+      previousAccessToken: getPreviousAccessToken(),
+    );
+    if (token == null) return false;
+    setAccessToken(token);
 
     // If we are indeed connected, we have to validate the OAuth key every hour
     Timer.periodic(const Duration(hours: 1), (timer) async {
       _logger.info('Validating OAuth key...');
 
-      final key = getOAuthKey();
-      if (key == null) {
+      final currentToken = getPreviousAccessToken();
+      if (currentToken == null) {
         _logger.warning('User has disconnected, stop validating the OAuth key');
         timer.cancel();
         return;
       }
-      if (!await TwitchAppApi.validateOAuthToken(oAuthKey: key)) {
+      if (!await TwitchAppApi.validateOAuthToken(token: currentToken)) {
         // If it fails, restart the connecting process
         _logger.warning('OAuth key is not valid, requesting new OAuth key');
         timer.cancel();
         _connectUserUsingOAuth(
           appInfo: appInfo,
           onRequestBrowsing: onRequestBrowsing,
-          getOAuthKey: getOAuthKey,
-          setOAuthKey: setOAuthKey,
+          getPreviousAccessToken: getPreviousAccessToken,
+          setAccessToken: setAccessToken,
         );
       }
 
@@ -180,7 +157,8 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
   Future<void> _saveSessions() async {
     super._saveSessions();
     const storage = FlutterSecureStorage();
-    storage.write(key: 'chatbot$saveKeySuffix', value: chatbotBearerKey);
+    storage.write(
+        key: 'chatbot$saveKeySuffix', value: chatbotBearerKey?.serialize());
   }
 
   @override
@@ -205,7 +183,7 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = true,
   }) async {
-    _bearerKey = 'streamerOAuthKey';
+    _bearerKey = AccessToken.fromJwt(jwt: JWT('streamerOAuthKey'));
     _isConnected = true;
     return true;
   }
@@ -216,7 +194,7 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = false,
   }) async {
-    _chatbotBearerKey = 'chatbotOAuthKey';
+    _chatbotBearerKey = AccessToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
     _isChatbotConnected = true;
     return true;
   }

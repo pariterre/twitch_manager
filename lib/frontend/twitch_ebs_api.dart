@@ -59,7 +59,7 @@ class TwitchEbsApi {
     _socket = WebSocket(
       Uri.parse('${appInfo.ebsUri}/frontend/connect'),
       backoff: const ConstantBackoff(Duration(seconds: 10)),
-      protocols: ['Bearer-${authenticator.ebsToken}'],
+      protocols: ['Bearer-${authenticator.ebsToken!.accessToken}'],
     );
 
     // Handle connection state changes

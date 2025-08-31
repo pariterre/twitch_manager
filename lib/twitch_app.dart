@@ -6,3 +6,4 @@ export 'package:twitch_manager/app/twitch_events.dart';
 export 'package:twitch_manager/app/twitch_mock_options.dart';
 export 'package:twitch_manager/app/widgets/twitch_app_authentication_dialog.dart';
 export 'package:twitch_manager/app/widgets/twitch_app_debug_overlay.dart';
+export 'package:twitch_manager/utils/twitch_authentication_flow.dart';

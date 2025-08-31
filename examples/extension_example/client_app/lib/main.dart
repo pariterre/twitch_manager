@@ -49,6 +49,7 @@ void main() {
       'twitchserver.pariterre.net:3000',
       'token',
     ),
+    authenticationFlow: TwitchAuthenticationFlow.implicit,
   );
 
   final stateManager = StateManager();
@@ -212,7 +213,7 @@ class _MainScreenState extends State<MainScreen> {
 
     _twitchAppManager = EbsServerManager(
       _twitchManager!,
-      ebsUri: ConfigService.ebsUri,
+      appInfo: widget.appInfo,
       stateManager: widget.stateManager,
     );
 

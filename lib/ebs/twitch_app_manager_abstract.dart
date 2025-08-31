@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/twitch_utils.dart';
 import 'package:web_socket_client/web_socket_client.dart';
@@ -9,7 +10,7 @@ final _logger = Logger('TwitchAppManagerAbstract');
 
 abstract class TwitchAppManagerAbstract {
   WebSocket? _socket;
-  final Uri? ebsUri;
+  final TwitchAppInfo appInfo;
 
   int? _broadcasterId;
   int get broadcasterId {
@@ -25,7 +26,7 @@ abstract class TwitchAppManagerAbstract {
   final _completers = Completers<MessageProtocol>();
 
   /// Setup a method to wait for the TwitchManager
-  TwitchAppManagerAbstract({required this.ebsUri});
+  TwitchAppManagerAbstract({required this.appInfo});
 
   ///
   /// Connect to the EBS server
@@ -42,11 +43,12 @@ abstract class TwitchAppManagerAbstract {
     _logger.info('Connecting to EBS server');
     _broadcasterId = broadcasterId;
 
-    if (ebsUri == null) return;
+    if (appInfo.ebsUri == null) return;
 
     // Connect to EBS server
     _socket = WebSocket(
-        Uri.parse('$ebsUri/app/connect?broadcasterId=$broadcasterId'),
+        Uri.parse(
+            '${appInfo.ebsUri}/app/connect?broadcaster_id=$broadcasterId'),
         backoff: const ConstantBackoff(Duration(seconds: 10)));
 
     // Handle connection state changes

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
@@ -51,7 +52,7 @@ class TwitchAppChat {
   /// ATTRIBUTES
   final TwitchAppAuthenticator _authenticator;
   final String streamerLogin;
-  String get _oauthKey =>
+  AccessToken get _oauthKey =>
       _authenticator.chatbotBearerKey ?? _authenticator.bearerKey!;
   ws.WebSocket? _socket;
 
@@ -143,7 +144,7 @@ class TwitchAppChat {
   Future<void> _connectToTwitchIrc() async {
     _logger.info('Connecting to Twitch IRC channel...');
     _isConnected = true;
-    await _send('PASS oauth:$_oauthKey');
+    await _send('PASS oauth:${_oauthKey.accessToken}');
     await _send('NICK $streamerLogin');
     await _send('JOIN #$streamerLogin');
     _logger.info('Connected to Twitch IRC channel');
@@ -191,7 +192,7 @@ class TwitchAppChat {
 
 class TwitchChatMock extends TwitchAppChat {
   @override
-  String get _oauthKey => 'chatbotOAuthKey';
+  AccessToken get _oauthKey => AccessToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
 
   ///
   /// Main constructor

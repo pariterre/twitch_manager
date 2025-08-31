@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 
-final _streamers = <String, String>{};
+final _streamers = <String, Map<String, String>>{};
 final _logger = Logger('AuthenticationServer');
 
 ///
@@ -132,23 +132,25 @@ void _handleGetTokenRequest(HttpRequest request) async {
 
   // Get the token from the stored data, try for a maximum of 1 minute
   final downtimeThreshold = DateTime.now().add(Duration(minutes: 1));
-  String? token;
+  Map<String, String>? authData;
   while (DateTime.now().isBefore(downtimeThreshold)) {
     if (_streamers.containsKey(stateToken)) {
       // Pop the token from the stored data
-      token = _streamers.remove(stateToken);
+      authData = _streamers.remove(stateToken);
       break;
     }
     await Future.delayed(Duration(milliseconds: 100));
   }
-  if (token == null) {
+  if (authData == null) {
     _sendErrorResponse(request, HttpStatus.badRequest, 'Token not found');
     return;
   }
 
   // Send the token back to the streamer
-  _sendSuccessResponse(request, {'access_token': token, 'state': stateToken});
+  _sendSuccessResponse(request, authData..addAll({'state': stateToken}));
 }
+
+enum GrantFlow { implicit, authorizationCode }
 
 ///
 /// Handle token request
@@ -157,28 +159,55 @@ void _handlePostTokenRequest(HttpRequest request) async {
   try {
     // Read the request body
     String content = await utf8.decoder.bind(request).join();
+
     // Parse the JSON data
-    var data = jsonDecode(content)['fragment'];
+    final dataMap = jsonDecode(content);
+
+    // If there are data in fragment, it means it is the implicit flow
+    // Otherwise, if it is in the parameters, it is the authorization code flow
+    String data;
+    String token = '';
+    String code = '';
+    if ((dataMap['fragment'] as String).isNotEmpty) {
+      // Implicit flow
+      data = dataMap['fragment'];
+
+      // Extract the OAuth token from the data (&access_token=...&)
+      final tokenMatch =
+          RegExp(r'^.*access_token=([^&]*)&.*$').firstMatch(data);
+      if (tokenMatch == null || tokenMatch.groupCount < 1) {
+        _logger.severe('Token not found, droping client');
+        return;
+      }
+      token = tokenMatch.group(1)!;
+    } else if ((dataMap['parameters'] as String).isNotEmpty) {
+      // Authorization code flow
+      data = dataMap['parameters'];
+
+      // Extract the code token from the data (&code=...&)
+      final codeMatch = RegExp(r'^.*code=([^&]*)&.*$').firstMatch(data);
+      if (codeMatch == null || codeMatch.groupCount < 1) {
+        _logger.severe('Code not found, droping client');
+        return;
+      }
+      code = codeMatch.group(1)!;
+    } else {
+      // No valid data found
+      _logger.severe('No valid data found, dropping client');
+      return;
+    }
 
     // Extract the state from the fragment (&state=...&)
-    final stateMatch = RegExp(r'^.*&state=([0-9]*)&.*$').firstMatch(data);
+    final stateMatch = RegExp(r'^.*&state=([0-9]*)(?:&|$).*$').firstMatch(data);
     if (stateMatch == null || stateMatch.groupCount < 1) {
       _logger.severe('State not found, droping client');
       return;
     }
     String stateToken = stateMatch.group(1)!;
 
-    // Extract the token from the fragment (&access_token=...&)
-    final tokenMatch = RegExp(r'^.*access_token=([^&]*)&.*$').firstMatch(data);
-    if (tokenMatch == null || tokenMatch.groupCount < 1) {
-      _logger.severe('Token not found, droping client');
-      return;
-    }
-    final token = tokenMatch.group(1)!;
-
     // Store the token so it can be sent to the streamer
     _logger.info('Twitch OAUTH token received for $stateToken');
-    _streamers[stateToken] = token;
+    _streamers[stateToken] = {'access_token': token, 'code': code};
 
     // Remove token in 5 minutes if not requested
     Future.delayed(Duration(minutes: 5), () {

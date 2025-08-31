@@ -20,6 +20,10 @@ class TwitchAppInfo extends TwitchInfo {
   final Uri authenticationServerUri;
 
   ///
+  /// The URI that points to the EBS backend if there is one
+  final Uri? ebsUri;
+
+  ///
   /// The scope of the rights required for the app to work
   final List<TwitchAppScope> scope;
 
@@ -49,6 +53,8 @@ class TwitchAppInfo extends TwitchInfo {
     required this.twitchRedirectUri,
     required this.authenticationServerUri,
     required this.scope,
+    required super.authenticationFlow,
+    this.ebsUri,
   })  : hasChatbot = scope.any((e) => e == TwitchAppScope.chatEdit),
         needChat = scope.any((e) => e.scopeType == AppScopeType.chat),
         hasEvents = scope.any((e) => e.scopeType == AppScopeType.events);

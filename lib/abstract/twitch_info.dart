@@ -1,3 +1,5 @@
+import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
+
 abstract class TwitchInfo {
   ///
   /// The name of the app. It is mainly user to create a save folder with a
@@ -13,10 +15,18 @@ abstract class TwitchInfo {
   final String? twitchClientId;
 
   ///
+  /// The authentication flow to use for the app. For apps without a backend server or
+  /// that do not need to automatically refresh the OAuth token, the implicit flow can be used.
+  /// For apps that have a backend server and wants to automatically refresh the OAuth token,
+  /// the authorization code flow must be used.
+  final TwitchAuthenticationFlow authenticationFlow;
+
+  ///
   /// Main constructor
   ///
   TwitchInfo({
     required this.appName,
     required this.twitchClientId,
+    required this.authenticationFlow,
   });
 }

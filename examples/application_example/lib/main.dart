@@ -78,6 +78,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
                   TwitchAppScope.chatters,
                   TwitchAppScope.readFollowers,
                 ],
+                authenticationFlow: TwitchAuthenticationFlow.implicit,
               ),
               reload: true, // Use previous connexion if available
               // Display the debug panel, only available if isMockActive is true
