@@ -1,5 +1,4 @@
 import 'package:twitch_manager/abstract/twitch_info.dart';
-import 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage.dart';
 
 class TwitchEbsInfo extends TwitchInfo {
   ///
@@ -30,11 +29,6 @@ class TwitchEbsInfo extends TwitchInfo {
   final bool isTwitchUserIdRequired;
 
   ///
-  /// The method to store the credentials of the users in the EBS. This is used
-  /// to persist and refresh user access_token when using the Authentication code flow.
-  final TwitchEbsCredentialsStorage credentialsStorage;
-
-  ///
   /// A random string used to sign the JWT tokens that is used to verify the token's
   /// authenticity when using the Authentication code flow.
   final String privateKey;
@@ -51,7 +45,6 @@ class TwitchEbsInfo extends TwitchInfo {
     required this.extensionVersion,
     required this.extensionApiClientSecret,
     required super.authenticationFlow,
-    required this.credentialsStorage,
     required this.privateKey,
     this.extensionSharedSecret,
     this.isTwitchUserIdRequired = false,

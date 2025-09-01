@@ -36,6 +36,7 @@ void main(List<String> arguments) async {
   startEbsServer(
     parameters: networkParameters,
     ebsInfo: getTwitchEbsInfo(),
+    credentialsStorage: TwitchEbsCredentialsStorageInMemory(),
     twitchEbsManagerFactory:
         ({required broadcasterId, required ebsInfo, required sendPort}) =>
             EbsManager.spawn(
@@ -171,7 +172,6 @@ TwitchEbsInfo getTwitchEbsInfo() {
     extensionSharedSecret: extensionSharedSecret,
     isTwitchUserIdRequired: ConfigService.userIdIsRequired,
     authenticationFlow: TwitchAuthenticationFlow.implicit,
-    credentialsStorage: TwitchEbsCredentialsStorageInMemory(),
     privateKey: '1234567890',
   );
 }

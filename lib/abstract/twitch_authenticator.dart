@@ -16,7 +16,6 @@ part 'package:twitch_manager/frontend/twitch_jwt_authenticator.dart';
 
 final _logger = Logger('TwitchAuthenticator');
 
-// TODO: Validate the previous refactor
 class AppToken {
   final String jwt;
   String get accessToken => JWT.decode(jwt).payload['twitch_access_token'];

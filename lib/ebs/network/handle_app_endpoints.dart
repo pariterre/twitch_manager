@@ -3,11 +3,13 @@ part of 'package:twitch_manager/ebs/network/ebs_server.dart';
 Future<void> _handleAppGetRequest(
   HttpRequest request, {
   required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
 }) async {
   if (request.uri.path.contains('/connect')) {
     await _handleAppConnectToWebSocketRequest(request, ebsInfo: ebsInfo);
   } else if (request.uri.path.contains('/token')) {
-    await _handleAppTokenRequest(request, ebsInfo: ebsInfo);
+    await _handleAppTokenRequest(request,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } else {
     throw InvalidEndpointException();
   }
@@ -48,6 +50,7 @@ Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
 Future<void> _handleAppTokenRequest(
   HttpRequest request, {
   required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
 }) async {
   try {
     // Get aliases from the request
@@ -62,9 +65,15 @@ Future<void> _handleAppTokenRequest(
 
     // If the request is to reload the token
     if (parameters['request_type'] == 'reload_app_token') {
-      _handleReloadAppTokenRequest(request: request, ebsInfo: ebsInfo);
+      await _handleReloadAppTokenRequest(
+          request: request,
+          ebsInfo: ebsInfo,
+          credentialsStorage: credentialsStorage);
     } else if (parameters['request_type'] == 'new_app_token') {
-      _handleNewAppTokenRequest(request: request, ebsInfo: ebsInfo);
+      await _handleNewAppTokenRequest(
+          request: request,
+          ebsInfo: ebsInfo,
+          credentialsStorage: credentialsStorage);
     } else {
       _logger.severe('Invalid request_type');
       throw UnauthorizedException();
@@ -75,7 +84,9 @@ Future<void> _handleAppTokenRequest(
 }
 
 Future<void> _handleNewAppTokenRequest(
-    {required HttpRequest request, required TwitchEbsInfo ebsInfo}) async {
+    {required HttpRequest request,
+    required TwitchEbsInfo ebsInfo,
+    required TwitchEbsCredentialsStorage credentialsStorage}) async {
   // Get aliases from the request
   final parameters = request.uri.queryParameters;
 
@@ -107,12 +118,16 @@ Future<void> _handleNewAppTokenRequest(
   }
 
   await _finalizeNewTwitchToken(
-      twitchRequest: request, response: responseTwitchToken, ebsInfo: ebsInfo);
+      twitchRequest: request,
+      response: responseTwitchToken,
+      ebsInfo: ebsInfo,
+      credentialsStorage: credentialsStorage);
 }
 
 Future<void> _handleReloadAppTokenRequest({
   required HttpRequest request,
   required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
 }) async {
   // Get aliases from the request
   final parameters = request.uri.queryParameters;
@@ -135,7 +150,7 @@ Future<void> _handleReloadAppTokenRequest({
   }
 
   // Load the credentials associated with this jwt
-  final credentials = await ebsInfo.credentialsStorage.load(userId: userId!);
+  final credentials = await credentialsStorage.load(userId: userId!);
   if (credentials == null) {
     _logger.severe('No credentials found for userId: $userId');
     throw UnauthorizedException();
@@ -151,7 +166,8 @@ Future<void> _handleReloadAppTokenRequest({
         request: request,
         ebsInfo: ebsInfo,
         clientId: clientId,
-        credentials: credentials);
+        credentials: credentials,
+        credentialsStorage: credentialsStorage);
     return;
   }
 
@@ -169,6 +185,7 @@ Future<void> _handleRefreshTwitchToken({
   required TwitchEbsInfo ebsInfo,
   required String clientId,
   required TwitchEbsCredentials credentials,
+  required TwitchEbsCredentialsStorage credentialsStorage,
 }) async {
   _logger.info('Twitch token is no longer valid, need to refresh');
   final responseNewTwitchToken =
@@ -186,13 +203,16 @@ Future<void> _handleRefreshTwitchToken({
   await _finalizeNewTwitchToken(
       twitchRequest: request,
       response: responseNewTwitchToken,
-      ebsInfo: ebsInfo);
+      ebsInfo: ebsInfo,
+      credentialsStorage: credentialsStorage);
 }
 
-Future<void> _finalizeNewTwitchToken(
-    {required HttpRequest twitchRequest,
-    required http.Response response,
-    required TwitchEbsInfo ebsInfo}) async {
+Future<void> _finalizeNewTwitchToken({
+  required HttpRequest twitchRequest,
+  required http.Response response,
+  required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
+}) async {
   // Get some aliases
   final parameters = twitchRequest.uri.queryParameters;
   final clientId = parameters['client_id']!;
@@ -221,7 +241,7 @@ Future<void> _finalizeNewTwitchToken(
   }
 
   // Save the new credentials to the storage
-  await ebsInfo.credentialsStorage.save(
+  await credentialsStorage.save(
       credentials: TwitchEbsCredentials(
     userId: userId,
     accessToken: twitchToken,

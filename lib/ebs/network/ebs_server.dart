@@ -19,6 +19,7 @@ final _logger = Logger('EbsServer');
 void startEbsServer({
   required NetworkParameters parameters,
   required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
   required TwitchEbsManagerAbstract Function({
     required int broadcasterId,
     required TwitchEbsInfo ebsInfo,
@@ -62,9 +63,11 @@ void startEbsServer({
     }
 
     if (request.method == 'OPTIONS') {
-      _gardedHandleRequest(request, _handleOptionsRequest, ebsInfo: ebsInfo);
+      _guardedHandleRequest(request, _handleOptionsRequest,
+          ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
     } else if (request.method == 'GET') {
-      _gardedHandleRequest(request, _handleGetHttpRequest, ebsInfo: ebsInfo);
+      _guardedHandleRequest(request, _handleGetHttpRequest,
+          ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
     } else {
       _sendErrorResponse(
           request,
@@ -81,11 +84,17 @@ void startEbsServer({
   }
 }
 
-Future<void> _gardedHandleRequest(HttpRequest request,
-    Function(HttpRequest, {required TwitchEbsInfo ebsInfo}) handler,
-    {required TwitchEbsInfo ebsInfo}) async {
+Future<void> _guardedHandleRequest(
+    HttpRequest request,
+    Function(HttpRequest,
+            {required TwitchEbsInfo ebsInfo,
+            required TwitchEbsCredentialsStorage credentialsStorage})
+        handler,
+    {required TwitchEbsInfo ebsInfo,
+    required TwitchEbsCredentialsStorage credentialsStorage}) async {
   try {
-    await handler(request, ebsInfo: ebsInfo);
+    await handler(request,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } on InvalidEndpointException {
     _sendErrorResponse(
         request,
@@ -132,7 +141,8 @@ Future<void> _gardedHandleRequest(HttpRequest request,
 ///
 /// Handle OPTIONS request for CORS preflight
 Future<void> _handleOptionsRequest(HttpRequest request,
-    {required TwitchEbsInfo ebsInfo}) async {
+    {required TwitchEbsInfo ebsInfo,
+    required TwitchEbsCredentialsStorage credentialsStorage}) async {
   request.response
     ..statusCode = HttpStatus.ok
     ..headers.add('Access-Control-Allow-Origin', '*')
@@ -144,9 +154,11 @@ Future<void> _handleOptionsRequest(HttpRequest request,
 Future<void> _handleGetHttpRequest(
   HttpRequest request, {
   required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
 }) async {
   if (request.uri.path.contains('/app')) {
-    await _handleAppGetRequest(request, ebsInfo: ebsInfo);
+    await _handleAppGetRequest(request,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } else if (request.uri.path.contains('/frontend')) {
     await _handleFrontendGetRequest(request, ebsInfo: ebsInfo);
   } else {
