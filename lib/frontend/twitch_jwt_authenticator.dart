@@ -8,8 +8,8 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   ///
   /// The [ebsToken] is a token that is used to authenticate that the user is
   /// an authenticated Twitch user when communicating with the EBS to the Twitch API.
-  AccessToken? _ebsToken;
-  AccessToken? get ebsToken {
+  AppToken? _ebsToken;
+  AppToken? get ebsToken {
     if (!isConnected) {
       _logger.severe('EBS Server not connected');
       throw Exception('EBS Server not connected');
@@ -111,9 +111,9 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
     try {
       _ebsToken =
-          AccessToken.fromJwt(jwt: JWT({'access_token': reponse.token}));
-      _bearerKey =
-          AccessToken.fromJwt(jwt: JWT({'access_token': reponse.helixToken}));
+          AppToken.fromJwt(jwt: JWT({'twitch_access_token': reponse.token}));
+      _bearerKey = AppToken.fromJwt(
+          jwt: JWT({'twitch_access_token': reponse.helixToken}));
       _channelId = int.parse(reponse.channelId);
       _opaqueUserId = reponse.userId;
 

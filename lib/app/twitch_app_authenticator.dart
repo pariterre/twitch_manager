@@ -12,8 +12,8 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
 
   ///
   /// The chatbot bearer key
-  AccessToken? _chatbotBearerKey;
-  AccessToken? get chatbotBearerKey => _chatbotBearerKey;
+  AppToken? _chatbotBearerKey;
+  AppToken? get chatbotBearerKey => _chatbotBearerKey;
 
   ///
   /// If the chatbot is connected
@@ -103,16 +103,16 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
   Future<bool> _connectUserUsingOAuth({
     required TwitchAppInfo appInfo,
     required Future<void> Function(String address)? onRequestBrowsing,
-    required AccessToken? Function() getPreviousAccessToken,
-    required void Function(AccessToken oAuthKey) setAccessToken,
+    required AppToken? Function() getPreviousAccessToken,
+    required void Function(AppToken oAuthKey) setAccessToken,
   }) async {
     _logger.info('Connecting user to Twitch...');
 
     // Get an access token
-    final token = await TwitchAppApi.getAccessToken(
+    final token = await TwitchAppApi.getAppToken(
       appInfo: appInfo,
       onRequestBrowsing: onRequestBrowsing,
-      previousAccessToken: getPreviousAccessToken(),
+      previousAppToken: getPreviousAccessToken(),
     );
     if (token == null) return false;
     setAccessToken(token);
@@ -183,7 +183,7 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = true,
   }) async {
-    _bearerKey = AccessToken.fromJwt(jwt: JWT('streamerOAuthKey'));
+    _bearerKey = AppToken.fromJwt(jwt: JWT('streamerOAuthKey'));
     _isConnected = true;
     return true;
   }
@@ -194,7 +194,7 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = false,
   }) async {
-    _chatbotBearerKey = AccessToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
+    _chatbotBearerKey = AppToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
     _isChatbotConnected = true;
     return true;
   }

@@ -18,8 +18,8 @@ class MockedTwitchJwtAuthenticator extends TwitchJwtAuthenticator {
   /// This is normally automatically fetched by the TwitchManager, but in case
   /// of a mock, it cannot be retrieved.
   @override
-  AccessToken? get ebsToken {
-    return AccessToken.fromSerialized(
+  AppToken? get ebsToken {
+    return AppToken.fromSerialized(
       JWT({
         'channel_id': channelId.toString(),
         'opaque_user_id': opaqueUserId,

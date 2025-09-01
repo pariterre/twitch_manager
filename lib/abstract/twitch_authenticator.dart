@@ -16,15 +16,15 @@ part 'package:twitch_manager/frontend/twitch_jwt_authenticator.dart';
 
 final _logger = Logger('TwitchAuthenticator');
 
-class AccessToken {
+// TODO: Validate the previous refactor
+class AppToken {
   final String jwt;
-  String get accessToken => JWT.decode(jwt).payload['access_token'];
+  String get accessToken => JWT.decode(jwt).payload['twitch_access_token'];
 
-  AccessToken.fromJwt({required JWT jwt})
-      : jwt = jwt.sign(SecretKey('dummy_key'));
+  AppToken.fromJwt({required JWT jwt}) : jwt = jwt.sign(SecretKey('dummy_key'));
 
   String serialize() => jwt;
-  AccessToken.fromSerialized(String token) : jwt = token;
+  AppToken.fromSerialized(String token) : jwt = token;
 }
 
 abstract class TwitchAuthenticator {
@@ -38,8 +38,8 @@ abstract class TwitchAuthenticator {
 
   ///
   /// The user bearer key
-  AccessToken? _bearerKey;
-  AccessToken? get bearerKey => _bearerKey;
+  AppToken? _bearerKey;
+  AppToken? get bearerKey => _bearerKey;
 
   ///
   /// If the user is connected
@@ -87,12 +87,12 @@ abstract class TwitchAuthenticator {
   }
 }
 
-Future<AccessToken?> _loadSession({required String key}) async {
+Future<AppToken?> _loadSession({required String key}) async {
   const storage = FlutterSecureStorage();
   final storedBearerKey = await storage.read(key: key);
   try {
     return storedBearerKey != null && storedBearerKey.isNotEmpty
-        ? AccessToken.fromSerialized(storedBearerKey)
+        ? AppToken.fromSerialized(storedBearerKey)
         : null;
   } catch (e) {
     _logger.warning('Error while loading session: $e');

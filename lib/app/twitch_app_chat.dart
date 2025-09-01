@@ -52,7 +52,7 @@ class TwitchAppChat {
   /// ATTRIBUTES
   final TwitchAppAuthenticator _authenticator;
   final String streamerLogin;
-  AccessToken get _oauthKey =>
+  AppToken get _oauthKey =>
       _authenticator.chatbotBearerKey ?? _authenticator.bearerKey!;
   ws.WebSocket? _socket;
 
@@ -192,7 +192,7 @@ class TwitchAppChat {
 
 class TwitchChatMock extends TwitchAppChat {
   @override
-  AccessToken get _oauthKey => AccessToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
+  AppToken get _oauthKey => AppToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
 
   ///
   /// Main constructor
