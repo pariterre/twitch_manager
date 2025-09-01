@@ -1,5 +1,5 @@
 import 'package:twitch_manager/abstract/twitch_info.dart';
-import 'package:twitch_manager/ebs/twitch_ebs_credentials.dart';
+import 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage.dart';
 
 class TwitchEbsInfo extends TwitchInfo {
   ///

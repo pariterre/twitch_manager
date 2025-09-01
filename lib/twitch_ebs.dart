@@ -1,3 +1,7 @@
+export 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials.dart';
+export 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage.dart';
+export 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage_in_memory.dart';
+export 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage_sqlite.dart';
 export 'package:twitch_manager/ebs/main_isolated_manager.dart';
 export 'package:twitch_manager/ebs/network/communication_protocols.dart';
 export 'package:twitch_manager/ebs/network/ebs_server.dart';
