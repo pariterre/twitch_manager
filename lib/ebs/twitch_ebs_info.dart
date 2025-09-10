@@ -29,8 +29,9 @@ class TwitchEbsInfo extends TwitchInfo {
   final bool isTwitchUserIdRequired;
 
   ///
-  /// A random string used to sign the JWT tokens that is used to verify the token's
-  /// authenticity when using the Authentication code flow.
+  /// A random string you consistently generate that is used to sign the JWT tokens
+  /// that is used to verify the client token's authenticity when using the
+  /// Authentication code flow.
   final String privateKey;
 
   ///

@@ -5,7 +5,6 @@ import 'package:common/state.dart' as state;
 import 'package:extension_client_app/main.dart';
 import 'package:flutter/widgets.dart';
 import 'package:twitch_manager/twitch_app.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
 
 ///
 /// This is an example of how to connect to the EBS server. You can do so by

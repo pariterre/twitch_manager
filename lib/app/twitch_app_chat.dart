@@ -192,7 +192,8 @@ class TwitchAppChat {
 
 class TwitchChatMock extends TwitchAppChat {
   @override
-  AppToken get _oauthKey => AppToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
+  AppToken get _oauthKey =>
+      AppToken.fromJwt(jwt: JWT({'twitch_access_token': 'chatbotOAuthKey'}));
 
   ///
   /// Main constructor
@@ -211,7 +212,7 @@ class TwitchChatMock extends TwitchAppChat {
 
   @override
   void _connect() async {
-    _connectToTwitchIrc();
+    await _connectToTwitchIrc();
   }
 
   @override

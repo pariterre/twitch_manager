@@ -6,9 +6,9 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_info.dart';
 import 'package:twitch_manager/app/twitch_app_api.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
+import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/twitch_utils.dart';
 
 part 'package:twitch_manager/app/twitch_app_authenticator.dart';

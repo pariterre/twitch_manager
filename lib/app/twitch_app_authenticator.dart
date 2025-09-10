@@ -183,7 +183,8 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = true,
   }) async {
-    _bearerKey = AppToken.fromJwt(jwt: JWT('streamerOAuthKey'));
+    _bearerKey =
+        AppToken.fromJwt(jwt: JWT({'twitch_access_token': 'streamerOAuthKey'}));
     _isConnected = true;
     return true;
   }
@@ -194,7 +195,8 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = false,
   }) async {
-    _chatbotBearerKey = AppToken.fromJwt(jwt: JWT('chatbotOAuthKey'));
+    _chatbotBearerKey =
+        AppToken.fromJwt(jwt: JWT({'twitch_access_token': 'chatbotOAuthKey'}));
     _isChatbotConnected = true;
     return true;
   }
