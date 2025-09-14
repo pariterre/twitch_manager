@@ -172,7 +172,9 @@ Future<void> _handleReloadAppTokenRequest({
   }
 
   // Create a jwt to send to the client
-  request.response.statusCode = HttpStatus.ok;
+  request.response
+    ..statusCode = HttpStatus.ok
+    ..headers.add('Access-Control-Allow-Origin', '*');
   request.response.write(jsonEncode({
     'app_token': jwt.toString(),
     'state': parameters['state'],
@@ -258,7 +260,9 @@ Future<void> _finalizeNewTwitchToken({
       expiresIn: const Duration(days: 30));
 
   // Return the signed token
-  twitchRequest.response.statusCode = HttpStatus.ok;
+  twitchRequest.response
+    ..statusCode = HttpStatus.ok
+    ..headers.add('Access-Control-Allow-Origin', '*');
   twitchRequest.response.write(jsonEncode({
     'app_token': token,
     'state': parameters['state'],
