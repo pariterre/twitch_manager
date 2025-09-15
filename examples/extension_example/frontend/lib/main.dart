@@ -3,7 +3,6 @@ import 'package:common/communication.dart';
 import 'package:common/state.dart' as state;
 import 'package:extension_frontend/mocked_twitch_jwt_authenticator.dart';
 import 'package:flutter/material.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
 import 'package:twitch_manager/twitch_frontend.dart';
 
 const _useMocker = true;
