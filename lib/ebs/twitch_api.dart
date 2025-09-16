@@ -105,6 +105,37 @@ class TwitchApi {
     }
   }
 
+  Future<bool> isExtensionActive() async {
+    try {
+      final bearer = await _getExtensionBearerToken();
+      final response = await _getApiRequest(
+          endPoint: 'helix/users/extensions',
+          bearer: bearer,
+          queryParameters: {'user_id': broadcasterId.toString()});
+
+      final body = json.decode(response.body);
+      final data =
+          (body as Map<String, dynamic>?)?['data'] as Map<String, dynamic>?;
+      if (data?.isEmpty ?? true) return false;
+
+      for (final key in ['panel', 'overlay', 'component']) {
+        final positions = data![key] as Map<String, dynamic>?;
+        for (final item in positions?.values ?? []) {
+          if (item['active'] == true &&
+              item['id'] == ebsInfo.extensionId &&
+              item['version'] == ebsInfo.extensionVersion) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (e) {
+      _logger.severe('Error checking if extension is active: $e');
+      return false;
+    }
+  }
+
   Future<http.Response> sendChatMessage(String message,
       {bool sendUnderExtensionName = true}) async {
     try {
