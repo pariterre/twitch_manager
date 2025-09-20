@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_app_manager.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
@@ -300,29 +299,11 @@ class _TwitchAppAuthenticationDialogState
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const SizedBox(height: 30),
-                                    Padding(
-                                      padding: const EdgeInsets.all(20.0),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SvgPicture.asset(
-                                            'assets/twitch_name.svg',
-                                            height: 100,
-                                            package: 'twitch_manager',
-                                          ),
-                                          const SizedBox(width: 20),
-                                          SvgPicture.asset(
-                                            'assets/twitch_logo.svg',
-                                            height: 100,
-                                            package: 'twitch_manager',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
                                     SizedBox(
                                       width: 850,
                                       child: Column(
                                         children: [
+                                          const SizedBox(height: 20),
                                           Text(
                                             LocalizedTexts.instance.mainText,
                                             textAlign: TextAlign.justify,
