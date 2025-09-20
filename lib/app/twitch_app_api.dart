@@ -99,11 +99,6 @@ class TwitchAppApi {
       },
     );
 
-    // if ((jsonDecode(response.body) as Map<String, dynamic>)['status'] == 401) {
-    //   _logger.warning('Token has expired');
-    //   return await _refreshToken(refreshToken: refreshToken);
-    // }
-
     final isValid = _checkIfResponseIsValid(response);
     _logger.info('OAUTH token is ${isValid ? 'valid' : 'invalid'}');
     return isValid;
@@ -241,7 +236,11 @@ class TwitchAppApi {
         final token = decodedBody['app_token'];
         if (token != null && state == decodedBody['state']) {
           _logger.info('Received a token from EBS');
-          return AppToken.fromSerialized(token);
+          final appToken = AppToken.fromSerialized(token);
+          if (await validateOAuthToken(token: appToken)) {
+            // If it is not valid, simply continue the normal flow
+            return appToken;
+          }
         }
       }
     } catch (e) {
@@ -311,7 +310,12 @@ class TwitchAppApi {
         return null;
       }
       _logger.info('OAUTH received');
-      return AppToken.fromSerialized(token);
+
+      final appToken = AppToken.fromSerialized(token);
+      if (!await validateOAuthToken(token: appToken)) {
+        throw 'Received token is not valid';
+      }
+      return appToken;
     } catch (e) {
       _logger.warning('Error while exchanging code for access token');
       return null;
