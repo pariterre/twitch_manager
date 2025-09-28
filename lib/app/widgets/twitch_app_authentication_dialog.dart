@@ -19,8 +19,6 @@ const _twitchColor = Color.fromARGB(255, 119, 35, 215);
 Future<TwitchAppManager?> showTwitchAppAuthenticationDialog(
   BuildContext context, {
   required TwitchAppInfo appInfo,
-  required Function(TwitchAppManager) onConnexionEstablished,
-  required Function() onCancelConnexion,
   bool reload = true,
   String? saveKey,
   bool useMocker = false,
