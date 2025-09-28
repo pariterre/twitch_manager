@@ -69,9 +69,6 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
     bool tryNewOAuthKey = true,
   }) async {
     _logger.info('Connecting chatbot to Twitch');
-    if (onRequestBrowsing == null) {
-      throw 'No browsing request provided, cannot proceed';
-    }
 
     // if it is already connected, we are already done
     if (_isChatbotConnected) {
