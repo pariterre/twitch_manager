@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/ebs_exceptions.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
+import 'package:twitch_manager/utils/http_extension.dart';
 
 part 'package:twitch_manager/ebs/network/handle_app_endpoints.dart';
 part 'package:twitch_manager/ebs/network/handle_frontend_endpoints.dart';

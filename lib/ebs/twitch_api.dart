@@ -5,6 +5,7 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
+import 'package:twitch_manager/utils/http_extension.dart';
 
 final _logger = Logger('TwitchApi');
 
@@ -67,6 +68,7 @@ class TwitchApi {
           endPoint: 'helix/users',
           bearer: bearer,
           queryParameters: {'login': login});
+      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       return int.parse(json.decode(response.body)['data'][0]['id']);
     } catch (e) {
@@ -82,6 +84,7 @@ class TwitchApi {
           endPoint: 'helix/users',
           bearer: bearer,
           queryParameters: {'id': userId.toString()});
+      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       return json.decode(response.body)['data'][0]['display_name'];
     } catch (e) {
@@ -97,6 +100,7 @@ class TwitchApi {
           endPoint: 'helix/users',
           bearer: bearer,
           queryParameters: {'id': userId.toString()});
+      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       return json.decode(response.body)['data'][0]['login'];
     } catch (e) {
@@ -112,6 +116,7 @@ class TwitchApi {
           endPoint: 'helix/users/extensions',
           bearer: bearer,
           queryParameters: {'user_id': broadcasterId.toString()});
+      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       final body = json.decode(response.body);
       final data =
@@ -181,14 +186,13 @@ class TwitchApi {
     required String bearer,
     Map<String, dynamic>? queryParameters,
   }) async {
-    final response = await http.get(
+    final response = await timedHttpGet(
         Uri.https('api.twitch.tv', endPoint, queryParameters),
         headers: <String, String>{
           HttpHeaders.authorizationHeader: 'Bearer $bearer',
           'Client-Id': ebsInfo.extensionId,
           HttpHeaders.contentTypeHeader: 'application/json',
         });
-
     return response;
   }
 
@@ -198,14 +202,14 @@ class TwitchApi {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? body,
   }) async {
-    final response =
-        await http.post(Uri.https('api.twitch.tv', endPoint, queryParameters),
-            headers: <String, String>{
-              HttpHeaders.authorizationHeader: 'Bearer $bearer',
-              'Client-Id': ebsInfo.extensionId,
-              HttpHeaders.contentTypeHeader: 'application/json',
-            },
-            body: json.encode(body));
+    final response = await timedHttpPost(
+        Uri.https('api.twitch.tv', endPoint, queryParameters),
+        headers: <String, String>{
+          HttpHeaders.authorizationHeader: 'Bearer $bearer',
+          'Client-Id': ebsInfo.extensionId,
+          HttpHeaders.contentTypeHeader: 'application/json',
+        },
+        body: json.encode(body));
 
     return response;
   }
@@ -219,7 +223,7 @@ class TwitchApi {
 
     if (_extensionBearer == null) {
       final response =
-          await http.post(Uri.https('id.twitch.tv', 'oauth2/token'), body: {
+          await timedHttpPost(Uri.https('id.twitch.tv', 'oauth2/token'), body: {
         'client_id': ebsInfo.extensionId,
         'client_secret': ebsInfo.extensionApiClientSecret,
         'grant_type': 'client_credentials',

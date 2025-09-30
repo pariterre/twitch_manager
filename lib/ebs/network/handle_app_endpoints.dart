@@ -104,7 +104,7 @@ Future<void> _handleNewAppTokenRequest(
   }
 
   final responseTwitchToken =
-      await http.post(Uri.https('id.twitch.tv', '/oauth2/token', {
+      await timedHttpPost(Uri.https('id.twitch.tv', '/oauth2/token', {
     'client_id': clientId,
     'client_secret': ebsInfo.extensionApiClientSecret,
     'code': parameters['code'],
@@ -157,10 +157,10 @@ Future<void> _handleReloadAppTokenRequest({
   }
 
   // Validate the access twitch token is still valid with Twitch
-  final responseIsValid =
-      await http.get(Uri.https('id.twitch.tv', '/oauth2/validate'), headers: {
-    'Authorization': 'Bearer ${credentials.accessToken}',
-  });
+  final responseIsValid = await timedHttpGet(
+    Uri.https('id.twitch.tv', '/oauth2/validate'),
+    headers: {'Authorization': 'Bearer ${credentials.accessToken}'},
+  );
   if (responseIsValid.statusCode != 200) {
     _handleRefreshTwitchToken(
         request: request,
@@ -191,7 +191,7 @@ Future<void> _handleRefreshTwitchToken({
 }) async {
   _logger.info('Twitch token is no longer valid, need to refresh');
   final responseNewTwitchToken =
-      await http.post(Uri.https('id.twitch.tv', '/oauth2/token', {
+      await timedHttpPost(Uri.https('id.twitch.tv', '/oauth2/token', {
     'client_id': clientId,
     'client_secret': ebsInfo.extensionApiClientSecret,
     'grant_type': 'refresh_token',
@@ -224,12 +224,10 @@ Future<void> _finalizeNewTwitchToken({
   final refreshToken = body['refresh_token'];
 
   // Get the user id
-  final userResponse = await http.get(
-      Uri.https('api.twitch.tv', '/helix/users', {'access_token': twitchToken}),
-      headers: {
-        'Client-ID': clientId,
-        'Authorization': 'Bearer $twitchToken',
-      });
+  final userResponse = await timedHttpGet(
+    Uri.https('api.twitch.tv', '/helix/users', {'access_token': twitchToken}),
+    headers: {'Client-ID': clientId, 'Authorization': 'Bearer $twitchToken'},
+  );
   if (userResponse.statusCode != 200) {
     _logger.severe('Failed to get user info from Twitch: ${userResponse.body}');
     throw UnauthorizedException();

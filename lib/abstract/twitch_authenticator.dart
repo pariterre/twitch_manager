@@ -18,7 +18,14 @@ final _logger = Logger('TwitchAuthenticator');
 
 class AppToken {
   final String jwt;
-  String get accessToken => JWT.decode(jwt).payload['twitch_access_token'];
+  String? get accessToken {
+    try {
+      return JWT.decode(jwt).payload['twitch_access_token'];
+    } catch (e) {
+      _logger.severe('Error while decoding JWT');
+      return null;
+    }
+  }
 
   AppToken.fromJwt({required JWT jwt}) : jwt = jwt.sign(SecretKey('dummy_key'));
 

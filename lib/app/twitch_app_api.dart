@@ -10,6 +10,7 @@ import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_events.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
+import 'package:twitch_manager/utils/http_extension.dart';
 import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
@@ -92,17 +93,12 @@ class TwitchAppApi {
   static Future<bool> validateOAuthToken({required AppToken token}) async {
     _logger.info('Validating OAUTH token...');
 
-    final response = await http.get(
+    final response = await timedHttpGet(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer ${token.accessToken}',
       },
-    ).timeout(const Duration(seconds: 10), onTimeout: () {
-      _logger.warning('Timeout while validating OAUTH token');
-      return http.Response(
-          '{"status": 408, "message": "Request Timeout"}', 408);
-    });
-    _logger.config('Response from Twitch: ${response.body}');
+    );
 
     final isValid = _checkIfResponseIsValid(response);
     _logger.info('OAUTH token is ${isValid ? 'valid' : 'invalid'}');
@@ -179,11 +175,10 @@ class TwitchAppApi {
     // to the server, by doing an HTTP get request with the state as query
     Map<String, dynamic> body;
     try {
-      final response = await http
-          .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
-      if (response.statusCode != 200) {
-        return null;
-      }
+      final response = await timedHttpGet(
+          Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
+      if (response.statusCode != 200) throw 'Error while getting OAuth token';
+
       body = json.decode(response.body);
     } on Exception {
       return null;
@@ -237,7 +232,7 @@ class TwitchAppApi {
         });
     try {
       _logger.info('Try to fetch a previous access token...');
-      var response = await http.get(uriBackend);
+      var response = await timedHttpGet(uriBackend);
       if (response.statusCode == 200) {
         final decodedBody = json.decode(response.body);
         final token = decodedBody['app_token'];
@@ -276,8 +271,8 @@ class TwitchAppApi {
     // to the server, by doing an HTTP get request with the state as query
     Map<String, dynamic> body;
     try {
-      final response = await http
-          .get(Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
+      final response = await timedHttpGet(
+          Uri.parse('${appInfo.authenticationServerUri}?state=$state'));
       if (response.statusCode != 200) {
         return null;
       }
@@ -299,7 +294,7 @@ class TwitchAppApi {
     // Call the EBS to get the a OAuth token for the current session
     _logger.info('Exchanging code for access token...');
     try {
-      final response = await http.get(uriBackend.replace(queryParameters: {
+      final response = await timedHttpGet(uriBackend.replace(queryParameters: {
         'request_type': 'new_app_token',
         'client_id': appInfo.twitchClientId,
         'state': state,
@@ -629,7 +624,7 @@ class TwitchAppApi {
     switch (method) {
       case HttpRequestMethod.get:
         // Get request
-        response = await http.get(
+        response = await timedHttpGet(
             Uri.parse(
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
@@ -641,7 +636,7 @@ class TwitchAppApi {
         break;
       case HttpRequestMethod.post:
         // Post request
-        response = await http.post(
+        response = await timedHttpPost(
             Uri.parse(
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
@@ -654,7 +649,7 @@ class TwitchAppApi {
         break;
       case HttpRequestMethod.patch:
         // Patch request
-        response = await http.patch(
+        response = await timedHttpPatch(
             Uri.parse(
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
@@ -667,7 +662,7 @@ class TwitchAppApi {
         break;
       case HttpRequestMethod.delete:
         // Delete request
-        response = await http.delete(
+        response = await timedHttpDelete(
             Uri.parse(
                 '$_twitchHelixUri/$suffix${params.isEmpty ? '' : '?$params'}'),
             headers: <String, String>{
@@ -702,7 +697,7 @@ class TwitchAppApi {
   Future<int> _userId(AppToken accessToken) async {
     _logger.info('Fetching user id...');
 
-    final response = await http.get(
+    final response = await timedHttpGet(
       Uri.parse(_twitchValidateUri),
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer ${accessToken.accessToken}',
@@ -724,15 +719,22 @@ class TwitchAppApi {
 
     final responseDecoded = jsonDecode(response.body) as Map;
 
+    if (response.statusCode == 408) {
+      _logger.warning('Validation request timed out');
+      return false;
+    } else if (response.statusCode == 401) {
+      _logger.warning('Token is invalid');
+      return false;
+    } else if (response.statusCode != 200) {
+      dev.log('ERROR: ${responseDecoded['message']}');
+      _logger.warning('Error while validating token');
+      return false;
+    }
+
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {
       dev.log('ERROR: ${responseDecoded['message']}');
       _logger.warning('Token is invalid');
-      return false;
-    }
-
-    if (response.statusCode != 200) {
-      _logger.info('Token is invalid');
       return false;
     }
 
