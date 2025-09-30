@@ -97,7 +97,12 @@ class TwitchAppApi {
       headers: <String, String>{
         HttpHeaders.authorizationHeader: 'Bearer ${token.accessToken}',
       },
-    );
+    ).timeout(const Duration(seconds: 10), onTimeout: () {
+      _logger.warning('Timeout while validating OAUTH token');
+      return http.Response(
+          '{"status": 408, "message": "Request Timeout"}', 408);
+    });
+    _logger.config('Response from Twitch: ${response.body}');
 
     final isValid = _checkIfResponseIsValid(response);
     _logger.info('OAUTH token is ${isValid ? 'valid' : 'invalid'}');
@@ -142,6 +147,8 @@ class TwitchAppApi {
     required Future<void> Function(String)? onRequestBrowsing,
     required AppToken? previousAppToken,
   }) async {
+    _logger.info('Getting new OAUTH using implicit flow...');
+
     // Try to validate a previous JWT
     if (previousAppToken != null &&
         await validateOAuthToken(token: previousAppToken)) {
@@ -716,10 +723,16 @@ class TwitchAppApi {
     _logger.info('Checking if token is valid...');
 
     final responseDecoded = jsonDecode(response.body) as Map;
+
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {
       dev.log('ERROR: ${responseDecoded['message']}');
       _logger.warning('Token is invalid');
+      return false;
+    }
+
+    if (response.statusCode != 200) {
+      _logger.info('Token is invalid');
       return false;
     }
 
