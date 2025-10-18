@@ -218,7 +218,7 @@ class TwitchChatMock extends TwitchAppChat {
   @override
   Future<void> send(String message, {String? username}) async {
     // Normal behavior is that streamer sends a message, specifying a username
-    // overrides this and mock a sent message from that user name
+    // overrides this and mocks a sent message from that user name
     final sender = username ?? streamerLogin;
     await _send('PRIVMSG #$sender :$message');
   }
