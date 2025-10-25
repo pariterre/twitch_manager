@@ -171,7 +171,6 @@ TwitchEbsInfo getTwitchEbsInfo() {
     extensionApiClientSecret: extensionApiClientSecret,
     extensionSharedSecret: extensionSharedSecret,
     isTwitchUserIdRequired: ConfigService.userIdIsRequired,
-    authenticationFlow: TwitchAuthenticationFlow.implicit,
     privateKey: '1234567890',
   );
 }

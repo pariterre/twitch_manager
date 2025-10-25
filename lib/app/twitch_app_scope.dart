@@ -1,5 +1,6 @@
 enum AppScopeType {
   chat,
+  user,
   api,
   events;
 }
@@ -10,6 +11,9 @@ enum TwitchAppScope {
   chatRead,
   chatEdit,
   chatters,
+
+  userReadBroadcast,
+  userEditBroadcast,
 
   readModerator,
   readFollowers,
@@ -24,6 +28,10 @@ enum TwitchAppScope {
         return 'chat:read';
       case TwitchAppScope.chatEdit:
         return 'chat:edit';
+      case TwitchAppScope.userReadBroadcast:
+        return 'user:read:broadcast';
+      case TwitchAppScope.userEditBroadcast:
+        return 'user:edit:broadcast';
       case TwitchAppScope.chatters:
         return 'moderator:read:chatters';
       case TwitchAppScope.readModerator:
@@ -42,6 +50,9 @@ enum TwitchAppScope {
       case TwitchAppScope.chatRead:
       case TwitchAppScope.chatEdit:
         return AppScopeType.chat;
+      case TwitchAppScope.userReadBroadcast:
+      case TwitchAppScope.userEditBroadcast:
+        return AppScopeType.user;
       case TwitchAppScope.chatters:
       case TwitchAppScope.readModerator:
       case TwitchAppScope.readFollowers:

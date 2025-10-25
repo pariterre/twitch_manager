@@ -1,4 +1,5 @@
 import 'package:twitch_manager/abstract/twitch_info.dart';
+import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 
 class TwitchEbsInfo extends TwitchInfo {
   ///
@@ -47,9 +48,8 @@ class TwitchEbsInfo extends TwitchInfo {
     required super.twitchClientId,
     required this.extensionVersion,
     required this.extensionApiClientSecret,
-    required super.authenticationFlow,
     required this.privateKey,
     this.extensionSharedSecret,
     this.isTwitchUserIdRequired = false,
-  });
+  }) : super(authenticationFlow: TwitchAuthenticationFlow.notApplicable);
 }
