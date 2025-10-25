@@ -9,7 +9,7 @@ class ConfigService {
 
   ///
   /// The version of the extension that matches the one in the Twitch Developer Console.
-  static const String extensionVersion = '0.3.0';
+  static const String extensionVersion = '0.0.0';
 
   ///
   /// If your extension requires a user ID, set this to `true`.

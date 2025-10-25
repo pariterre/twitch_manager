@@ -6,7 +6,7 @@ class TwitchEbsInfo extends TwitchInfo {
   String get extensionId => twitchClientId!;
 
   ///
-  /// The current version of the extension
+  /// The version of the extension (frontend) that is recognized by the EBS (backend).
   final String extensionVersion;
 
   ///

@@ -109,7 +109,10 @@ class TwitchApi {
     }
   }
 
-  Future<bool> isExtensionActive() async {
+  ///
+  /// Return the current extension version that the streamer is using. If the
+  /// extension is not active, return `null`.
+  Future<String?> activeExtensionVersion() async {
     try {
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
@@ -121,23 +124,21 @@ class TwitchApi {
       final body = json.decode(response.body);
       final data =
           (body as Map<String, dynamic>?)?['data'] as Map<String, dynamic>?;
-      if (data?.isEmpty ?? true) return false;
+      if (data?.isEmpty ?? true) return null;
 
       for (final key in ['panel', 'overlay', 'component']) {
         final positions = data![key] as Map<String, dynamic>?;
         for (final item in positions?.values ?? []) {
-          if (item['active'] == true &&
-              item['id'] == ebsInfo.extensionId &&
-              item['version'] == ebsInfo.extensionVersion) {
-            return true;
+          if (item['active'] == true && item['id'] == ebsInfo.extensionId) {
+            return item['version'];
           }
         }
       }
 
-      return false;
+      return null;
     } catch (e) {
       _logger.severe('Error checking if extension is active: $e');
-      return false;
+      return null;
     }
   }
 
