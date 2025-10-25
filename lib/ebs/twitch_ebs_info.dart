@@ -6,8 +6,10 @@ class TwitchEbsInfo extends TwitchInfo {
   String get extensionId => twitchClientId!;
 
   ///
-  /// The version of the extension (frontend) that is recognized by the EBS (backend).
-  final String extensionVersion;
+  /// The version of the extension (frontend) that is used by the EBS (backend)
+  /// to send messages. If none is provided, the EBS won't be able to send chat
+  /// messages.
+  final String? extensionVersion;
 
   ///
   /// The secret key of the extension. This is used to communicate with the

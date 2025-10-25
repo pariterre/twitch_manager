@@ -145,6 +145,11 @@ class TwitchApi {
   Future<http.Response> sendChatMessage(String message,
       {bool sendUnderExtensionName = true}) async {
     try {
+      if (ebsInfo.extensionVersion == null) {
+        throw ArgumentError('Extension version is required to send chat '
+            'messages, please provide one in the TwitchEbsInfo');
+      }
+
       return await _postApiRequest(
         endPoint: sendUnderExtensionName
             ? 'helix/extensions/chat'
