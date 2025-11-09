@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
@@ -14,6 +13,7 @@ import 'package:twitch_manager/app/twitch_user.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
 import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
+import 'package:twitch_manager/utils/twitch_mutex.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -63,7 +63,9 @@ String _generateSafeState() {
 class _TwitchResponse {
   List<dynamic> data;
   String? cursor;
-  _TwitchResponse({required this.data, required this.cursor});
+  int? total;
+  _TwitchResponse(
+      {required this.data, required this.cursor, required this.total});
 }
 
 enum HttpRequestMethod { get, post, patch, delete }
@@ -331,41 +333,51 @@ class TwitchAppApi {
   ///
   /// Cache of users used by the user() method
   final _usersCache = <TwitchUser>[];
+  final _usersCacheMutex = TwitchMutex();
 
   ///
   /// Get the user info, identified by either [userId] or [login].
   Future<TwitchUser?> user({String? userId, String? login}) async {
-    final cachedUser = _usersCache.from(id: userId, login: login);
-    if (cachedUser != null) {
-      _logger.fine('User $cachedUser found in cache');
-      return cachedUser;
+    if (userId == null && login == null) {
+      throw 'Either userId or login must be provided';
+    } else if (userId != null && login != null) {
+      throw 'Only one of userId or login must be provided';
     }
 
-    final category = userId != null ? 'id' : 'login';
-    final identifier = userId?.toString() ?? login!;
+    return await _usersCacheMutex.runGuarded(() async {
+      final cachedUser = _usersCache.from(id: userId, login: login);
+      if (cachedUser != null) {
+        _logger.fine('User $cachedUser found in cache');
+        return cachedUser;
+      }
 
-    _logger.fine('Getting user info for user $identifier using $category...');
+      final category = userId != null ? 'id' : 'login';
+      final identifier = userId?.toString() ?? login!;
 
-    final response = await _sendHttpRequest(HttpRequestMethod.get,
-        suffix: 'users', parameters: {category: identifier});
-    if (response == null) {
-      _logger.warning('Error while getting user info for user $identifier');
-      return null;
-    }
-    final data = response.data[0];
+      _logger.fine('Getting user info for user $identifier using $category...');
 
-    try {
-      final user = TwitchUser(
-          id: data['id'],
-          login: data['login'],
-          displayName: data['display_name']);
-      _usersCache.add(user);
-      _logger.fine('Display name for user $identifier is $user');
-      return user;
-    } catch (e) {
-      _logger.warning('Error while parsing user info for user $identifier: $e');
-      return null;
-    }
+      final response = await _sendHttpRequest(HttpRequestMethod.get,
+          suffix: 'users', parameters: {category: identifier});
+      if (response == null) {
+        _logger.warning('Error while getting user info for user $identifier');
+        return null;
+      }
+      final data = response.data[0];
+
+      try {
+        final user = TwitchUser(
+            id: data['id'],
+            login: data['login'],
+            displayName: data['display_name']);
+        _usersCache.add(user);
+        _logger.fine('Display name for user $identifier is $user');
+        return user;
+      } catch (e) {
+        _logger
+            .warning('Error while parsing user info for user $identifier: $e');
+        return null;
+      }
+    });
   }
 
   ///
@@ -424,61 +436,49 @@ class TwitchAppApi {
       {Iterable<String>? blacklist}) async {
     _logger.info('Fetching current chatters...');
 
-    final response = await _sendHttpRequest(HttpRequestMethod.get,
-        suffix: 'chat/chatters',
+    final chatters = await _fetchAllUsersOf('chat/chatters',
         parameters: {'broadcaster_id': streamerId, 'moderator_id': streamerId});
-    if (response == null) {
-      _logger.warning('Error while fetching current chatters');
+    if (chatters == null) {
+      _logger.warning('Error while fetching chatters');
       return null;
     }
 
     // Extract the usernames and removed the blacklisted
-    final chatters = _removeBlacklisted(
-        response.data.map((e) => TwitchUser(
-            id: e['user_id'],
-            login: e['user_login'],
-            displayName: e['user_name'])),
-        blacklist);
     _logger.info('Retrieved ${chatters.length} chatters');
-    return chatters;
+    return _removeBlacklisted(chatters, blacklist);
   }
 
   ////// CHANNEL RELATED API //////
 
   ///
-  /// Get the list of moderators of the channel.
+  /// Get the list of current moderators of the channel.
   /// The streamer is not included in the list of moderators. If one need them
   /// to be included, they can set [includeStreamer] to true. Alternatively,
   /// they can call `login(streamerId)`.
-  Future<List<String>?> fetchModerators({bool includeStreamer = false}) async {
+  /// The [blacklist] ignore moderators (ignoring bots for instance), this
+  /// can be login, id or display name.
+  Future<Iterable<TwitchUser>?> fetchModerators(
+      {bool includeStreamer = false, Iterable<String>? blacklist}) async {
     _logger.info('Fetching moderators...');
 
-    final List<String> moderators = [];
-    String? cursor;
-    do {
-      final parameters = {'broadcaster_id': streamerId, 'first': '100'};
-      if (cursor != null) parameters['after'] = cursor;
+    final moderators = (await _fetchAllUsersOf('moderation/moderators',
+            parameters: {'broadcaster_id': streamerId}))
+        ?.toList();
+    if (moderators == null) {
+      _logger.warning('Error while fetching moderators');
+      return null;
+    }
 
-      final response = await _sendHttpRequest(HttpRequestMethod.get,
-          suffix: 'moderation/moderators', parameters: parameters);
-      if (response == null) {
-        _logger.warning('Error while fetching moderators');
-        return null;
-      }
-
-      // Copy answer to the output variable
-      moderators
-          .addAll(response.data.map<String>((e) => e['user_login']).toList());
-
-      if (response.cursor == null) break; // We are done
-      cursor = response.cursor;
-    } while (true);
-
-    if (includeStreamer) moderators.add((await login(streamerId))!);
+    if (includeStreamer) moderators.add((await user(userId: streamerId))!);
 
     _logger.info('Retrieved ${moderators.length} moderators');
-    return moderators;
+    return _removeBlacklisted(moderators, blacklist);
   }
+
+  ///
+  /// Cache of followers used by the fetchFollowers() method
+  final List<TwitchUser> _followersCache = [];
+  final _followersCacheMutex = TwitchMutex();
 
   ///
   /// Get the list of current followers of the channel.
@@ -487,18 +487,65 @@ class TwitchAppApi {
   /// can be login, id or display name.
   Future<Iterable<TwitchUser>?> fetchFollowers(
       {bool includeStreamer = false, Iterable<String>? blacklist}) async {
-    _logger.info('Fetching followers...');
+    return await _followersCacheMutex.runGuarded(() async {
+      _logger.info('Fetching followers...');
+
+      // Fetch the latest follower and compare them to the cache. If the total
+      // (i.e. the followers count) is the same and the latest follower is in
+      // the cache, then we know nothing changed
+      final users = <TwitchUser>[];
+      if (_followersCache.isNotEmpty) {
+        final response = await _sendHttpRequest(HttpRequestMethod.get,
+            suffix: 'channels/followers',
+            parameters: {'broadcaster_id': streamerId, 'first': '1'});
+        if (response?.data.isNotEmpty ?? false) {
+          final userId = response!.data[0]['user_id'];
+          if (_followersCache.length == response.total &&
+              _followersCache.has(id: userId)) {
+            _logger.info('No new followers since last fetch');
+            users.addAll(_followersCache);
+          }
+        }
+      }
+
+      // If we did not use the cache, fetch all followers
+      if (users.isEmpty) {
+        final fetchedUsers = await _fetchAllUsersOf(
+          'channels/followers',
+          parameters: {'broadcaster_id': streamerId},
+        );
+        if (fetchedUsers == null) {
+          _logger.warning('Error while fetching followers');
+          return null;
+        }
+        users.addAll(fetchedUsers);
+        _followersCache
+          ..clear()
+          ..addAll(users);
+      }
+
+      if (includeStreamer) users.add((await user(userId: streamerId))!);
+
+      _logger.info('Retrieved ${users.length} followers');
+      return _removeBlacklisted(users, blacklist);
+    });
+  }
+
+  Future<Iterable<TwitchUser>?> _fetchAllUsersOf(String suffix,
+      {Map<String, String>? parameters}) async {
     String? cursor;
 
+    final currentParameters = {...?parameters};
+
     final users = <TwitchUser>[];
+    currentParameters['first'] = '100';
     do {
-      final parameters = {'broadcaster_id': streamerId, 'first': '100'};
-      if (cursor != null) parameters['after'] = cursor;
+      if (cursor != null) currentParameters['after'] = cursor;
 
       final response = await _sendHttpRequest(HttpRequestMethod.get,
-          suffix: 'channels/followers', parameters: parameters);
+          suffix: suffix, parameters: currentParameters);
       if (response == null) {
-        _logger.warning('Error while fetching followers');
+        _logger.warning('Error while fetching users for $suffix');
         return null;
       }
 
@@ -510,11 +557,7 @@ class TwitchAppApi {
       if (response.cursor == null) break; // We are done
       cursor = response.cursor;
     } while (true);
-
-    if (includeStreamer) users.add((await user(userId: streamerId))!);
-
-    _logger.info('Retrieved ${users.length} followers');
-    return _removeBlacklisted(users, blacklist);
+    return users;
   }
 
   ////// REWARD REDEMPTION RELATED API //////
@@ -705,7 +748,7 @@ class TwitchAppApi {
               'Client-Id': _appInfo.twitchClientId,
             });
         if (response.body.contains('error')) return null;
-        return _TwitchResponse(data: [], cursor: null);
+        return _TwitchResponse(data: [], cursor: null, total: null);
     }
 
     // Make sure the token is still valid before continuing
@@ -719,9 +762,10 @@ class TwitchAppApi {
     if (responseDecoded.containsKey('data')) {
       return _TwitchResponse(
           data: responseDecoded['data'],
-          cursor: responseDecoded['pagination']?['cursor']);
+          cursor: responseDecoded['pagination']?['cursor'],
+          total: responseDecoded['total']);
     } else {
-      dev.log(responseDecoded.toString());
+      _logger.severe(responseDecoded.toString());
       return null;
     }
   }
@@ -760,15 +804,14 @@ class TwitchAppApi {
       _logger.warning('Token is invalid');
       return false;
     } else if (response.statusCode != 200) {
-      dev.log('ERROR: ${responseDecoded['message']}');
-      _logger.warning('Error while validating token');
+      _logger.warning(
+          'Error while validating token, ${responseDecoded['message']}');
       return false;
     }
 
     if (responseDecoded.keys.contains('status') &&
         responseDecoded['status'] == 401) {
-      dev.log('ERROR: ${responseDecoded['message']}');
-      _logger.warning('Token is invalid');
+      _logger.warning('Token is invalid, ${responseDecoded['message']}');
       return false;
     }
 
@@ -822,15 +865,19 @@ class TwitchApiMock extends TwitchAppApi {
 
   ////// CHANNEL RELATED API //////
   @override
-  Future<List<String>?> fetchModerators({bool includeStreamer = false}) async {
-    final List<String> out = debugPanelOptions.chatters
+  Future<Iterable<TwitchUser>?> fetchModerators(
+      {bool includeStreamer = false, Iterable<String>? blacklist}) async {
+    final out = debugPanelOptions.chatters
         .where((chatter) => chatter.isModerator)
-        .map((e) => e.displayName)
+        .map((e) => TwitchUser(
+            id: e.displayName,
+            login: e.displayName,
+            displayName: e.displayName))
         .toList();
 
-    if (includeStreamer) out.add((await login(streamerId))!);
+    if (includeStreamer) out.add((await user(userId: streamerId))!);
 
-    return out;
+    return _removeBlacklisted(out, blacklist);
   }
 
   @override

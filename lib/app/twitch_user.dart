@@ -58,8 +58,8 @@ extension TwitchUsersExtension on Iterable<TwitchUser> {
         (user != null && (id != null || login != null))) {
       throw 'Only one of id, login or user must be provided';
     }
-    final identifier = id ?? login ?? user!.id;
 
+    final identifier = id ?? login ?? user!.id;
     for (final user in this) {
       if (user.id == identifier || user.login == identifier) {
         return true;
