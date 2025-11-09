@@ -167,7 +167,7 @@ Future<void> _handleGetHttpRequest(
   }
 }
 
-_sendErrorResponse(
+void _sendErrorResponse(
     HttpRequest request, int statusCode, MessageProtocol message) {
   _logger.severe('Sending error response: ${message.data}');
   try {

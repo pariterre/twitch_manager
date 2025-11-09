@@ -152,10 +152,10 @@ class TwitchAppChat {
 
   ///
   /// This method is called each time a new message is received
-  void _messageReceived(event) {
+  void _messageReceived(dynamic event) {
     _logger.info('New message received: $event');
 
-    var fullMessage = event; //String.fromCharCodes(event);
+    var fullMessage = event as String; //String.fromCharCodes(event);
     // Remove the line returns
     if (fullMessage[fullMessage.length - 1] == '\n') {
       fullMessage = fullMessage.substring(0, fullMessage.length - 1);

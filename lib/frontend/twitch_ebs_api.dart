@@ -111,7 +111,7 @@ class TwitchEbsApi {
 
   ///
   /// This method sends request to the EBS server via the websocket.
-  /// The method returns a Map<String, dynamic> with the response from the EBS server.
+  /// The method returns a `Map<String, dynamic>` with the response from the EBS server.
   /// If the socket is not connected, an exception is thrown.
   Future<MessageProtocol> send(MessageProtocol message,
       {Duration timeout = const Duration(seconds: 10)}) async {

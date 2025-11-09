@@ -1,7 +1,7 @@
 ///
 /// To specify a specific type of listener, you can instantiate this class
 /// as such:
-/// final myListener = TwitchListener<Function(String param1, bool param2)>();
+/// `final myListener = TwitchListener<Function(String param1, bool param2)>();`
 class TwitchListener<T extends Function> {
   // Define a mutex to prevent adding/removing listeners while notifying
   bool _isNotifying = false;

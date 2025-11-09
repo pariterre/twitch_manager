@@ -185,7 +185,7 @@ class TwitchEvents {
     // Communication procedure
     twitchEvents._channel = ws.WebSocket(Uri.parse(_twitchEventsUri));
     twitchEvents._channel!.messages
-        .listen((message) => twitchEvents._responseFromSubscription(message));
+        .listen(twitchEvents._responseFromSubscription);
 
     // Wait until response is received
     while (twitchEvents._sessionId == null) {
@@ -253,7 +253,7 @@ class TwitchEvents {
 
   ///
   /// Manage a response from a subscription
-  void _responseFromSubscription(message) {
+  void _responseFromSubscription(dynamic message) {
     _logger.fine('Received message from Twitch events: $message');
 
     final map = jsonDecode(message);
@@ -377,7 +377,7 @@ class TwitchEventsMock extends TwitchEvents {
   ////// PUBLIC //////
 
   // Simulate a reward redemption
-  void simulateRewardRedemption(event) => onRewardRedeemed
+  void simulateRewardRedemption(dynamic event) => onRewardRedeemed
       .notifyListeners((callback) => callback(event as TwitchRewardRedemption));
 
   ////// INTERNAL //////

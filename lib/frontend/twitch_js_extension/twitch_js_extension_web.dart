@@ -1,6 +1,5 @@
 import 'dart:js_interop';
 
-import 'package:js/js.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';
@@ -66,7 +65,8 @@ class TwitchJsExtensionWeb implements TwitchJsExtensionBase {
     _twitchExtension.listen(
         target,
         ((JSAny target, JSAny contentType, JSAny message) {
-          callback(target as String, contentType as String, message as String);
+          callback(
+              target.toString(), contentType.toString(), message.toString());
         }).toJS);
   }
 }
