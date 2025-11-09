@@ -30,7 +30,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
   final List<ReccurringMessageController> _recurringMessageControllers = [];
   final List<CommandController> _commandControllers = [];
 
-  final List<String> _followers = [];
+  final List<TwitchUser> _followers = [];
 
   ///
   /// This sends a message to the chat greating everyone in the chat except for
@@ -201,7 +201,7 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
   }
 
   void _onMessageReceived(String sender, String message) {
-    if (!_followers.contains(sender)) return;
+    if (!_followers.has(login: sender)) return;
 
     for (final controller in _commandControllers) {
       if (controller.command == message) {
@@ -247,13 +247,13 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
 class TwitchManagerSingleton {
   ///
   /// Fetch the chatters currently in the chat
-  static Future<List<String>?> fetchChatters(
+  static Future<Iterable<TwitchUser>?> fetchChatters(
           {required List<String> blacklist}) async =>
       await instance?.api.fetchChatters(blacklist: blacklist);
 
   ///
   /// Fetch the followers of the streamer
-  static Future<List<String>?> fetchFollowers(
+  static Future<Iterable<TwitchUser>?> fetchFollowers(
           {required bool includeStreamer}) async =>
       await instance?.api.fetchFollowers(includeStreamer: includeStreamer);
 

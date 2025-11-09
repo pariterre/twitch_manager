@@ -12,8 +12,8 @@ abstract class TwitchAppManagerAbstract {
   WebSocket? _socket;
   final TwitchAppInfo appInfo;
 
-  int? _broadcasterId;
-  int get broadcasterId {
+  String? _broadcasterId;
+  String get broadcasterId {
     if (_broadcasterId == null) {
       throw Exception(
           'The TwitchAppManagerAbstract has not been connected. Please call connect() first');
@@ -39,7 +39,7 @@ abstract class TwitchAppManagerAbstract {
   ///
   /// Connect to the EBS server.
   /// To get the [broadcasterId] one should use [TwitchAppManager.api.streamerId].
-  Future<void> connect(int broadcasterId) async {
+  Future<void> connect(String broadcasterId) async {
     _logger.info('Connecting to EBS server');
     _broadcasterId = broadcasterId;
 
