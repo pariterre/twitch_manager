@@ -21,7 +21,7 @@ class MockedTwitchJwtAuthenticator extends TwitchJwtAuthenticator {
   AppToken? get ebsToken {
     return AppToken.fromSerialized(
       JWT({
-        'channel_id': channelId.toString(),
+        'channel_id': channelId,
         'opaque_user_id': opaqueUserId,
         'user_id': userId,
       }).sign(
@@ -33,7 +33,7 @@ class MockedTwitchJwtAuthenticator extends TwitchJwtAuthenticator {
   ///
   /// The id of the channel that the frontend is connected to
   @override
-  int get channelId => 1234567890;
+  String get channelId => '1234567890';
 
   ///
   /// The obfuscted user id of the frontend

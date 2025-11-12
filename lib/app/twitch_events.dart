@@ -311,7 +311,7 @@ class TwitchEvents {
         'Content-Type': 'application/json',
       },
       body: jsonEncode(scope.cratfSubscriptionRequest(
-          sessionId: _sessionId!, streamerId: _api.streamerId.toString())),
+          sessionId: _sessionId!, streamerId: _api.streamerId)),
     );
 
     // Parse the answer to see if the subscription was successful

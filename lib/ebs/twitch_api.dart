@@ -32,7 +32,7 @@ class TwitchApi {
   }
 
   static Future<void> initialize({
-    required int broadcasterId,
+    required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
   }) async {
     if (_instance != null) {
@@ -44,7 +44,7 @@ class TwitchApi {
   }
 
   static Future<void> initializeMocker({
-    required int broadcasterId,
+    required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
     required MockedTwitchApiTemplate mockedTwitchApi,
   }) async {
@@ -58,10 +58,10 @@ class TwitchApi {
 
   TwitchApi._({required this.broadcasterId, required this.ebsInfo});
 
-  final int broadcasterId;
+  final String broadcasterId;
   final TwitchEbsInfo ebsInfo;
 
-  Future<int?> userId({required String login}) async {
+  Future<String?> userId({required String login}) async {
     try {
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
@@ -70,20 +70,20 @@ class TwitchApi {
           queryParameters: {'login': login});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
-      return int.parse(json.decode(response.body)['data'][0]['id']);
+      return json.decode(response.body)['data'][0]['id'];
     } catch (e) {
       _logger.severe('Error getting user id: $e');
       return null;
     }
   }
 
-  Future<String?> displayName({required int userId}) async {
+  Future<String?> displayName({required String userId}) async {
     try {
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
           endPoint: 'helix/users',
           bearer: bearer,
-          queryParameters: {'id': userId.toString()});
+          queryParameters: {'id': userId});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       return json.decode(response.body)['data'][0]['display_name'];
@@ -93,13 +93,13 @@ class TwitchApi {
     }
   }
 
-  Future<String?> login({required int userId}) async {
+  Future<String?> login({required String userId}) async {
     try {
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
           endPoint: 'helix/users',
           bearer: bearer,
-          queryParameters: {'id': userId.toString()});
+          queryParameters: {'id': userId});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       return json.decode(response.body)['data'][0]['login'];
@@ -118,7 +118,7 @@ class TwitchApi {
       final response = await _getApiRequest(
           endPoint: 'helix/users/extensions',
           bearer: bearer,
-          queryParameters: {'user_id': broadcasterId.toString()});
+          queryParameters: {'user_id': broadcasterId});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
       final body = json.decode(response.body);
@@ -157,7 +157,7 @@ class TwitchApi {
         bearer: sendUnderExtensionName
             ? await _getSharedBearerToken()
             : await _getExtensionBearerToken(),
-        queryParameters: {'broadcaster_id': broadcasterId.toString()},
+        queryParameters: {'broadcaster_id': broadcasterId},
         body: {
           'text': message,
           'extension_id': ebsInfo.extensionId,
@@ -177,7 +177,7 @@ class TwitchApi {
         bearer: await _getSharedBearerToken(),
         body: {
           'message': jsonEncode(message).replaceAll('"', '\''),
-          'broadcaster_id': broadcasterId.toString(),
+          'broadcaster_id': broadcasterId,
           'target': ['broadcast']
         },
       );
@@ -249,11 +249,11 @@ class TwitchApi {
   Future<String> _getSharedBearerToken() async {
     if (_sharedBearerToken == null || _sharedBearerToken!.isExpired) {
       final jwt = JWT({
-        'user_id': broadcasterId.toString(),
+        'user_id': broadcasterId,
         'role': 'external',
         'exp': (DateTime.now().add(const Duration(days: 1)))
             .millisecondsSinceEpoch,
-        'channel_id': broadcasterId.toString(),
+        'channel_id': broadcasterId,
         'pubsub_perms': {
           'send': ['broadcast']
         }

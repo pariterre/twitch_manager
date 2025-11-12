@@ -25,17 +25,19 @@ abstract class TwitchEbsManagerAbstract {
   /// [Login] is the login of the user on Twitch. This is unique and can be used to
   /// identify the user by display name. The app must request the permission to
   /// be able to "convert" the opaque id to the login.
-  final Map<int, String> _userIdToOpaqueId = {};
-  Map<int, String> get userIdToOpaqueId => Map.unmodifiable(_userIdToOpaqueId);
+  final Map<String, String> _userIdToOpaqueId = {};
+  Map<String, String> get userIdToOpaqueId =>
+      Map.unmodifiable(_userIdToOpaqueId);
 
-  final Map<int, String> _userIdToLogin = {};
-  Map<int, String> get userIdToLogin => Map.unmodifiable(_userIdToLogin);
+  final Map<String, String> _userIdToLogin = {};
+  Map<String, String> get userIdToLogin => Map.unmodifiable(_userIdToLogin);
 
-  final Map<String, int> _opaqueIdToUserId = {};
-  Map<String, int> get opaqueIdToUserId => Map.unmodifiable(_opaqueIdToUserId);
+  final Map<String, String> _opaqueIdToUserId = {};
+  Map<String, String> get opaqueIdToUserId =>
+      Map.unmodifiable(_opaqueIdToUserId);
 
-  final Map<String, int> _loginToUserId = {};
-  Map<String, int> get loginToUserId => Map.unmodifiable(_loginToUserId);
+  final Map<String, String> _loginToUserId = {};
+  Map<String, String> get loginToUserId => Map.unmodifiable(_loginToUserId);
 
   ///
   /// The communicator handle communicaition with the main
@@ -47,13 +49,14 @@ abstract class TwitchEbsManagerAbstract {
   /// A mocked twitchApi via [mockedTwitchApi] can be sent so it is used to communicate
   /// with the Twitch API. Otherwise a new instance is initialized with the
   /// broadcasterId and ebsInfo.
-  TwitchEbsManagerAbstract(
-      {required int broadcasterId,
-      required this.ebsInfo,
-      required SendPort sendPort,
-      Future<void> Function(
-              {required int broadcasterId, required TwitchEbsInfo ebsInfo})?
-          twitchApiInitializer}) {
+  TwitchEbsManagerAbstract({
+    required String broadcasterId,
+    required this.ebsInfo,
+    required SendPort sendPort,
+    Future<void> Function(
+            {required String broadcasterId, required TwitchEbsInfo ebsInfo})?
+        twitchApiInitializer,
+  }) {
     _logger.info('Isolated created for streamer: $broadcasterId');
 
     communicator = Communicator(manager: this, sendPort: sendPort);
@@ -196,7 +199,7 @@ abstract class TwitchEbsManagerAbstract {
   /// [userId] the twitch id of the user
   /// [opaqueId] the opaque id of the user (provided by the frontend)
   Future<bool> _frontendHasRegistered(
-      {required int? userId, required String opaqueId}) async {
+      {required String? userId, required String opaqueId}) async {
     _logger.info('Registering to client');
 
     // Do not lose time if the user is already registered

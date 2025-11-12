@@ -19,8 +19,8 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
 
   ///
   /// The id of the channel that the frontend is connected to
-  int? _channelId;
-  int get channelId {
+  String? _channelId;
+  String get channelId {
     if (!isConnected) {
       _logger.severe('EBS Server not connected');
       throw Exception('EBS Server not connected');
@@ -114,7 +114,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
           AppToken.fromJwt(jwt: JWT({'twitch_access_token': reponse.token}));
       _bearerKey = AppToken.fromJwt(
           jwt: JWT({'twitch_access_token': reponse.helixToken}));
-      _channelId = int.parse(reponse.channelId);
+      _channelId = reponse.channelId;
       _opaqueUserId = reponse.userId;
 
       _isConnected = true;

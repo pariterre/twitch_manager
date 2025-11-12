@@ -38,7 +38,7 @@ class BitsTransactionObject {
 }
 
 class ExtractedTransactionReceipt {
-  int userId;
+  String userId;
   BitsProduct product;
 
   ExtractedTransactionReceipt({
@@ -53,7 +53,7 @@ class ExtractedTransactionReceipt {
 
   static ExtractedTransactionReceipt fromJson(Map<String, dynamic> map) {
     return ExtractedTransactionReceipt(
-      userId: int.tryParse(map['data']['userId'] as String? ?? '') ?? -1,
+      userId: map['data']['userId'] as String? ?? '',
       product:
           BitsProduct.fromJson(map['data']['product'] as Map<String, dynamic>),
     );

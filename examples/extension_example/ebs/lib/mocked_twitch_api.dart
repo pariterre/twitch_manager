@@ -8,7 +8,7 @@ import 'package:twitch_manager/twitch_ebs.dart';
 /// extension without having to send actual http requests to Twitch.
 class MockedTwitchApi extends MockedTwitchApiTemplate {
   static Future<void> initialize({
-    required int broadcasterId,
+    required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
   }) async => TwitchApi.initializeMocker(
     broadcasterId: broadcasterId,
@@ -25,7 +25,7 @@ class MockedTwitchApi extends MockedTwitchApiTemplate {
   final _players = <Map<String, dynamic>>[];
 
   Map<String, dynamic> _addRandomUser({
-    int? userId,
+    String? userId,
     String? login,
     String? displayName,
   }) {
@@ -39,19 +39,19 @@ class MockedTwitchApi extends MockedTwitchApiTemplate {
   }
 
   @override
-  Future<int?> userId({required String login}) async => _players.firstWhere(
+  Future<String?> userId({required String login}) async => _players.firstWhere(
     (player) => player['login'] == login,
     orElse: () => _addRandomUser(login: login),
   )['id'];
 
   @override
-  Future<String?> login({required int userId}) async => _players.firstWhere(
+  Future<String?> login({required String userId}) async => _players.firstWhere(
     (player) => player['id'] == userId,
     orElse: () => _addRandomUser(userId: userId),
   )['login'];
 
   @override
-  Future<String?> displayName({required int userId}) async =>
+  Future<String?> displayName({required String userId}) async =>
       _players.firstWhere(
         (player) => player['id'] == userId,
         orElse: () => _addRandomUser(userId: userId),

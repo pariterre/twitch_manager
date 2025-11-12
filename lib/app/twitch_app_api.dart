@@ -352,7 +352,7 @@ class TwitchAppApi {
       }
 
       final category = userId != null ? 'id' : 'login';
-      final identifier = userId?.toString() ?? login!;
+      final identifier = userId ?? login!;
 
       _logger.fine('Getting user info for user $identifier using $category...');
 
@@ -782,9 +782,9 @@ class TwitchAppApi {
       },
     );
 
-    final userId = jsonDecode(response.body)?['user_id'] as String? ?? '-1';
+    final userId = jsonDecode(response.body)?['user_id'] as String? ?? '';
     _logger.info(
-        userId == '-1' ? 'Error while fetching user id' : 'User id is $userId');
+        userId.isEmpty ? 'Error while fetching user id' : 'User id is $userId');
     return userId;
   }
 

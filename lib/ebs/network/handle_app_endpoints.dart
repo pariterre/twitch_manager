@@ -20,8 +20,7 @@ Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
   try {
     final socket = await WebSocketTransformer.upgrade(request);
 
-    final broadcasterId =
-        int.tryParse(request.uri.queryParameters['broadcaster_id'] ?? '');
+    final broadcasterId = request.uri.queryParameters['broadcaster_id'];
     if (broadcasterId == null) {
       _logger.severe('No broadcasterId found');
       socket.add(MessageProtocol(
@@ -138,19 +137,19 @@ Future<void> _handleReloadAppTokenRequest({
 
   // Make sure it was issued by us and is still valid
   final appToken = JWT.verify(jwt, SecretKey(ebsInfo.privateKey));
-  final userId = appToken.payload['user_id'];
+  final userId = appToken.payload['user_id'] as String?;
   if (userId == null) {
     _logger.severe('No userId found in JWT');
     throw UnauthorizedException();
   }
-  final appTokenClientId = appToken.payload['client_id'];
+  final appTokenClientId = appToken.payload['client_id'] as String?;
   if (clientId == null || clientId != appTokenClientId) {
     _logger.severe('No clientId found in JWT');
     throw UnauthorizedException();
   }
 
   // Load the credentials associated with this jwt
-  final credentials = await credentialsStorage.load(userId: userId!);
+  final credentials = await credentialsStorage.load(userId: userId);
   if (credentials == null) {
     _logger.severe('No credentials found for userId: $userId');
     throw UnauthorizedException();
@@ -175,10 +174,8 @@ Future<void> _handleReloadAppTokenRequest({
   request.response
     ..statusCode = HttpStatus.ok
     ..headers.add('Access-Control-Allow-Origin', '*');
-  request.response.write(jsonEncode({
-    'app_token': jwt.toString(),
-    'state': parameters['state'],
-  }));
+  request.response
+      .write(jsonEncode({'app_token': jwt, 'state': parameters['state']}));
   await request.response.close();
 }
 
@@ -234,7 +231,7 @@ Future<void> _finalizeNewTwitchToken({
   }
 
   final userBody = jsonDecode(userResponse.body);
-  final userId = userBody['data'][0]['id'];
+  final userId = userBody['data'][0]['id'] as String?;
   if (userId == null) {
     _logger.severe('No userId found in Twitch response');
     throw UnauthorizedException();

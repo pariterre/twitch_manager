@@ -22,7 +22,7 @@ void startEbsServer({
   required TwitchEbsInfo ebsInfo,
   required TwitchEbsCredentialsStorage credentialsStorage,
   required TwitchEbsManagerAbstract Function({
-    required int broadcasterId,
+    required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
     required SendPort sendPort,
   }) twitchEbsManagerFactory,

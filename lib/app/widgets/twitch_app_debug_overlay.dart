@@ -523,7 +523,7 @@ class _RedemptionRedeemBoxState extends State<_RedemptionRedeemBox> {
                                         labelText: 'Message',
                                         labelStyle:
                                             TextStyle(color: Colors.black)),
-                                    initialValue: reward.message.toString(),
+                                    initialValue: reward.message,
                                     onChanged: (value) => widget.manager.api
                                             .rewardRedemptions[index] =
                                         reward.copyWith(message: value),
@@ -641,7 +641,7 @@ class _RedemptionRedeemBoxState extends State<_RedemptionRedeemBox> {
                                           labelText: 'Message',
                                           labelStyle:
                                               TextStyle(color: Colors.black)),
-                                      initialValue: reward.message.toString(),
+                                      initialValue: reward.message,
                                       onChanged: (value) => widget
                                               .debugPanelOptions
                                               .redemptionRewardEvents[index] =

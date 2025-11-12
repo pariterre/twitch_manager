@@ -17,9 +17,9 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   // otherwise an exception is thrown
   final payload = _extractJwtPayload(request, ebsInfo: ebsInfo);
 
-  final broadcasterId = int.tryParse(payload?['channel_id']);
+  final broadcasterId = payload?['channel_id'] as String?;
   final opaqueId = payload?['opaque_user_id'] as String?;
-  final userId = int.tryParse(payload?['user_id']);
+  final userId = payload?['user_id'] as String?;
   if (broadcasterId == null) {
     _logger.severe('No broadcasterId found');
     throw UnauthorizedException();

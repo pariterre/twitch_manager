@@ -19,7 +19,7 @@ class EbsManager extends TwitchEbsManagerAbstract {
   /// [broadcasterId] the id of the broadcaster.
   /// [ebsInfo] the configuration of the EBS.
   EbsManager.spawn({
-    required int broadcasterId,
+    required String broadcasterId,
     required super.ebsInfo,
     required super.sendPort,
     bool useMockedTwitchApi = false,

@@ -11,7 +11,7 @@ final _logger = Logger('IsolatedMainManager');
 
 class _FrontendUser {
   final String opaqueId;
-  final int? userId;
+  final String? userId;
   final WebSocket socket;
 
   _FrontendUser({
@@ -22,16 +22,17 @@ class _FrontendUser {
 }
 
 class _IsolatedClientInterface {
-  int broadcasterId;
+  String broadcasterId;
   final Isolate isolate;
   SendPort? sendPort;
   WebSocket socket;
   final List<_FrontendUser> frontendUsers = [];
 
-  _IsolatedClientInterface(
-      {required this.isolate,
-      required this.broadcasterId,
-      required this.socket}) {
+  _IsolatedClientInterface({
+    required this.isolate,
+    required this.broadcasterId,
+    required this.socket,
+  }) {
     _logger.info('IsolatedInterface created');
 
     // Listen to the socket
@@ -114,7 +115,7 @@ class _IsolatedClientInterface {
 
 class MainIsolatedManager {
   final TwitchEbsManagerAbstract Function({
-    required int broadcasterId,
+    required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
     required SendPort sendPort,
   }) _twitchEbsManagerFactory;
@@ -131,7 +132,7 @@ class MainIsolatedManager {
 
   static void initialize(
     TwitchEbsManagerAbstract Function({
-      required int broadcasterId,
+      required String broadcasterId,
       required TwitchEbsInfo ebsInfo,
       required SendPort sendPort,
     }) twitchEbsManagerFactory,
@@ -144,23 +145,24 @@ class MainIsolatedManager {
         MainIsolatedManager._(twitchEbsManagerFactory: twitchEbsManagerFactory);
   }
 
-  MainIsolatedManager._(
-      {required TwitchEbsManagerAbstract Function({
-        required int broadcasterId,
-        required TwitchEbsInfo ebsInfo,
-        required SendPort sendPort,
-      }) twitchEbsManagerFactory})
-      : _twitchEbsManagerFactory = twitchEbsManagerFactory;
+  MainIsolatedManager._({
+    required TwitchEbsManagerAbstract Function({
+      required String broadcasterId,
+      required TwitchEbsInfo ebsInfo,
+      required SendPort sendPort,
+    }) twitchEbsManagerFactory,
+  }) : _twitchEbsManagerFactory = twitchEbsManagerFactory;
 
   final _completers = Completers<MessageProtocol>();
-  final Map<int, _IsolatedClientInterface> _isolates = {};
+  final Map<String, _IsolatedClientInterface> _isolates = {};
 
   ///
   /// Launch a new isolated if needed
-  Future<void> registerNewBroadcaster(
-      {required int broadcasterId,
-      required WebSocket socket,
-      required TwitchEbsInfo ebsInfo}) async {
+  Future<void> registerNewBroadcaster({
+    required String broadcasterId,
+    required WebSocket socket,
+    required TwitchEbsInfo ebsInfo,
+  }) async {
     final mainReceivePort = ReceivePort();
 
     // Establish communication with the worker isolate
@@ -183,9 +185,9 @@ class MainIsolatedManager {
   }
 
   Future<void> registerNewFrontendUser({
-    required int broadcasterId,
+    required String broadcasterId,
     required String opaqueId,
-    required int? userId,
+    required String? userId,
     required WebSocket socket,
   }) async {
     try {
@@ -217,7 +219,7 @@ class MainIsolatedManager {
   }
 
   Future<void> _handleMessageFromIsolated(
-      MessageProtocol message, int broadcasterId) async {
+      MessageProtocol message, String broadcasterId) async {
     try {
       switch (message.to) {
         case MessageTo.ebsMain:
@@ -242,7 +244,9 @@ class MainIsolatedManager {
   }
 
   Future<void> _handleMessageFromIsolatedToMain(
-      MessageProtocol message, int broadcasterId) async {
+    MessageProtocol message,
+    String broadcasterId,
+  ) async {
     switch (message.type) {
       case MessageTypes.handShake:
         _logger.info('Isolated client with id: $broadcasterId has connected');
@@ -273,12 +277,16 @@ class MainIsolatedManager {
   }
 
   Future<void> _handleMessageFromIsolatedToApp(
-      MessageProtocol message, int broadcasterId) async {
+    MessageProtocol message,
+    String broadcasterId,
+  ) async {
     _isolates[broadcasterId]?.socket.add(message.encode());
   }
 
   Future<void> _handleMessageFromIsolatedToFrontends(
-      MessageProtocol message, int broadcasterId) async {
+    MessageProtocol message,
+    String broadcasterId,
+  ) async {
     if (message.internalMain?['completer_id'] != null) {
       // If this message is for a specific completer, complete it and let the
       // completer send the response
@@ -294,14 +302,18 @@ class MainIsolatedManager {
   }
 
   Future<void> _handleMessageFromIsolatedToPubsub(
-      MessageProtocol message, int broadcasterId) async {
+      MessageProtocol message, String broadcasterId) async {
     _logger
         .severe('Message to pubsub are supposed to be sent from the isolated');
   }
 
   Future<void> messageFromAppToIsolated(
       MessageProtocol message, WebSocket socket) async {
-    final broadcasterId = message.data?['broadcaster_id'];
+    final broadcasterId = message.data?['broadcaster_id'] as String?;
+    if (broadcasterId == null) {
+      _logger.severe('No broadcasterId found in message from app to isolated');
+      throw NoBroadcasterIdException();
+    }
 
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
@@ -315,7 +327,12 @@ class MainIsolatedManager {
 
   Future<MessageProtocol> messageFromFrontendToIsolated(
       {required MessageProtocol message}) async {
-    final broadcasterId = message.data?['broadcaster_id'];
+    final broadcasterId = message.data?['broadcaster_id'] as String?;
+    if (broadcasterId == null) {
+      _logger.severe(
+          'No broadcasterId found in message from frontend to isolated');
+      throw NoBroadcasterIdException();
+    }
 
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
@@ -340,7 +357,7 @@ class MainIsolatedManager {
   }
 
   Future<void> messageFromMainToIsolated({
-    required int broadcasterId,
+    required String broadcasterId,
     required MessageProtocol message,
   }) async {
     final sendPort = _isolates[broadcasterId]?.sendPort;
@@ -356,14 +373,15 @@ class MainIsolatedManager {
 ///
 /// Start a new instance of the isolated, this is the entry point for the worker isolate
 void twitchEbsManagerSpawner(Map<String, dynamic> data) async {
-  final broadcasterId = data['broadcaster_id'] as int;
+  final broadcasterId = data['broadcaster_id'] as String;
   final ebsInfo = data['ebs_info'] as TwitchEbsInfo;
   final sendPort = data['send_port'] as SendPort;
-  final ebsManagerfactory = data['ebs_manager_factory']
-      as TwitchEbsManagerAbstract Function(
-          {required int broadcasterId,
-          required TwitchEbsInfo ebsInfo,
-          required SendPort sendPort});
+  final ebsManagerfactory =
+      data['ebs_manager_factory'] as TwitchEbsManagerAbstract Function({
+    required String broadcasterId,
+    required TwitchEbsInfo ebsInfo,
+    required SendPort sendPort,
+  });
 
   ebsManagerfactory(
       broadcasterId: broadcasterId, ebsInfo: ebsInfo, sendPort: sendPort);
