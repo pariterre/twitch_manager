@@ -186,7 +186,7 @@ class TwitchAppChat {
     final sender = match.group(1)!;
     final message = match.group(2)!;
     onMessageReceived.notifyListeners((callback) => callback(sender, message));
-    _logger.info('Message parsed');
+    _logger.fine('Message parsed');
   }
 }
 
