@@ -1,8 +1,8 @@
 import 'package:http/http.dart' as http;
 
-Future<http.Response> timedHttpGet(Uri uri, {Map<String, String>? headers}) {
-  return http.get(uri, headers: headers).timeout(const Duration(seconds: 10),
-      onTimeout: () {
+Future<http.Response> timedHttpGet(Uri uri,
+    {Map<String, String>? headers, duration = const Duration(seconds: 10)}) {
+  return http.get(uri, headers: headers).timeout(duration, onTimeout: () {
     return http.Response('{"status": 408, "message": "Request Timeout"}', 408);
   });
 }

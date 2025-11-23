@@ -34,9 +34,9 @@ Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
       return;
     }
 
-    _logger.info('New App connexion (broadcasterId: $broadcasterId)');
     await MainIsolatedManager.instance.registerNewBroadcaster(
         broadcasterId: broadcasterId, socket: socket, ebsInfo: ebsInfo);
+    _logger.info('New App connexion (broadcasterId: $broadcasterId)');
   } catch (e) {
     throw ConnexionToWebSocketdRefusedException();
   }
