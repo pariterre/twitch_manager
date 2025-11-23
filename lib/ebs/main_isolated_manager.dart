@@ -171,7 +171,6 @@ class MainIsolatedManager {
 
     // Create a new isolated client interface if it does not exist
     if (!_isolates.containsKey(broadcasterId)) {
-      _logger.info('Starting a new connexion (broadcasterId: $broadcasterId)');
       _isolates[broadcasterId] = _IsolatedClientInterface(
           broadcasterId: broadcasterId,
           isolate: await Isolate.spawn(twitchEbsManagerSpawner, {
@@ -309,51 +308,81 @@ class MainIsolatedManager {
 
   Future<void> messageFromAppToIsolated(
       MessageProtocol message, WebSocket socket) async {
-    final broadcasterId = message.data?['broadcaster_id'] as String?;
-    if (broadcasterId == null) {
-      _logger.severe('No broadcasterId found in message from app to isolated');
-      throw NoBroadcasterIdException();
-    }
+    try {
+      late final String? broadcasterId;
+      if (message.data?['broadcaster_id'] is int) {
+        broadcasterId = (message.data?['broadcaster_id'] as int).toString();
+      } else {
+        broadcasterId = message.data?['broadcaster_id'] as String?;
+      }
 
-    final sendPort = _isolates[broadcasterId]?.sendPort;
-    if (sendPort == null) {
-      _logger.info('No active client with id: $broadcasterId');
-      return;
-    }
+      if (broadcasterId == null) {
+        _logger
+            .severe('No broadcasterId found in message from app to isolated');
+        throw NoBroadcasterIdException();
+      }
 
-    // Relay the message to the worker isolate
-    sendPort.send(message.encode());
+      final sendPort = _isolates[broadcasterId]?.sendPort;
+      if (sendPort == null) {
+        _logger.info('No active client with id: $broadcasterId');
+        return;
+      }
+
+      // Relay the message to the worker isolate
+      sendPort.send(message.encode());
+    } catch (e, st) {
+      _logger.severe('Error processing message from app to isolated', e, st);
+    }
   }
 
   Future<MessageProtocol> messageFromFrontendToIsolated(
       {required MessageProtocol message}) async {
-    final broadcasterId = message.data?['broadcaster_id'] as String?;
-    if (broadcasterId == null) {
-      _logger.severe(
-          'No broadcasterId found in message from frontend to isolated');
-      throw NoBroadcasterIdException();
-    }
+    late final String? broadcasterId;
+    try {
+      if (message.data?['broadcaster_id'] is int) {
+        broadcasterId = (message.data?['broadcaster_id'] as int).toString();
+      } else {
+        broadcasterId = message.data?['broadcaster_id'] as String?;
+      }
 
-    final sendPort = _isolates[broadcasterId]?.sendPort;
-    if (sendPort == null) {
-      _logger.info('No active client with id: $broadcasterId');
+      if (broadcasterId == null) {
+        _logger.severe(
+            'No broadcasterId found in message from frontend to isolated');
+        throw NoBroadcasterIdException();
+      }
+
+      final sendPort = _isolates[broadcasterId]?.sendPort;
+      if (sendPort == null) {
+        _logger.info('No active client with id: $broadcasterId');
+        return MessageProtocol(
+            to: MessageTo.frontend,
+            from: MessageFrom.ebs,
+            type: MessageTypes.response,
+            isSuccess: false,
+            data: {
+              'error_message': 'No active client with id: $broadcasterId'
+            });
+      }
+
+      // Relay the message to the worker isolate
+      final completerId = _completers.spawn();
+      sendPort.send(message.copyWith(
+          from: message.from,
+          to: message.to,
+          type: message.type,
+          internalMain: {'completer_id': completerId}).encode());
+
+      return await _completers.get(completerId)!.future;
+    } catch (e, st) {
+      _logger.severe(
+          'Error processing message from frontend to isolated', e, st);
       return MessageProtocol(
           to: MessageTo.frontend,
           from: MessageFrom.ebs,
           type: MessageTypes.response,
           isSuccess: false,
-          data: {'error_message': 'No active client with id: $broadcasterId'});
+          data: {'error_message': 'Error processing message: $e'});
     }
-
-    // Relay the message to the worker isolate
-    final completerId = _completers.spawn();
-    sendPort.send(message.copyWith(
-        from: message.from,
-        to: message.to,
-        type: message.type,
-        internalMain: {'completer_id': completerId}).encode());
-
-    return await _completers.get(completerId)!.future;
   }
 
   Future<void> messageFromMainToIsolated({
@@ -373,16 +402,26 @@ class MainIsolatedManager {
 ///
 /// Start a new instance of the isolated, this is the entry point for the worker isolate
 void twitchEbsManagerSpawner(Map<String, dynamic> data) async {
-  final broadcasterId = data['broadcaster_id'] as String;
-  final ebsInfo = data['ebs_info'] as TwitchEbsInfo;
-  final sendPort = data['send_port'] as SendPort;
-  final ebsManagerfactory =
-      data['ebs_manager_factory'] as TwitchEbsManagerAbstract Function({
-    required String broadcasterId,
-    required TwitchEbsInfo ebsInfo,
-    required SendPort sendPort,
-  });
+  try {
+    late final String? broadcasterId;
+    if (data['broadcaster_id'] is int) {
+      broadcasterId = (data['broadcaster_id'] as int).toString();
+    } else {
+      broadcasterId = data['broadcaster_id'] as String;
+    }
 
-  ebsManagerfactory(
-      broadcasterId: broadcasterId, ebsInfo: ebsInfo, sendPort: sendPort);
+    final ebsInfo = data['ebs_info'] as TwitchEbsInfo;
+    final sendPort = data['send_port'] as SendPort;
+    final ebsManagerfactory =
+        data['ebs_manager_factory'] as TwitchEbsManagerAbstract Function({
+      required String broadcasterId,
+      required TwitchEbsInfo ebsInfo,
+      required SendPort sendPort,
+    });
+
+    ebsManagerfactory(
+        broadcasterId: broadcasterId, ebsInfo: ebsInfo, sendPort: sendPort);
+  } catch (e, st) {
+    _logger.severe('Error while spawning Twitch EBS Manager isolate', e, st);
+  }
 }
