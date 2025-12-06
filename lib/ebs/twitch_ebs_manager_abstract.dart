@@ -25,23 +25,10 @@ abstract class TwitchEbsManagerAbstract {
   /// [Login] is the login of the user on Twitch. This is unique and can be used to
   /// identify the user by display name. The app must request the permission to
   /// be able to "convert" the opaque id to the login.
-  final Map<String, String> _userIdToOpaqueId = {};
-  Map<String, String> get userIdToOpaqueId =>
-      Map.unmodifiable(_userIdToOpaqueId);
 
-  final Map<String, String> _userIdToLogin = {};
-  Map<String, String> get userIdToLogin => Map.unmodifiable(_userIdToLogin);
-
-  final Map<String, String> _userIdToDisplayName = {};
-  Map<String, String> get userIdToDisplayName =>
-      Map.unmodifiable(_userIdToDisplayName);
-
-  final Map<String, String> _opaqueIdToUserId = {};
-  Map<String, String> get opaqueIdToUserId =>
-      Map.unmodifiable(_opaqueIdToUserId);
-
-  final Map<String, String> _loginToUserId = {};
-  Map<String, String> get loginToUserId => Map.unmodifiable(_loginToUserId);
+  final List<TwitchFrontendUser> _registeredFrontendUsers = [];
+  List<TwitchFrontendUser> get registeredFrontendUsers =>
+      List.unmodifiable(_registeredFrontendUsers);
 
   ///
   /// The communicator handle communicaition with the main
@@ -209,7 +196,9 @@ abstract class TwitchEbsManagerAbstract {
     _logger.info('Registering to client');
 
     // Do not lose time if the user is already registered
-    if (userIdToOpaqueId.containsKey(userId)) return true;
+    if (_registeredFrontendUsers.any((user) => user.userId == userId)) {
+      return true;
+    }
 
     // If we do not need any information from Twitch, we are done
     if (!ebsInfo.isTwitchUserIdRequired) {
@@ -224,30 +213,19 @@ abstract class TwitchEbsManagerAbstract {
     }
 
     // Get the login of the user
-    final login = await TwitchEbsApi.instance.login(userId: userId);
-    if (login == null) {
-      _logger.severe(
-          'Could not get login for user $userId or the app does not have the '
-          'required permission to fetch the login');
-      return false;
-    }
-
-    // Get the display name of the user
-    final displayName = await TwitchEbsApi.instance.displayName(userId: userId);
-    if (displayName == null) {
-      _logger.severe(
-          'Could not get display name for user $userId or the app does not have the '
-          'required permission to fetch the display name');
+    final user = await TwitchEbsApi.instance.user(userId: userId);
+    if (user == null) {
+      _logger.severe('Could not get user $userId or the app does not have the '
+          'required permission to fetch the user');
       return false;
     }
 
     // Register the user
-    _userIdToOpaqueId[userId] = opaqueId;
-    _opaqueIdToUserId[opaqueId] = userId;
-    _userIdToLogin[userId] = login;
-    _userIdToDisplayName[userId] = displayName;
-    _loginToUserId[login] = userId;
-
+    _registeredFrontendUsers.add(TwitchFrontendUser(
+        userId: user.userId,
+        opaqueId: opaqueId,
+        login: user.login,
+        displayName: user.displayName));
     return true;
   }
 

@@ -1,4 +1,4 @@
-class TwitchMutex {
+class TwitchMutex<T> {
   bool _locked = false;
   Duration duration;
   Duration timeout;
@@ -7,7 +7,7 @@ class TwitchMutex {
       {this.duration = const Duration(milliseconds: 100),
       this.timeout = const Duration(seconds: 5)});
 
-  Future<T> runGuarded<T>(Future<T> Function() action) async {
+  Future<T> runGuarded(Future<T> Function() action) async {
     final endTime = DateTime.now().add(timeout);
     while (_locked) {
       if (DateTime.now().isAfter(endTime)) {

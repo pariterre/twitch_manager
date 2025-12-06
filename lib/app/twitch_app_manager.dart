@@ -193,7 +193,7 @@ class TwitchAppManager implements TwitchManager {
     _api ??= await TwitchAppApi.factory(
         appInfo: _appInfo, authenticator: _authenticator);
 
-    final streamerLogin = await _api!.login(_api!.streamerId);
+    final streamerLogin = await _api!.login(userId: _api!.streamerId);
     if (streamerLogin == null) return;
 
     // Connect to the TwitchEvent
@@ -302,7 +302,7 @@ class TwitchAppManagerMock extends TwitchAppManager {
         authenticator: _authenticator,
         debugPanelOptions: debugPanelOptions);
 
-    final streamerLogin = await _api!.login(_api!.streamerId);
+    final streamerLogin = await _api!.login(userId: _api!.streamerId);
     if (streamerLogin == null) return;
 
     // Connect to the chat

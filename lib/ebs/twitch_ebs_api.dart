@@ -5,7 +5,9 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
+import 'package:twitch_manager/twitch_app.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
+import 'package:twitch_manager/utils/twitch_mutex.dart';
 
 final _logger = Logger('TwitchEbsApi');
 
@@ -46,14 +48,14 @@ class TwitchEbsApi {
   static Future<void> initializeMocker({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
-    required TwitchEbsApiMockerTemplate mockedTwitchEbsApi,
+    required TwitchEbsApi twitchEbsApi,
   }) async {
     if (TwitchEbsApi._instance != null) {
       _logger.severe('TwitchManagerExtension is already initialized');
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
-    TwitchEbsApi._instance = mockedTwitchEbsApi;
+    TwitchEbsApi._instance = twitchEbsApi;
   }
 
   TwitchEbsApi._({required this.broadcasterId, required this.ebsInfo});
@@ -61,52 +63,78 @@ class TwitchEbsApi {
   final String broadcasterId;
   final TwitchEbsInfo ebsInfo;
 
-  Future<String?> userId({required String login}) async {
-    try {
+  ///
+  /// Cache of users used by the user() method
+  final _usersCache = <TwitchUser>[];
+  final _usersCacheMutex = TwitchMutex<TwitchUser?>();
+
+  ///
+  /// Get the user info, identified by either [userId] or [login].
+  Future<TwitchUser?> user({String? userId, String? login}) async {
+    if (userId == null && login == null) {
+      throw 'Either userId or login must be provided';
+    } else if (userId != null && login != null) {
+      throw 'Only one of userId or login must be provided';
+    }
+
+    return await _usersCacheMutex.runGuarded(() async {
+      final cachedUser = _usersCache.from(userId: userId, login: login);
+      if (cachedUser != null) {
+        _logger.fine('User $cachedUser found in cache');
+        return cachedUser;
+      }
+
+      final category = userId != null ? 'id' : 'login';
+      final identifier = userId ?? login!;
+
+      _logger.fine('Getting user info for user $identifier using $category...');
+
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
           endPoint: 'helix/users',
           bearer: bearer,
-          queryParameters: {'login': login});
+          queryParameters: {category: identifier});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
-      return json.decode(response.body)['data'][0]['id'];
-    } catch (e) {
-      _logger.severe('Error getting user id: $e');
-      return null;
-    }
+      final data = json.decode(response.body)['data'][0];
+      try {
+        final user = TwitchUser(
+            userId: data['id'],
+            login: data['login'],
+            displayName: data['display_name']);
+        _usersCache.add(user);
+        _logger.fine('Display name for user $identifier is $user');
+        return user;
+      } catch (e) {
+        _logger
+            .warning('Error while parsing user info for user $identifier: $e');
+        return null;
+      }
+    });
   }
 
-  Future<String?> displayName({required String userId}) async {
-    try {
-      final bearer = await _getExtensionBearerToken();
-      final response = await _getApiRequest(
-          endPoint: 'helix/users',
-          bearer: bearer,
-          queryParameters: {'id': userId});
-      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
-
-      return json.decode(response.body)['data'][0]['display_name'];
-    } catch (e) {
-      _logger.severe('Error getting display name: $e');
-      return null;
-    }
-  }
-
+  ///
+  /// Get the login for a given [userId].
   Future<String?> login({required String userId}) async {
-    try {
-      final bearer = await _getExtensionBearerToken();
-      final response = await _getApiRequest(
-          endPoint: 'helix/users',
-          bearer: bearer,
-          queryParameters: {'id': userId});
-      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
+    _logger.fine('Getting login for user $userId...');
+    final fetchedUser = await user(userId: userId);
+    return fetchedUser?.login;
+  }
 
-      return json.decode(response.body)['data'][0]['login'];
-    } catch (e) {
-      _logger.severe('Error getting login: $e');
-      return null;
-    }
+  ///
+  /// Get the user id for a given [login].
+  Future<String?> userId({required String login}) async {
+    _logger.fine('Getting user id for login $login...');
+    final fetchedUser = await user(login: login);
+    return fetchedUser?.userId;
+  }
+
+  ///
+  /// Get the display name for a given [userId] or [login].
+  Future<String?> displayName({String? userId, String? login}) async {
+    _logger.fine('Getting display name for user $userId...');
+    final fetchedUser = await user(userId: userId, login: login);
+    return fetchedUser?.displayName;
   }
 
   ///

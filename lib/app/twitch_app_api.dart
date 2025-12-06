@@ -25,7 +25,7 @@ Iterable<TwitchUser> _removeBlacklisted(
   if (blacklist == null) return users;
 
   return users.where((e) =>
-      !blacklist.contains(e.id) &&
+      !blacklist.contains(e.userId) &&
       !blacklist.contains(e.login) &&
       !blacklist.contains(e.displayName));
 }
@@ -334,7 +334,7 @@ class TwitchAppApi {
   ///
   /// Cache of users used by the user() method
   final _usersCache = <TwitchUser>[];
-  final _usersCacheMutex = TwitchMutex();
+  final _usersCacheMutex = TwitchMutex<TwitchUser?>();
 
   ///
   /// Get the user info, identified by either [userId] or [login].
@@ -346,7 +346,7 @@ class TwitchAppApi {
     }
 
     return await _usersCacheMutex.runGuarded(() async {
-      final cachedUser = _usersCache.from(id: userId, login: login);
+      final cachedUser = _usersCache.from(userId: userId, login: login);
       if (cachedUser != null) {
         _logger.fine('User $cachedUser found in cache');
         return cachedUser;
@@ -363,11 +363,11 @@ class TwitchAppApi {
         _logger.warning('Error while getting user info for user $identifier');
         return null;
       }
-      final data = response.data[0];
 
+      final data = response.data[0];
       try {
         final user = TwitchUser(
-            id: data['id'],
+            userId: data['id'],
             login: data['login'],
             displayName: data['display_name']);
         _usersCache.add(user);
@@ -383,7 +383,7 @@ class TwitchAppApi {
 
   ///
   /// Get the stream login of the user [userId].
-  Future<String?> login(String userId) async {
+  Future<String?> login({required String userId}) async {
     _logger.fine('Get the login for user $userId...');
     final fetchedUser = await user(userId: userId);
     return fetchedUser?.login;
@@ -391,14 +391,14 @@ class TwitchAppApi {
 
   ///
   /// Get the user id of the user [login].
-  Future<String?> userId(String login) async {
+  Future<String?> userId({required String login}) async {
     _logger.fine('Get the userId for login $login...');
     final fetchedUser = await user(login: login);
-    return fetchedUser?.id;
+    return fetchedUser?.userId;
   }
 
   ///
-  /// Get the display name of the user [userId].
+  /// Get the display name of the user [userId] or [login].
   Future<String?> displayName({String? userId, String? login}) async {
     _logger.fine('Get the display name for user ${userId ?? login}...');
     final fetchedUser = await user(userId: userId, login: login);
@@ -410,7 +410,7 @@ class TwitchAppApi {
   /// is kind of a hack as data is expected to be empty when the user is not
   /// live (even though, for some reason the key "type" is "live" when the user
   /// is actually live).
-  Future<bool?> isUserLive(String userId) async {
+  Future<bool?> isUserLive({required String userId}) async {
     _logger.info('Checking if user $userId is live...');
 
     final response = await _sendHttpRequest(HttpRequestMethod.get,
@@ -479,7 +479,7 @@ class TwitchAppApi {
   ///
   /// Cache of followers used by the fetchFollowers() method
   final List<TwitchUser> _followersCache = [];
-  final _followersCacheMutex = TwitchMutex();
+  final _followersCacheMutex = TwitchMutex<Iterable<TwitchUser>?>();
 
   ///
   /// Get the list of current followers of the channel.
@@ -502,7 +502,7 @@ class TwitchAppApi {
         if (response?.data.isNotEmpty ?? false) {
           final userId = response!.data[0]['user_id'];
           if (_followersCache.length == response.total &&
-              _followersCache.has(id: userId)) {
+              _followersCache.has(userId: userId)) {
             _logger.info('No new followers since last fetch');
             users.addAll(_followersCache);
           }
@@ -551,7 +551,7 @@ class TwitchAppApi {
       }
 
       users.addAll(response.data.map((e) => TwitchUser(
-          id: e['user_id'],
+          userId: e['user_id'],
           login: e['user_login'],
           displayName: e['user_name'])));
 
@@ -845,13 +845,13 @@ class TwitchAppApiMock extends TwitchAppApi {
   @override
   Future<TwitchUser?> user({String? userId, String? login}) async {
     return TwitchUser(
-        id: userId ?? '1234567890',
+        userId: userId ?? '1234567890',
         login: login ?? 'login_$userId',
         displayName: 'display_name_${userId ?? login}');
   }
 
   @override
-  Future<bool?> isUserLive(String userId) async {
+  Future<bool?> isUserLive({required String userId}) async {
     return true;
   }
 
@@ -860,7 +860,9 @@ class TwitchAppApiMock extends TwitchAppApi {
   Future<Iterable<TwitchUser>?> fetchChatters(
       {Iterable<String>? blacklist}) async {
     final out = debugPanelOptions.chatters.map((e) => TwitchUser(
-        id: e.displayName, login: e.displayName, displayName: e.displayName));
+        userId: e.displayName,
+        login: e.displayName,
+        displayName: e.displayName));
     return _removeBlacklisted(out, blacklist);
   }
 
@@ -871,7 +873,7 @@ class TwitchAppApiMock extends TwitchAppApi {
     final out = debugPanelOptions.chatters
         .where((chatter) => chatter.isModerator)
         .map((e) => TwitchUser(
-            id: e.displayName,
+            userId: e.displayName,
             login: e.displayName,
             displayName: e.displayName))
         .toList();
@@ -887,7 +889,7 @@ class TwitchAppApiMock extends TwitchAppApi {
     final out = debugPanelOptions.chatters
         .where((e) => e.isFollower && (includeStreamer ? true : !e.isStreamer))
         .map((e) => TwitchUser(
-            id: e.displayName,
+            userId: e.displayName,
             login: e.displayName,
             displayName: e.displayName));
     return _removeBlacklisted(out, blacklist);

@@ -13,7 +13,7 @@ class TwitchEbsApiMocked extends TwitchEbsApiMockerTemplate {
   }) async => TwitchEbsApi.initializeMocker(
     broadcasterId: broadcasterId,
     ebsInfo: ebsInfo,
-    mockedTwitchEbsApi: TwitchEbsApiMocked(
+    twitchEbsApi: TwitchEbsApiMocked(
       broadcasterId: broadcasterId,
       ebsInfo: ebsInfo,
     ),
@@ -22,40 +22,34 @@ class TwitchEbsApiMocked extends TwitchEbsApiMockerTemplate {
   TwitchEbsApiMocked({required super.broadcasterId, required super.ebsInfo});
 
   final _random = Random();
-  final _players = <Map<String, dynamic>>[];
+  final _users = <TwitchUser>[];
 
-  Map<String, dynamic> _addRandomUser({
+  @override
+  Future<TwitchUser?> user({String? userId, String? login}) async =>
+      _users.firstWhere(
+        (player) =>
+            (userId != null && player.userId == userId) ||
+            (login != null && player.login == login),
+        orElse: () => _addRandomUser(userId: userId, login: login),
+      );
+
+  TwitchUser _addRandomUser({
     String? userId,
     String? login,
     String? displayName,
   }) {
-    final id = userId ?? _random.nextInt(1000000) + 1000000;
-    final name = login ?? 'user$id';
-    final display = displayName ?? 'User $id';
+    userId ??= '${_random.nextInt(1000000) + 1000000}';
+    login ??= 'user$userId';
+    displayName ??= 'User $userId';
 
-    final newUser = {'id': id, 'login': name, 'display_name': display};
-    _players.add(newUser);
+    final newUser = TwitchUser(
+      userId: userId,
+      login: login,
+      displayName: displayName,
+    );
+    _users.add(newUser);
     return newUser;
   }
-
-  @override
-  Future<String?> userId({required String login}) async => _players.firstWhere(
-    (player) => player['login'] == login,
-    orElse: () => _addRandomUser(login: login),
-  )['id'];
-
-  @override
-  Future<String?> login({required String userId}) async => _players.firstWhere(
-    (player) => player['id'] == userId,
-    orElse: () => _addRandomUser(userId: userId),
-  )['login'];
-
-  @override
-  Future<String?> displayName({required String userId}) async =>
-      _players.firstWhere(
-        (player) => player['id'] == userId,
-        orElse: () => _addRandomUser(userId: userId),
-      )['display_name'];
 
   ///
   /// Fake a successful API request
