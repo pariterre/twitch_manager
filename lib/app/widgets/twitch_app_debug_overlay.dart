@@ -40,8 +40,8 @@ class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final debugPanelOptions = widget.manager.runtimeType == TwitchManagerMock
-        ? (widget.manager as TwitchManagerMock).debugPanelOptions
+    final debugPanelOptions = widget.manager.runtimeType == TwitchAppManagerMock
+        ? (widget.manager as TwitchAppManagerMock).debugPanelOptions
         : null;
 
     return Stack(
@@ -82,8 +82,8 @@ class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _ChatterBox(
-                                      manager:
-                                          widget.manager as TwitchManagerMock,
+                                      manager: widget.manager
+                                          as TwitchAppManagerMock,
                                       debugPanelOptions: debugPanelOptions,
                                       maxWidth: widget.width,
                                       onChanged: () => setState(() {})),
@@ -91,8 +91,8 @@ class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
                                   const Divider(),
                                   const SizedBox(height: 8),
                                   _ChatBox(
-                                      manager:
-                                          widget.manager as TwitchManagerMock,
+                                      manager: widget.manager
+                                          as TwitchAppManagerMock,
                                       debugPanelOptions: debugPanelOptions,
                                       maxWidth: widget.width),
                                 ],
@@ -102,7 +102,7 @@ class _TwitchAppDebugOverlayState extends State<TwitchAppDebugOverlay> {
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: _RedemptionRedeemBox(
-                                manager: widget.manager as TwitchManagerMock,
+                                manager: widget.manager as TwitchAppManagerMock,
                                 debugPanelOptions: debugPanelOptions,
                                 maxWidth: widget.width,
                               ),
@@ -141,7 +141,7 @@ class _ChatterBox extends StatefulWidget {
     required this.onChanged,
   });
 
-  final TwitchManagerMock manager;
+  final TwitchAppManagerMock manager;
   final TwitchDebugPanelOptions debugPanelOptions;
   final double maxWidth;
   final Function onChanged;
@@ -238,7 +238,7 @@ class _ChatBox extends StatefulWidget {
     required this.maxWidth,
   });
 
-  final TwitchManagerMock manager;
+  final TwitchAppManagerMock manager;
   final TwitchDebugPanelOptions debugPanelOptions;
   final double maxWidth;
 
@@ -382,7 +382,7 @@ class _RedemptionRedeemBox extends StatefulWidget {
     required this.maxWidth,
   });
 
-  final TwitchManagerMock manager;
+  final TwitchAppManagerMock manager;
   final TwitchDebugPanelOptions debugPanelOptions;
   final double maxWidth;
 

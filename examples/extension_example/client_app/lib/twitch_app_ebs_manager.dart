@@ -8,23 +8,23 @@ import 'package:twitch_manager/twitch_app.dart';
 
 ///
 /// This is an example of how to connect to the EBS server. You can do so by
-/// extending the [TwitchAppManagerAbstract] and implementing the methods
+/// extending the [TwitchAppEbsManagerAbstract] and implementing the methods
 /// to handle the requests from and to the EBS server.
-class EbsServerManager extends TwitchAppManagerAbstract {
+class TwitchAppEbsManager extends TwitchAppEbsManagerAbstract {
   /// The [StateManager] instance used to manage the state.
   final StateManager _stateManager;
 
   ///
   /// Initialize the EbsServerManager establishing a connection with the
   /// EBS server if [ebsUri] is provided.
-  EbsServerManager(
-    TwitchAppManager twitchManager, {
+  TwitchAppEbsManager(
+    TwitchAppManager twitchAppManager, {
     required super.appInfo,
     required StateManager stateManager,
   }) : _stateManager = stateManager {
     onEbsHasConnected.listen(_onEbsHasConnected);
     onEbsHasDisconnected.listen(_onEbsHasDisconnected);
-    connect(twitchManager.api.streamerId);
+    connect(twitchAppManager.api.streamerId);
   }
 
   void _onEbsHasConnected() {

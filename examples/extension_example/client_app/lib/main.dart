@@ -1,8 +1,8 @@
-import 'package:extension_client_app/ebs_server_manager.dart';
-import 'package:flutter/material.dart';
-import 'package:common/state.dart' as state;
-import 'package:twitch_manager/twitch_app.dart';
 import 'package:common/common.dart';
+import 'package:common/state.dart' as state;
+import 'package:extension_client_app/twitch_app_ebs_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:twitch_manager/twitch_app.dart';
 
 const _useMocker = true;
 
@@ -101,8 +101,8 @@ class _MainScreenState extends State<MainScreen> {
   // client side actions like sending messages to the chat, listening to chat messages, etc.
   // Also, to connect to the EBS, one must know the broadcasterId, which is
   // easily fetched by the TwitchAppManager.
-  TwitchAppManager? _twitchManager;
-  EbsServerManager? _twitchAppManager;
+  TwitchAppManager? _twitchAppManager;
+  TwitchAppEbsManager? _twitchAppEbsManager;
 
   @override
   void initState() {
@@ -114,14 +114,14 @@ class _MainScreenState extends State<MainScreen> {
     _counter++;
     widget.stateManager.currentState = widget.stateManager.currentState
         .copyWith(sharedMessage: 'Button pressed $_counter times');
-    _twitchAppManager?.sendStateToFrontends(
+    _twitchAppEbsManager?.sendStateToFrontends(
       newState: widget.stateManager.currentState,
     );
   });
 
   @override
   Widget build(BuildContext context) {
-    final isTwitchManagerConnected = _twitchManager?.isConnected ?? false;
+    final isTwitchManagerConnected = _twitchAppManager?.isConnected ?? false;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
@@ -129,7 +129,7 @@ class _MainScreenState extends State<MainScreen> {
         // The [TwitchAppDebugOverlay] shows a panel that the user can interact with
         // to simulate Twitch events, chat messages, etc. Please note it puts the
         // [child] into a Stack, which may or may not be a problem
-        manager: _twitchManager,
+        manager: _twitchAppManager,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -177,9 +177,9 @@ class _MainScreenState extends State<MainScreen> {
   ///
   /// Provide an easy access to the TwitchManager connect dialog
   Future<bool> _showConnectManagerDialog({bool reloadIfPossible = true}) async {
-    if (_twitchManager != null) return true;
+    if (_twitchAppManager != null) return true;
 
-    _twitchManager = await showDialog<TwitchAppManager>(
+    _twitchAppManager = await showDialog<TwitchAppManager>(
       context: context,
       builder: (context) => TwitchAppAuthenticationDialog(
         useMocker: _useMocker,
@@ -193,26 +193,26 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    if (_twitchManager == null) {
+    if (_twitchAppManager == null) {
       setState(() {});
       return false;
     }
 
     // Start listening to twitch chat messages
-    _twitchManager!.chat.onMessageReceived.listen(_onMessageReceived);
+    _twitchAppManager!.chat.onMessageReceived.listen(_onMessageReceived);
 
     // Information can be retrieved from the TwitchManager
     debugPrint(
-      'A list of followers: ${await _twitchManager!.api.fetchFollowers(includeStreamer: true)}',
+      'A list of followers: ${await _twitchAppManager!.api.fetchFollowers(includeStreamer: true)}',
     );
 
     // And we can send a message to the chat (assuming the chat scope was added)
-    _twitchManager!.chat.send(
+    _twitchAppManager!.chat.send(
       'Hello everyone! This is a message from the client app.',
     );
 
-    _twitchAppManager = EbsServerManager(
-      _twitchManager!,
+    _twitchAppEbsManager = TwitchAppEbsManager(
+      _twitchAppManager!,
       appInfo: widget.appInfo,
       stateManager: widget.stateManager,
     );
@@ -225,14 +225,14 @@ class _MainScreenState extends State<MainScreen> {
   /// Showcase how to disconnect from Twitch. This will remove the
   /// TwitchManager and stop listening to chat messages.
   Future<bool> disconnect() async {
-    if (_twitchManager == null) return true;
+    if (_twitchAppManager == null) return true;
 
-    await _twitchAppManager?.disconnect();
+    await _twitchAppEbsManager?.disconnect();
+    _twitchAppEbsManager = null;
+
+    await _twitchAppManager!.chat.onMessageReceived.cancel(_onMessageReceived);
+    await _twitchAppManager!.disconnect();
     _twitchAppManager = null;
-
-    await _twitchManager!.chat.onMessageReceived.cancel(_onMessageReceived);
-    await _twitchManager!.disconnect();
-    _twitchManager = null;
     setState(() {});
     return true;
   }

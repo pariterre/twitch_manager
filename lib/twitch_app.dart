@@ -1,4 +1,5 @@
 export 'package:twitch_manager/abstract/twitch_authenticator.dart';
+export 'package:twitch_manager/app/twitch_app_ebs_manager_abstract.dart';
 export 'package:twitch_manager/app/twitch_app_info.dart';
 export 'package:twitch_manager/app/twitch_app_manager.dart';
 export 'package:twitch_manager/app/twitch_app_scope.dart';
@@ -7,6 +8,5 @@ export 'package:twitch_manager/app/twitch_mock_options.dart';
 export 'package:twitch_manager/app/widgets/twitch_app_authentication_dialog.dart';
 export 'package:twitch_manager/app/widgets/twitch_app_debug_overlay.dart';
 export 'package:twitch_manager/ebs/network/communication_protocols.dart';
-export 'package:twitch_manager/ebs/twitch_app_manager_abstract.dart';
 export 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 export 'package:twitch_manager/utils/twitch_user.dart';

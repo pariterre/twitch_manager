@@ -221,7 +221,7 @@ class TwitchAppManager implements TwitchManager {
   }
 }
 
-class TwitchManagerMock extends TwitchAppManager {
+class TwitchAppManagerMock extends TwitchAppManager {
   TwitchDebugPanelOptions debugPanelOptions;
 
   @override
@@ -256,7 +256,7 @@ class TwitchManagerMock extends TwitchAppManager {
 
   ///
   /// Main constructor of the Twitch Manager
-  TwitchManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
+  TwitchAppManagerMock._(TwitchAppInfo appInfo, this.debugPanelOptions)
       : super._(appInfo, TwitchAppAuthenticatorMock());
 
   /// Main constructor for the TwitchManager.
@@ -264,11 +264,11 @@ class TwitchManagerMock extends TwitchAppManager {
   /// [loadPreviousSession] uses credidential from previous session if set to true.
   /// It requires new credidentials otherwise.
   /// [debugPanelOptions] is all the user defined options for the mocking
-  static Future<TwitchManagerMock> factory({
+  static Future<TwitchAppManagerMock> factory({
     required TwitchAppInfo appInfo,
     TwitchDebugPanelOptions? debugPanelOptions,
   }) async {
-    final instance = TwitchManagerMock._(
+    final instance = TwitchAppManagerMock._(
         appInfo, debugPanelOptions ?? TwitchDebugPanelOptions());
     await instance._connectToTwitchBackend();
     return instance;

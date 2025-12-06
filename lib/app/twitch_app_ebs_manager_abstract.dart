@@ -8,7 +8,7 @@ import 'package:web_socket_client/web_socket_client.dart';
 
 final _logger = Logger('TwitchAppManagerAbstract');
 
-abstract class TwitchAppManagerAbstract {
+abstract class TwitchAppEbsManagerAbstract {
   WebSocket? _socket;
   final TwitchAppInfo appInfo;
 
@@ -26,7 +26,7 @@ abstract class TwitchAppManagerAbstract {
   final _completers = Completers<MessageProtocol>();
 
   /// Setup a method to wait for the TwitchManager
-  TwitchAppManagerAbstract({required this.appInfo});
+  TwitchAppEbsManagerAbstract({required this.appInfo});
 
   ///
   /// Connect to the EBS server

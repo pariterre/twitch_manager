@@ -89,7 +89,7 @@ class _TwitchAppAuthenticationDialogState
   String? _redirectAddress;
   TwitchAppManager? _manager;
   late Future<TwitchAppManager> factoryManager = widget.useMocker
-      ? TwitchManagerMock.factory(
+      ? TwitchAppManagerMock.factory(
           appInfo: widget.appInfo, debugPanelOptions: widget.debugPanelOptions)
       : TwitchAppManager.factory(
           appInfo: widget.appInfo,
