@@ -1,6 +1,6 @@
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart';
-import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/utils/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 ///

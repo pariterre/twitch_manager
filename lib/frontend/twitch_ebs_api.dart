@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/abstract/twitch_authenticator.dart';
-import 'package:twitch_manager/ebs/network/communication_protocols.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 import 'package:twitch_manager/twitch_utils.dart';
+import 'package:twitch_manager/utils/communication_protocols.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 final _logger = Logger('TwitchEbsApi');

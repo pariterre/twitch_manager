@@ -1,6 +1,6 @@
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
-import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/twitch_utils.dart';
+import 'package:twitch_manager/utils/twitch_js_extension_public_objects.dart';
 
 ///
 /// Define an interface to call the Twitch Extension JavaScript API
