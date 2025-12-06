@@ -239,11 +239,11 @@ class TwitchManagerMock extends TwitchAppManager {
   }
 
   @override
-  TwitchApiMock get api {
+  TwitchAppApiMock get api {
     if (!_isConnected) {
       throw 'api necessitate the user to be connected';
     }
-    return _api! as TwitchApiMock;
+    return _api! as TwitchAppApiMock;
   }
 
   @override
@@ -297,7 +297,7 @@ class TwitchManagerMock extends TwitchAppManager {
   @override
   Future<void> _connectToTwitchBackend() async {
     // Connect the API
-    _api ??= await TwitchApiMock.factory(
+    _api ??= await TwitchAppApiMock.factory(
         appInfo: _appInfo,
         authenticator: _authenticator,
         debugPanelOptions: debugPanelOptions);
@@ -319,7 +319,7 @@ class TwitchManagerMock extends TwitchAppManager {
       _events ??= await TwitchEventsMock.factory(
           appInfo: _appInfo,
           authenticator: _authenticator,
-          api: _api as TwitchApiMock,
+          api: _api as TwitchAppApiMock,
           debugPanelOptions: debugPanelOptions);
     }
 

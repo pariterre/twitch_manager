@@ -6,20 +6,20 @@ import 'package:twitch_manager/twitch_ebs.dart';
 ///
 /// This is an example of how to muck Twitch API calls so you can test your
 /// extension without having to send actual http requests to Twitch.
-class MockedTwitchApi extends MockedTwitchApiTemplate {
+class MockedTwitchEbsApi extends MockedTwitchEbsApiTemplate {
   static Future<void> initialize({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
-  }) async => TwitchApi.initializeMocker(
+  }) async => TwitchEbsApi.initializeMocker(
     broadcasterId: broadcasterId,
     ebsInfo: ebsInfo,
-    mockedTwitchApi: MockedTwitchApi(
+    mockedTwitchEbsApi: MockedTwitchEbsApi(
       broadcasterId: broadcasterId,
       ebsInfo: ebsInfo,
     ),
   );
 
-  MockedTwitchApi({required super.broadcasterId, required super.ebsInfo});
+  MockedTwitchEbsApi({required super.broadcasterId, required super.ebsInfo});
 
   final _random = Random();
   final _players = <Map<String, dynamic>>[];

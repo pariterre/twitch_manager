@@ -22,12 +22,12 @@ class EbsManager extends TwitchEbsManagerAbstract {
     required String broadcasterId,
     required super.ebsInfo,
     required super.sendPort,
-    bool useMockedTwitchApi = false,
+    bool useMockedTwitchEbsApi = false,
   }) : super(
          broadcasterId: broadcasterId,
-         twitchApiInitializer: useMockedTwitchApi
-             ? MockedTwitchApi.initialize
-             : TwitchApi.initialize,
+         twitchEbsApiInitializer: useMockedTwitchEbsApi
+             ? MockedTwitchEbsApi.initialize
+             : TwitchEbsApi.initialize,
        ) {
     // Set up the logger
     Logger.root.onRecord.listen(
@@ -36,10 +36,10 @@ class EbsManager extends TwitchEbsManagerAbstract {
       ),
     );
 
-    // Sending a welcome message to the Twitch chat. This requires the send message
+    // Example of how sending a welcome message to the Twitch chat. This requires the send message
     // permission to be set in the Twitch Developer Console.
     // _logger.info('Sending welcome message');
-    // TwitchApi.instance.sendChatMessage('Welcome to the my extension!');
+    // TwitchEbsApi.instance.sendChatMessage('Welcome to the my extension!');
   }
 
   ///

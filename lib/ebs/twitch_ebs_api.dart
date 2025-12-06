@@ -7,7 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
 
-final _logger = Logger('TwitchApi');
+final _logger = Logger('TwitchEbsApi');
 
 class _Bearer {
   final String token;
@@ -18,10 +18,10 @@ class _Bearer {
   bool get isExpired => DateTime.now().isAfter(expiration);
 }
 
-class TwitchApi {
+class TwitchEbsApi {
   // Prepare the singleton instance
-  static TwitchApi? _instance;
-  static TwitchApi get instance {
+  static TwitchEbsApi? _instance;
+  static TwitchEbsApi get instance {
     if (_instance == null) {
       _logger.severe(
           'TwitchManagerExtension is not initialized, call initialize() first');
@@ -40,23 +40,23 @@ class TwitchApi {
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
-    _instance = TwitchApi._(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
+    _instance = TwitchEbsApi._(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
   }
 
   static Future<void> initializeMocker({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
-    required MockedTwitchApiTemplate mockedTwitchApi,
+    required MockedTwitchEbsApiTemplate mockedTwitchEbsApi,
   }) async {
-    if (TwitchApi._instance != null) {
+    if (TwitchEbsApi._instance != null) {
       _logger.severe('TwitchManagerExtension is already initialized');
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
-    TwitchApi._instance = mockedTwitchApi;
+    TwitchEbsApi._instance = mockedTwitchEbsApi;
   }
 
-  TwitchApi._({required this.broadcasterId, required this.ebsInfo});
+  TwitchEbsApi._({required this.broadcasterId, required this.ebsInfo});
 
   final String broadcasterId;
   final TwitchEbsInfo ebsInfo;
@@ -268,8 +268,8 @@ class TwitchApi {
   }
 }
 
-class MockedTwitchApiTemplate extends TwitchApi {
-  MockedTwitchApiTemplate(
+class MockedTwitchEbsApiTemplate extends TwitchEbsApi {
+  MockedTwitchEbsApiTemplate(
       {required super.broadcasterId, required super.ebsInfo})
       : super._();
 }

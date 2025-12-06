@@ -43,7 +43,7 @@ void main(List<String> arguments) async {
               broadcasterId: broadcasterId,
               ebsInfo: ebsInfo,
               sendPort: sendPort,
-              useMockedTwitchApi: _useTwitchMocker,
+              useMockedTwitchEbsApi: _useTwitchMocker,
             ),
   );
 

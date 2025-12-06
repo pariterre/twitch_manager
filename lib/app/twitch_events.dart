@@ -368,7 +368,7 @@ class TwitchEventsMock extends TwitchEvents {
   static Future<TwitchEventsMock> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
-    required TwitchApiMock api,
+    required TwitchAppApiMock api,
     required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
     return TwitchEventsMock._(appInfo, authenticator, api, debugPanelOptions);
@@ -387,7 +387,7 @@ class TwitchEventsMock extends TwitchEvents {
   TwitchEventsMock._(
     super.appInfo,
     super.authenticator,
-    TwitchApiMock super.api,
+    TwitchAppApiMock super.api,
     TwitchDebugPanelOptions debugPanelOptions,
   ) : super._() {
     debugPanelOptions.simulateRewardRedemption = simulateRewardRedemption;

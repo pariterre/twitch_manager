@@ -9,11 +9,11 @@ import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_events.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
-import 'package:twitch_manager/app/twitch_user.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
 import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 import 'package:twitch_manager/utils/twitch_mutex.dart';
+import 'package:twitch_manager/utils/twitch_user.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';
@@ -79,14 +79,14 @@ class TwitchAppApi {
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
   }) async {
-    _logger.config('Creating Twitch API...');
+    _logger.config('Creating Twitch App API...');
 
-    // Create a temporary TwitchApi with [streamerId] empty so we
+    // Create a temporary TwitchAppApi with [streamerId] empty so we
     // can fetch it
     final api = TwitchAppApi._(appInfo, authenticator);
     api.streamerId = await api._userId(authenticator.bearerKey!);
 
-    _logger.config('Twitch API created');
+    _logger.config('Twitch App API created');
     return api;
   }
 
@@ -821,21 +821,21 @@ class TwitchAppApi {
   }
 }
 
-class TwitchApiMock extends TwitchAppApi {
+class TwitchAppApiMock extends TwitchAppApi {
   TwitchDebugPanelOptions debugPanelOptions;
 
   ///
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [debugPanelOptions] are the options to use for the mock
-  static Future<TwitchApiMock> factory({
+  static Future<TwitchAppApiMock> factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
     required TwitchDebugPanelOptions debugPanelOptions,
   }) async {
-    // Create a temporary TwitchApi with [streamerId] empty so we
+    // Create a temporary TwitchAppApi with [streamerId] empty so we
     // can fetch it
-    final api = TwitchApiMock._(appInfo, authenticator, debugPanelOptions);
+    final api = TwitchAppApiMock._(appInfo, authenticator, debugPanelOptions);
     api.streamerId = '1234567890';
     return api;
   }
@@ -981,7 +981,7 @@ class TwitchApiMock extends TwitchAppApi {
 
   ///
   /// Private constructor
-  TwitchApiMock._(
+  TwitchAppApiMock._(
       super.appInfo, super.twitchAuthenticator, this.debugPanelOptions)
       : super._();
 }

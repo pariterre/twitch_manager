@@ -32,6 +32,10 @@ abstract class TwitchEbsManagerAbstract {
   final Map<String, String> _userIdToLogin = {};
   Map<String, String> get userIdToLogin => Map.unmodifiable(_userIdToLogin);
 
+  final Map<String, String> _userIdToDisplayName = {};
+  Map<String, String> get userIdToDisplayName =>
+      Map.unmodifiable(_userIdToDisplayName);
+
   final Map<String, String> _opaqueIdToUserId = {};
   Map<String, String> get opaqueIdToUserId =>
       Map.unmodifiable(_opaqueIdToUserId);
@@ -46,7 +50,7 @@ abstract class TwitchEbsManagerAbstract {
   ///
   /// Constructor for the IsolatedInstanceManagerAbstract. This must be called
   /// by the inherited class.
-  /// A mocked twitchApi via [mockedTwitchApi] can be sent so it is used to communicate
+  /// A mocked twitchEbsApi via [twitchEbsApiInitializer] can be sent so it is used to communicate
   /// with the Twitch API. Otherwise a new instance is initialized with the
   /// broadcasterId and ebsInfo.
   TwitchEbsManagerAbstract({
@@ -55,15 +59,17 @@ abstract class TwitchEbsManagerAbstract {
     required SendPort sendPort,
     Future<void> Function(
             {required String broadcasterId, required TwitchEbsInfo ebsInfo})?
-        twitchApiInitializer,
+        twitchEbsApiInitializer,
   }) {
     _logger.info('Isolated created for streamer: $broadcasterId');
 
     communicator = Communicator(manager: this, sendPort: sendPort);
 
-    twitchApiInitializer == null
-        ? TwitchApi.initialize(broadcasterId: broadcasterId, ebsInfo: ebsInfo)
-        : twitchApiInitializer(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
+    twitchEbsApiInitializer == null
+        ? TwitchEbsApi.initialize(
+            broadcasterId: broadcasterId, ebsInfo: ebsInfo)
+        : twitchEbsApiInitializer(
+            broadcasterId: broadcasterId, ebsInfo: ebsInfo);
 
     // Inform the frontend that the streamer has connected
     communicator.sendMessage(MessageProtocol(
@@ -218,7 +224,7 @@ abstract class TwitchEbsManagerAbstract {
     }
 
     // Get the login of the user
-    final login = await TwitchApi.instance.login(userId: userId);
+    final login = await TwitchEbsApi.instance.login(userId: userId);
     if (login == null) {
       _logger.severe(
           'Could not get login for user $userId or the app does not have the '
@@ -226,10 +232,20 @@ abstract class TwitchEbsManagerAbstract {
       return false;
     }
 
+    // Get the display name of the user
+    final displayName = await TwitchEbsApi.instance.displayName(userId: userId);
+    if (displayName == null) {
+      _logger.severe(
+          'Could not get display name for user $userId or the app does not have the '
+          'required permission to fetch the display name');
+      return false;
+    }
+
     // Register the user
     _userIdToOpaqueId[userId] = opaqueId;
     _opaqueIdToUserId[opaqueId] = userId;
     _userIdToLogin[userId] = login;
+    _userIdToDisplayName[userId] = displayName;
     _loginToUserId[login] = userId;
 
     return true;
@@ -366,7 +382,7 @@ class Communicator {
   Future<void> _sendMessage(MessageProtocol message) async {
     if (message.to == MessageTo.pubsub) {
       final response =
-          await TwitchApi.instance.sendPubsubMessage(message.toJson());
+          await TwitchEbsApi.instance.sendPubsubMessage(message.toJson());
       if (response.statusCode != 204) {
         _logger.severe('Could not send message to frontends');
         throw Exception('Could not send message to frontends');
