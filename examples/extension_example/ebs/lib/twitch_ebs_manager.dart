@@ -2,23 +2,23 @@ import 'dart:async';
 
 import 'package:common/communication.dart';
 import 'package:common/state.dart';
-import 'package:extension_ebs/mocked_twitch_api.dart';
+import 'package:extension_ebs/twitch_ebs_api_mocked.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 
-final _logger = Logger('EbsManager');
+final _logger = Logger('TwitchEbsManager');
 
 ///
 /// This class is the actual implementation of the EBS manager for the extension.
 /// It must extend the [TwitchEbsManagerAbstract] class and implement the methods
 /// to handle the requests from the app and the frontend.
-class EbsManager extends TwitchEbsManagerAbstract {
+class TwitchEbsManager extends TwitchEbsManagerAbstract {
   ///
   /// Create a new EbsManager. This method automatically starts a keep alive
   /// mechanism to keep the connexion alive. If it fails, the extension is ended.
   /// [broadcasterId] the id of the broadcaster.
   /// [ebsInfo] the configuration of the EBS.
-  EbsManager.spawn({
+  TwitchEbsManager.spawn({
     required String broadcasterId,
     required super.ebsInfo,
     required super.sendPort,
@@ -26,7 +26,7 @@ class EbsManager extends TwitchEbsManagerAbstract {
   }) : super(
          broadcasterId: broadcasterId,
          twitchEbsApiInitializer: useMockedTwitchEbsApi
-             ? MockedTwitchEbsApi.initialize
+             ? TwitchEbsApiMocked.initialize
              : TwitchEbsApi.initialize,
        ) {
     // Set up the logger

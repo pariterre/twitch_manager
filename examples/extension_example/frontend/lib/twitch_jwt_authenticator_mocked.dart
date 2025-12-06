@@ -9,8 +9,8 @@ import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 
 ///
 /// The JWT key is for the Frontend of a Twitch extension.
-class MockedTwitchJwtAuthenticator extends TwitchJwtAuthenticator {
-  MockedTwitchJwtAuthenticator();
+class TwitchJwtAuthenticatorMocked extends TwitchJwtAuthenticator {
+  TwitchJwtAuthenticatorMocked();
 
   ///
   /// The [ebsToken] is a token that is used to authenticate that the user is

@@ -240,10 +240,10 @@ class _TwitchChatBotScreenState extends State<TwitchChatBotScreen> {
 
 ///
 /// This singleton interface is used to showcase some of the features of
-/// [TwitchManager] in the [main.dart] page. While this is convenient here,
+/// [TwitchAppManager] in the [main.dart] page. While this is convenient here,
 /// it would be slightly overkill to interface all the calls to TwitchManager
 /// in a real app setting. One could simply use [TwitchManagerSingleton.instance]
-/// and directly call the methods on the [TwitchManager] instance.
+/// and directly call the methods on the [TwitchAppManager] instance.
 class TwitchManagerSingleton {
   ///
   /// Fetch the chatters currently in the chat

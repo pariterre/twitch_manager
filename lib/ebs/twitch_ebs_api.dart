@@ -46,7 +46,7 @@ class TwitchEbsApi {
   static Future<void> initializeMocker({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
-    required MockedTwitchEbsApiTemplate mockedTwitchEbsApi,
+    required TwitchEbsApiMockerTemplate mockedTwitchEbsApi,
   }) async {
     if (TwitchEbsApi._instance != null) {
       _logger.severe('TwitchManagerExtension is already initialized');
@@ -268,8 +268,8 @@ class TwitchEbsApi {
   }
 }
 
-class MockedTwitchEbsApiTemplate extends TwitchEbsApi {
-  MockedTwitchEbsApiTemplate(
+class TwitchEbsApiMockerTemplate extends TwitchEbsApi {
+  TwitchEbsApiMockerTemplate(
       {required super.broadcasterId, required super.ebsInfo})
       : super._();
 }

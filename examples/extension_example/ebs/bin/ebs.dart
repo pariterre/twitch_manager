@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:common/common.dart';
-import 'package:extension_ebs/ebs_manager.dart';
+import 'package:extension_ebs/twitch_ebs_manager.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/twitch_ebs.dart';
 
@@ -39,7 +39,7 @@ void main(List<String> arguments) async {
     credentialsStorage: TwitchEbsCredentialsStorageInMemory(),
     twitchEbsManagerFactory:
         ({required broadcasterId, required ebsInfo, required sendPort}) =>
-            EbsManager.spawn(
+            TwitchEbsManager.spawn(
               broadcasterId: broadcasterId,
               ebsInfo: ebsInfo,
               sendPort: sendPort,
