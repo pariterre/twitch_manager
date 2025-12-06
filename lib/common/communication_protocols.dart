@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:twitch_manager/utils/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 
 enum MessageFrom {
   app,

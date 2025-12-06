@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 

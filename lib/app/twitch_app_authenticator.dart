@@ -1,4 +1,4 @@
-part of 'package:twitch_manager/abstract/twitch_authenticator.dart';
+part of 'package:twitch_manager/common/twitch_authenticator.dart';
 
 ///
 /// The OAuth key is for the "Authorization code grant flow":

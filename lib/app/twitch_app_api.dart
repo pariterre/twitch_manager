@@ -5,15 +5,15 @@ import 'dart:math';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_events.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
+import 'package:twitch_manager/common/twitch_authentication_flow.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
+import 'package:twitch_manager/common/twitch_user.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
-import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 import 'package:twitch_manager/utils/twitch_mutex.dart';
-import 'package:twitch_manager/utils/twitch_user.dart';
 
 const _twitchValidateUri = 'https://id.twitch.tv/oauth2/validate';
 const _twitchHelixUri = 'https://api.twitch.tv/helix';

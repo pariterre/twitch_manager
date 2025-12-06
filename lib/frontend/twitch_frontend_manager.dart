@@ -1,5 +1,5 @@
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/abstract/twitch_manager.dart';
+import 'package:twitch_manager/common/twitch_manager.dart';
 import 'package:twitch_manager/frontend/twitch_ebs_api.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/twitch_frontend.dart';

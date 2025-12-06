@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
-import 'package:twitch_manager/abstract/twitch_manager.dart';
 import 'package:twitch_manager/app/twitch_app_api.dart';
 import 'package:twitch_manager/app/twitch_app_chat.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/app/twitch_events.dart';
 import 'package:twitch_manager/app/twitch_mock_options.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
+import 'package:twitch_manager/common/twitch_manager.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 final _logger = Logger('TwitchAppManager');

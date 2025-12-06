@@ -1,5 +1,5 @@
-import 'package:twitch_manager/abstract/twitch_info.dart';
 import 'package:twitch_manager/app/twitch_app_scope.dart';
+import 'package:twitch_manager/common/twitch_info.dart';
 
 class TwitchAppInfo extends TwitchInfo {
   @override

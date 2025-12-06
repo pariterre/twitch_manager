@@ -1,5 +1,5 @@
-import 'package:twitch_manager/abstract/twitch_info.dart';
-import 'package:twitch_manager/utils/twitch_authentication_flow.dart';
+import 'package:twitch_manager/common/twitch_authentication_flow.dart';
+import 'package:twitch_manager/common/twitch_info.dart';
 
 class TwitchEbsInfo extends TwitchInfo {
   ///

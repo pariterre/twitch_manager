@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:common/common.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
+import 'package:twitch_manager/common/communication_protocols.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
-import 'package:twitch_manager/utils/communication_protocols.dart';
 
 ///
 /// The JWT key is for the Frontend of a Twitch extension.

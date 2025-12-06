@@ -1,5 +1,5 @@
-import 'package:twitch_manager/abstract/twitch_authenticator.dart';
-import 'package:twitch_manager/abstract/twitch_info.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
+import 'package:twitch_manager/common/twitch_info.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 mixin TwitchManager {
