@@ -3,7 +3,7 @@ import 'dart:js_interop';
 import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart';
-import 'package:twitch_manager/twitch_utils.dart';
+import 'package:twitch_manager/utils/twitch_listener.dart';
 
 ///
 /// Reference for the Twitch Extension JavaScript API

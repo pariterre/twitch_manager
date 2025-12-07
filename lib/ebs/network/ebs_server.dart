@@ -6,8 +6,14 @@ import 'dart:isolate';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/common/communication_protocols.dart';
+import 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials.dart';
+import 'package:twitch_manager/ebs/credentials/twitch_ebs_credentials_storage.dart';
 import 'package:twitch_manager/ebs/ebs_exceptions.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
+import 'package:twitch_manager/ebs/main_isolated_manager.dart';
+import 'package:twitch_manager/ebs/network/network_parameters.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
 
 part 'package:twitch_manager/ebs/network/handle_app_endpoints.dart';

@@ -10,3 +10,4 @@ export 'package:twitch_manager/common/communication_protocols.dart';
 export 'package:twitch_manager/common/twitch_authentication_flow.dart';
 export 'package:twitch_manager/common/twitch_authenticator.dart';
 export 'package:twitch_manager/common/twitch_user.dart';
+export 'package:twitch_manager/twitch_utils.dart';

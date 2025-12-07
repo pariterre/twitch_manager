@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/common/communication_protocols.dart';
-import 'package:twitch_manager/twitch_utils.dart';
+import 'package:twitch_manager/utils/completers.dart';
+import 'package:twitch_manager/utils/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 final _logger = Logger('TwitchAppManagerAbstract');

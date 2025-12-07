@@ -3,7 +3,11 @@ import 'dart:isolate';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
+import 'package:twitch_manager/common/communication_protocols.dart';
+import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/common/twitch_user.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_api.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 import 'package:twitch_manager/utils/completers.dart';
 
 final _logger = Logger('TwitchEbsManagerAbstract');

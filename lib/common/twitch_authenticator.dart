@@ -9,7 +9,7 @@ import 'package:twitch_manager/common/communication_protocols.dart';
 import 'package:twitch_manager/common/twitch_info.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
-import 'package:twitch_manager/twitch_utils.dart';
+import 'package:twitch_manager/utils/twitch_listener.dart';
 
 part 'package:twitch_manager/app/twitch_app_authenticator.dart';
 part 'package:twitch_manager/frontend/twitch_jwt_authenticator.dart';

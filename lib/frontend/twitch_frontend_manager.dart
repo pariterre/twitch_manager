@@ -1,8 +1,11 @@
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/common/communication_protocols.dart';
+import 'package:twitch_manager/common/twitch_authenticator.dart';
+import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/common/twitch_manager.dart';
 import 'package:twitch_manager/frontend/twitch_ebs_api.dart';
+import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
-import 'package:twitch_manager/twitch_frontend.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 final _logger = Logger('TwitchFrontendManager');

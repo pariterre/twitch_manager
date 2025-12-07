@@ -12,3 +12,4 @@ export 'package:twitch_manager/ebs/network/network_parameters.dart';
 export 'package:twitch_manager/ebs/twitch_ebs_api.dart';
 export 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 export 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
+export 'package:twitch_manager/twitch_utils.dart';
