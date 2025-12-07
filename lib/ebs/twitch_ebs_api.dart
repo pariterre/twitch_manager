@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/common/twitch_user.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
-import 'package:twitch_manager/twitch_app.dart';
 import 'package:twitch_manager/utils/http_extension.dart';
 import 'package:twitch_manager/utils/twitch_mutex.dart';
 

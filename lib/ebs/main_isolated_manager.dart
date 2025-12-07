@@ -3,8 +3,10 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:logging/logging.dart';
+import 'package:twitch_manager/common/communication_protocols.dart';
 import 'package:twitch_manager/ebs/ebs_exceptions.dart';
-import 'package:twitch_manager/twitch_ebs.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
+import 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
 import 'package:twitch_manager/utils/completers.dart';
 
 final _logger = Logger('IsolatedMainManager');
