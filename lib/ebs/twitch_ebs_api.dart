@@ -96,8 +96,8 @@ class TwitchEbsApi {
           queryParameters: {category: identifier});
       if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
 
-      final data = json.decode(response.body)['data'][0];
       try {
+        final data = json.decode(response.body)['data'][0];
         final user = TwitchUser(
             userId: data['id'],
             login: data['login'],

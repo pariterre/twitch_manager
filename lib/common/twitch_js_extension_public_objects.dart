@@ -1,3 +1,5 @@
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+
 ///
 /// This is the object returned when a transaction is completed
 class BitsTransactionObject {
@@ -35,6 +37,28 @@ class BitsTransactionObject {
       transactionReceipt: map['transaction_receipt'] as String? ?? '',
     );
   }
+
+  static BitsTransactionObject generateMocked({
+    required String userId,
+    required String sku,
+    String displayName = 'MockedDisplayName',
+    String initiator = 'MockedInitiator',
+    required String sharedSecret,
+  }) {
+    return BitsTransactionObject(
+        userId: userId,
+        displayName: displayName,
+        initiator: initiator,
+        transactionReceipt: JWT(ExtractedTransactionReceipt(
+          userId: userId,
+          product: BitsProduct(
+            sku: sku,
+            displayName: 'MockedDisplayName',
+            cost: Cost(amount: -1, type: 'mocked'),
+          ),
+        ).toJson())
+            .sign(SecretKey(sharedSecret, isBase64Encoded: true)));
+  }
 }
 
 class ExtractedTransactionReceipt {
@@ -49,6 +73,12 @@ class ExtractedTransactionReceipt {
   @override
   String toString() {
     return 'user_id: $userId, product: $product';
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'data': {'userId': userId, 'product': product.toJson()}
+    };
   }
 
   static ExtractedTransactionReceipt fromJson(Map<String, dynamic> map) {
@@ -78,6 +108,15 @@ class BitsProduct {
     return 'sku: $sku, display_name: $displayName, cost: $cost, in_development: $inDevelopment';
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'sku': sku,
+      'displayName': displayName,
+      'cost': cost.toJson(),
+      'inDevelopment': inDevelopment,
+    };
+  }
+
   static BitsProduct fromJson(Map<String, dynamic> map) {
     return BitsProduct(
       sku: map['sku'] as String? ?? '',
@@ -100,6 +139,10 @@ class Cost {
   @override
   String toString() {
     return 'amount: $amount, type: $type';
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'amount': amount, 'type': type};
   }
 
   static Cost fromJson(Map<String, dynamic> map) {
