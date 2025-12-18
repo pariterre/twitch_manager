@@ -7,7 +7,7 @@ import 'package:twitch_manager/utils/completers.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
-final _logger = Logger('TwitchAppManagerAbstract');
+final _logger = Logger('TwitchAppEbsManagerAbstract');
 
 abstract class TwitchAppEbsManagerAbstract {
   WebSocket? _socket;
@@ -17,7 +17,7 @@ abstract class TwitchAppEbsManagerAbstract {
   String get broadcasterId {
     if (_broadcasterId == null) {
       throw Exception(
-          'The TwitchAppManagerAbstract has not been connected. Please call connect() first');
+          'The TwitchAppEbsManagerAbstract has not been connected. Please call connect() first');
     }
     return _broadcasterId!;
   }

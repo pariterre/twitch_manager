@@ -15,6 +15,17 @@ class BitsTransactionObject {
     required this.transactionReceipt,
   });
 
+  ExtractedTransactionReceipt get extractedUnverifiedReceipt =>
+      ExtractedTransactionReceipt.fromJwt(transactionReceipt);
+
+  ExtractedTransactionReceipt extractVerifiedReceipt(String sharedSecret) {
+    final jwt = JWT.verify(
+      transactionReceipt,
+      SecretKey(sharedSecret, isBase64Encoded: true),
+    );
+    return ExtractedTransactionReceipt.fromJson(jwt.payload);
+  }
+
   @override
   String toString() {
     return 'userId: $userId, display_name: $displayName, initiator: $initiator, transaction_receipt: $transactionReceipt';
@@ -41,19 +52,19 @@ class BitsTransactionObject {
   static BitsTransactionObject generateMocked({
     required String userId,
     required String sku,
-    String displayName = 'MockedDisplayName',
-    String initiator = 'MockedInitiator',
+    String? displayName,
+    String? initiator,
     required String sharedSecret,
   }) {
     return BitsTransactionObject(
         userId: userId,
-        displayName: displayName,
-        initiator: initiator,
+        displayName: displayName ?? userId,
+        initiator: initiator ?? userId,
         transactionReceipt: JWT(ExtractedTransactionReceipt(
           userId: userId,
           product: BitsProduct(
             sku: sku,
-            displayName: 'MockedDisplayName',
+            displayName: displayName ?? userId,
             cost: Cost(amount: -1, type: 'mocked'),
           ),
         ).toJson())
@@ -86,6 +97,15 @@ class ExtractedTransactionReceipt {
       userId: map['data']['userId'] as String? ?? '',
       product:
           BitsProduct.fromJson(map['data']['product'] as Map<String, dynamic>),
+    );
+  }
+
+  static ExtractedTransactionReceipt fromJwt(String jwt) {
+    final extracted = JWT.decode(jwt);
+    return ExtractedTransactionReceipt(
+      userId: extracted.payload['data']['userId'] as String? ?? '',
+      product: BitsProduct.fromJson(
+          extracted.payload['data']['product'] as Map<String, dynamic>),
     );
   }
 }

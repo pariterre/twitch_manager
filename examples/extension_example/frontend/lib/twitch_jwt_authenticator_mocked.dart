@@ -45,7 +45,7 @@ class TwitchJwtAuthenticatorMocked extends TwitchJwtAuthenticator {
   /// to be true when calling the [connect] method
   final _userId = (Random().nextInt(8000000) + 1000000000).toString();
   @override
-  String? get userId => _userId;
+  String? get userId => 'Mocked_$_userId';
 
   @override
   void requestIdShare() {

@@ -198,7 +198,7 @@ class TwitchEbsManager extends TwitchEbsManagerAbstract {
           // this is to showcase the request and response flow). Then the EBS
           // get the response and sends it back to the frontend.
           final response = await _requestStateToApp();
-          communicator.sendReponse(
+          communicator.sendResponse(
             response.copyWith(
               to: MessageTo.frontend,
               from: MessageFrom.ebs,

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:logging/logging.dart';
 import 'package:twitch_manager/common/communication_protocols.dart';
 import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
@@ -84,7 +83,7 @@ abstract class TwitchEbsManagerAbstract {
             final isSuccess = await _frontendHasRegistered(
                 userId: message.data!['user_id'],
                 opaqueId: message.data!['opaque_id']);
-            communicator.sendReponse(message.copyWith(
+            communicator.sendResponse(message.copyWith(
                 to: MessageTo.ebsMain,
                 from: MessageFrom.ebs,
                 type: MessageTypes.response,
@@ -114,7 +113,7 @@ abstract class TwitchEbsManagerAbstract {
         // Get request are passed to the inherited class, but legacy behavior
         // allows to handle bit transactions as well.
         if (message.transaction != null) {
-          await _handleIncomingMessage(message.copyWith(
+          return await _handleIncomingMessage(message.copyWith(
               from: message.from,
               to: message.to,
               type: MessageTypes.bitTransaction));
@@ -125,7 +124,7 @@ abstract class TwitchEbsManagerAbstract {
         // Get request are passed to the inherited class, but legacy behavior
         // allows to handle bit transactions as well.
         if (message.transaction != null) {
-          await _handleIncomingMessage(message.copyWith(
+          return await _handleIncomingMessage(message.copyWith(
               from: message.from,
               to: message.to,
               type: MessageTypes.bitTransaction));
@@ -142,7 +141,8 @@ abstract class TwitchEbsManagerAbstract {
               'Bits transaction is missing');
         }
 
-        final transactionReceipt = _extractTransactionReceipt(message);
+        final transactionReceipt =
+            _extractTransactionReceipt(message.transaction!);
         if (transactionReceipt == null) {
           return communicator.sendErrorReponse(
               message.copyWith(
@@ -164,11 +164,9 @@ abstract class TwitchEbsManagerAbstract {
   }
 
   ExtractedTransactionReceipt? _extractTransactionReceipt(
-      MessageProtocol message) {
+      BitsTransactionObject transaction) {
     try {
-      final jwt = JWT.verify(message.transaction!.transactionReceipt,
-          SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true));
-      return ExtractedTransactionReceipt.fromJson(jwt.payload);
+      return transaction.extractVerifiedReceipt(ebsInfo.extensionSharedSecret!);
     } catch (e) {
       _logger.severe('Error validating bits transaction receipt: $e');
       return null;
@@ -305,7 +303,7 @@ class Communicator {
   ///
   /// Helper method to send a response via the main. The [message] is the message
   /// to respond with the fields [to], [isSuccess] and [data] filled.
-  Future<void> sendReponse(MessageProtocol message) async {
+  Future<void> sendResponse(MessageProtocol message) async {
     sendMessage(message.copyWith(
         from: MessageFrom.ebs,
         to: message.to == MessageTo.pubsub ? MessageTo.ebsMain : message.to,

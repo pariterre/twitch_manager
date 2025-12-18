@@ -89,12 +89,23 @@ class TwitchEbsApi {
 
       _logger.fine('Getting user info for user $identifier using $category...');
 
+      const allowMockedUsers = bool.fromEnvironment(
+          'TWITCH_EBS_ALLOW_MOCKED_USERS',
+          defaultValue: false);
+      if (allowMockedUsers && identifier.startsWith('Mocked')) {
+        _logger.fine('User $identifier is mocked, returning mocked user');
+        final mockedUser = TwitchUser(
+            userId: identifier, login: identifier, displayName: identifier);
+        _usersCache.add(mockedUser);
+        return mockedUser;
+      }
+
       final bearer = await _getExtensionBearerToken();
       final response = await _getApiRequest(
           endPoint: 'helix/users',
           bearer: bearer,
           queryParameters: {category: identifier});
-      if (response.statusCode != 200) throw 'Error: ${response.statusCode}';
+      if (response.statusCode != 200) return null;
 
       try {
         final data = json.decode(response.body)['data'][0];
