@@ -279,7 +279,7 @@ class TwitchAppApi {
     try {
       final response = await timedHttpGet(
           Uri.parse('${appInfo.authenticationServerUri}?state=$state'),
-          duration: Duration(minutes: 1));
+          duration: const Duration(minutes: 1));
       if (response.statusCode != 200) {
         return null;
       }
