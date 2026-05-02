@@ -18,17 +18,17 @@ abstract class TwitchEbsManagerAbstract {
   final TwitchEbsInfo ebsInfo;
 
   ///
-  /// [OpaqueId] is the id of each user of the frontends. If the app does not request
+  /// The list of user that are connected
+  /// "OpaqueId" is the id of each user of the frontends. If the app does not request
   /// the permission for the user id, this will be the only way to identify the user.
   /// Note this identifier is unique, but cannot be used to identify the user by
   /// login or display name.
-  /// [UserId] is the id of the user on Twitch. This is unique and can be used to
+  /// "UserId" is the id of the user on Twitch. This is unique and can be used to
   /// identify the user by login or display name. The app must request the permission
   /// to be able to "convert" the opaque id to the user id.
-  /// [Login] is the login of the user on Twitch. This is unique and can be used to
+  /// "Login" is the login of the user on Twitch. This is unique and can be used to
   /// identify the user by display name. The app must request the permission to
   /// be able to "convert" the opaque id to the login.
-
   final List<TwitchFrontendUser> _registeredFrontendUsers = [];
   List<TwitchFrontendUser> get registeredFrontendUsers =>
       List.unmodifiable(_registeredFrontendUsers);
