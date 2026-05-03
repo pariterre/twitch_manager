@@ -34,16 +34,19 @@ class TwitchUser {
 }
 
 extension TwitchUsersExtension on Iterable<TwitchUser> {
-  TwitchUser? from({String? userId, String? login}) {
-    if (userId == null && login == null) {
-      throw 'Either userId or login must be provided';
-    } else if (userId != null && login != null) {
-      throw 'Only one of userId or login must be provided';
+  TwitchUser? from({String? userId, String? login, String? displayName}) {
+    if (userId == null && login == null && displayName == null) {
+      throw 'Either userId, login or displayName must be provided';
+    } else if ((userId != null && (login != null || displayName != null)) ||
+        (login != null && (userId != null || displayName != null)) ||
+        (displayName != null && (userId != null || login != null))) {
+      throw 'Only one of userId, login or displayName must be provided';
     }
 
     for (final user in this) {
       if ((userId != null && user.userId == userId) ||
-          (login != null && user.login == login)) {
+          (login != null && user.login == login) ||
+          (displayName != null && user.displayName == displayName)) {
         return user;
       }
     }
@@ -92,16 +95,29 @@ class TwitchFrontendUser extends TwitchUser {
 }
 
 extension TwitchFrontendUsersExtension on Iterable<TwitchFrontendUser> {
-  TwitchFrontendUser? from({String? userId, String? login}) {
-    if (userId == null && login == null) {
-      throw 'Either userId or login must be provided';
-    } else if (userId != null && login != null) {
-      throw 'Only one of userId or login must be provided';
+  TwitchFrontendUser? from(
+      {String? userId, String? login, String? opaqueId, String? displayName}) {
+    if (userId == null &&
+        login == null &&
+        opaqueId == null &&
+        displayName == null) {
+      throw 'Either userId, login, opaqueId or displayName must be provided';
+    } else if ((userId != null &&
+            (login != null || opaqueId != null || displayName != null)) ||
+        (login != null &&
+            (userId != null || opaqueId != null || displayName != null)) ||
+        (opaqueId != null &&
+            (userId != null || login != null || displayName != null)) ||
+        (displayName != null &&
+            (userId != null || login != null || opaqueId != null))) {
+      throw 'Only one of userId, login, opaqueId or displayName must be provided';
     }
 
     for (final user in this) {
       if ((userId != null && user.userId == userId) ||
-          (login != null && user.login == login)) {
+          (login != null && user.login == login) ||
+          (opaqueId != null && user.opaqueId == opaqueId) ||
+          (displayName != null && user.displayName == displayName)) {
         return user;
       }
     }
