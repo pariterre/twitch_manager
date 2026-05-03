@@ -48,7 +48,7 @@ class TwitchEbsManager extends TwitchEbsManagerAbstract {
 
   ///
   /// This shows how to send a message all frontends (all viewers extension).
-  Future<void> _sendStateToFrontend() async {
+  void _sendStateToFrontend() {
     _logger.info('Sending state to frontend');
 
     communicator.sendMessage(
@@ -122,7 +122,7 @@ class TwitchEbsManager extends TwitchEbsManagerAbstract {
   /// It is called when the app sends a message to the EBS.
   /// It handles the messages and is expected to funnel the requests (after being
   /// treated) to whatever the [MessageTo] is set to.
-  Future<void> _handleMessageFromApp(MessageProtocol message) async {
+  Future<void> _handleMessageFromApp(MessageProtocol message) {
     print(
       'Received message from app: ${message.data?['state']['sharedMessage']}',
     );
@@ -174,6 +174,7 @@ class TwitchEbsManager extends TwitchEbsManagerAbstract {
         e.toString(),
       );
     }
+    return Future.value();
   }
 
   ///

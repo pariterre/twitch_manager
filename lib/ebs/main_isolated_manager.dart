@@ -247,7 +247,7 @@ class MainIsolatedManager {
   Future<void> _handleMessageFromIsolatedToMain(
     MessageProtocol message,
     String broadcasterId,
-  ) async {
+  ) {
     switch (message.type) {
       case MessageTypes.handShake:
         _logger.info('Isolated client with id: $broadcasterId has connected');
@@ -275,41 +275,45 @@ class MainIsolatedManager {
         // Do nothing
         break;
     }
+    return Future.value();
   }
 
   Future<void> _handleMessageFromIsolatedToApp(
     MessageProtocol message,
     String broadcasterId,
-  ) async {
+  ) {
     _isolates[broadcasterId]?.socket.add(message.encode());
+    return Future.value();
   }
 
   Future<void> _handleMessageFromIsolatedToFrontends(
     MessageProtocol message,
     String broadcasterId,
-  ) async {
+  ) {
     if (message.internalMain?['completer_id'] != null) {
       // If this message is for a specific completer, complete it and let the
       // completer send the response
       final completerId = message.internalMain!['completer_id'] as int;
       _completers.complete(completerId, data: message);
-      return;
+      return Future.value();
     }
 
     final encodedMessage = message.encode();
     _isolates[broadcasterId]
         ?.frontendUsers
         .forEach((user) => user.socket.add(encodedMessage));
+    return Future.value();
   }
 
   Future<void> _handleMessageFromIsolatedToPubsub(
-      MessageProtocol message, String broadcasterId) async {
+      MessageProtocol message, String broadcasterId) {
     _logger
         .severe('Message to pubsub are supposed to be sent from the isolated');
+    return Future.value();
   }
 
   Future<void> messageFromAppToIsolated(
-      MessageProtocol message, WebSocket socket) async {
+      MessageProtocol message, WebSocket socket) {
     try {
       late final String? broadcasterId;
       if (message.data?['broadcaster_id'] is int) {
@@ -327,7 +331,7 @@ class MainIsolatedManager {
       final sendPort = _isolates[broadcasterId]?.sendPort;
       if (sendPort == null) {
         _logger.info('No active client with id: $broadcasterId');
-        return;
+        return Future.value();
       }
 
       // Relay the message to the worker isolate
@@ -335,6 +339,7 @@ class MainIsolatedManager {
     } catch (e, st) {
       _logger.severe('Error processing message from app to isolated', e, st);
     }
+    return Future.value();
   }
 
   Future<MessageProtocol> messageFromFrontendToIsolated(
@@ -390,20 +395,21 @@ class MainIsolatedManager {
   Future<void> messageFromMainToIsolated({
     required String broadcasterId,
     required MessageProtocol message,
-  }) async {
+  }) {
     final sendPort = _isolates[broadcasterId]?.sendPort;
     if (sendPort == null) {
       _logger.info('No active client with id: $broadcasterId');
-      return;
+      return Future.value();
     }
 
     sendPort.send(message.encode());
+    return Future.value();
   }
 }
 
 ///
 /// Start a new instance of the isolated, this is the entry point for the worker isolate
-void twitchEbsManagerSpawner(Map<String, dynamic> data) async {
+void twitchEbsManagerSpawner(Map<String, dynamic> data) {
   try {
     late final String? broadcasterId;
     if (data['broadcaster_id'] is int) {

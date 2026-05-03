@@ -36,20 +36,21 @@ class TwitchEbsApi {
   static Future<void> initialize({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
-  }) async {
+  }) {
     if (_instance != null) {
       _logger.severe('TwitchManagerExtension is already initialized');
       throw Exception('TwitchManagerExtension is already initialized');
     }
 
     _instance = TwitchEbsApi._(broadcasterId: broadcasterId, ebsInfo: ebsInfo);
+    return Future.value();
   }
 
-  static Future<void> initializeMocker({
+  static void initializeMocker({
     required String broadcasterId,
     required TwitchEbsInfo ebsInfo,
     required TwitchEbsApi twitchEbsApi,
-  }) async {
+  }) {
     if (TwitchEbsApi._instance != null) {
       _logger.severe('TwitchManagerExtension is already initialized');
       throw Exception('TwitchManagerExtension is already initialized');
@@ -194,7 +195,7 @@ class TwitchEbsApi {
             ? 'helix/extensions/chat'
             : 'helix/chat/messages',
         bearer: sendUnderExtensionName
-            ? await _getSharedBearerToken()
+            ? _getSharedBearerToken()
             : await _getExtensionBearerToken(),
         queryParameters: {'broadcaster_id': broadcasterId},
         body: {
@@ -213,7 +214,7 @@ class TwitchEbsApi {
     try {
       return await _postApiRequest(
         endPoint: 'helix/extensions/pubsub',
-        bearer: await _getSharedBearerToken(),
+        bearer: _getSharedBearerToken(),
         body: {
           'message': jsonEncode(message).replaceAll('"', '\''),
           'broadcaster_id': broadcasterId,
@@ -285,7 +286,7 @@ class TwitchEbsApi {
   }
 
   _Bearer? _sharedBearerToken;
-  Future<String> _getSharedBearerToken() async {
+  String _getSharedBearerToken() {
     if (_sharedBearerToken == null || _sharedBearerToken!.isExpired) {
       final jwt = JWT({
         'user_id': broadcasterId,

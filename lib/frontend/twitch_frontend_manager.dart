@@ -57,7 +57,7 @@ class TwitchFrontendManager implements TwitchManager {
     bool isTwitchUserIdRequired = false,
     Function()? onHasConnected,
     TwitchJwtAuthenticator Function()? mockedAuthenticatorInitializer,
-  }) async {
+  }) {
     _logger.config('Creating the manager to the Twitch connexion...');
 
     final authenticator = mockedAuthenticatorInitializer == null
@@ -74,7 +74,7 @@ class TwitchFrontendManager implements TwitchManager {
 
     _logger
         .config('Manager is ready to be used, but may not be connected yet.');
-    return manager;
+    return Future.value(manager);
   }
 
   Future<void> _connectToEbs() async {
@@ -172,7 +172,7 @@ class TwitchFrontendManager implements TwitchManager {
 
   ///
   /// Intercept internal messages from the PubSub and behave accordingly
-  Future<void> _onMessageReceived(MessageProtocol message) async {
+  Future<void> _onMessageReceived(MessageProtocol message) {
     _logger.fine('Received PubSub message: ${message.type.toString()}');
 
     try {
@@ -183,7 +183,7 @@ class TwitchFrontendManager implements TwitchManager {
         case MessageTypes.ping:
         case MessageTypes.pong:
           // These should not be received by the frontend
-          return;
+          return Future.value();
         case MessageTypes.get:
         case MessageTypes.put:
         case MessageTypes.response:
@@ -194,5 +194,6 @@ class TwitchFrontendManager implements TwitchManager {
     } catch (e) {
       _logger.severe('Error while handling PubSub message: $e');
     }
+    return Future.value();
   }
 }

@@ -8,7 +8,7 @@ import 'package:twitch_manager/twitch_ebs.dart';
 final _logger = Logger('EBS Server');
 const _useTwitchMocker = true;
 
-void main(List<String> arguments) async {
+void main(List<String> arguments) {
   // If the arguments request help, print the help message and exit
   if (arguments.contains('--help') || arguments.contains('-h')) {
     print(

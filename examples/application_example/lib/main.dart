@@ -9,7 +9,7 @@ import 'package:logging/logging.dart';
 
 import 'package:twitch_manager/twitch_app.dart';
 
-void main() async {
+void main() {
   Logger.root.onRecord.listen((record) {
     debugPrint(record.message);
   });

@@ -9,18 +9,19 @@ class TwitchEbsCredentialsStorageInMemory
   bool get isConnected => true;
 
   @override
-  Future<void> dispose() async {
+  Future<void> dispose() {
     _storage.clear();
+    return Future.value();
   }
 
   @override
-  Future<bool> save({required TwitchEbsCredentials credentials}) async {
+  Future<bool> save({required TwitchEbsCredentials credentials}) {
     _storage[credentials.userId] = credentials;
-    return true;
+    return Future.value(true);
   }
 
   @override
-  Future<TwitchEbsCredentials?> load({required String userId}) async {
-    return _storage[userId];
+  Future<TwitchEbsCredentials?> load({required String userId}) {
+    return Future.value(_storage[userId]);
   }
 }

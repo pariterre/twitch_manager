@@ -23,15 +23,16 @@ class TwitchEbsCredentialsStorageSqlite extends TwitchEbsCredentialsStorage {
   bool get isConnected => _isConnected;
 
   @override
-  Future<void> dispose() async {
+  Future<void> dispose() {
     if (_isConnected) {
       _db.dispose();
       _isConnected = false;
     }
+    return Future.value();
   }
 
   @override
-  Future<bool> save({required TwitchEbsCredentials credentials}) async {
+  Future<bool> save({required TwitchEbsCredentials credentials}) {
     try {
       if (!_isConnected) {
         _logger.severe('Database is not connected');
@@ -60,15 +61,15 @@ class TwitchEbsCredentialsStorageSqlite extends TwitchEbsCredentialsStorage {
         credentials.refreshToken,
       ]);
       stmt.dispose();
-      return true;
+      return Future.value(true);
     } catch (e) {
       _logger.severe('Failed to save Twitch EBS credentials: $e');
-      return false;
+      return Future.value(false);
     }
   }
 
   @override
-  Future<TwitchEbsCredentials?> load({required String userId}) async {
+  Future<TwitchEbsCredentials?> load({required String userId}) {
     try {
       if (!_isConnected) {
         _logger.severe('Database is not connected');
@@ -83,12 +84,12 @@ class TwitchEbsCredentialsStorageSqlite extends TwitchEbsCredentialsStorage {
       final result = stmt.select([userId]);
       stmt.dispose();
 
-      if (result.isEmpty) return null;
-      return TwitchEbsCredentials(
+      if (result.isEmpty) return Future.value(null);
+      return Future.value(TwitchEbsCredentials(
         userId: userId,
         accessToken: result.first['access_token'] as String,
         refreshToken: result.first['refresh_token'] as String,
-      );
+      ));
     } catch (e) {
       _logger.severe('Failed to load Twitch EBS credentials: $e');
       rethrow;

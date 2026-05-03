@@ -152,9 +152,9 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
 
   @override
   Future<void> _saveSessions() async {
-    super._saveSessions();
+    await super._saveSessions();
     const storage = FlutterSecureStorage();
-    storage.write(
+    await storage.write(
         key: 'chatbot$saveKeySuffix', value: chatbotBearerKey?.serialize());
   }
 
@@ -179,11 +179,11 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     required covariant TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = true,
-  }) async {
+  }) {
     _bearerKey =
         AppToken.fromJwt(jwt: JWT({'twitch_access_token': 'streamerOAuthKey'}));
     _isConnected = true;
-    return true;
+    return Future.value(true);
   }
 
   @override
@@ -191,10 +191,10 @@ class TwitchAppAuthenticatorMock extends TwitchAppAuthenticator {
     required TwitchAppInfo appInfo,
     Future<void> Function(String address)? onRequestBrowsing,
     bool tryNewOAuthKey = false,
-  }) async {
+  }) {
     _chatbotBearerKey =
         AppToken.fromJwt(jwt: JWT({'twitch_access_token': 'chatbotOAuthKey'}));
     _isChatbotConnected = true;
-    return true;
+    return Future.value(true);
   }
 }

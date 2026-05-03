@@ -216,7 +216,7 @@ class TwitchEvents {
 
   ///
   /// Unsubscribe to all events and close connexion
-  Future<void> disconnect() async {
+  Future<void> disconnect() {
     _logger.info('Disconnecting from Twitch events API...');
 
     for (int i = 0; i < _subscriptionIds.length; i++) {
@@ -229,6 +229,7 @@ class TwitchEvents {
 
     _isConnected = false;
     _logger.info('Disconnected from Twitch events API');
+    return Future.value();
   }
 
   ////// INTERNAL //////
@@ -365,12 +366,12 @@ class TwitchEventsMock extends TwitchEvents {
   /// The constructor for the Twitch API
   /// [appInfo] holds all the information required to run the API
   /// [authenticator] holds the OAuth key to communicate with the API
-  static Future<TwitchEventsMock> factory({
+  static TwitchEventsMock factory({
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
     required TwitchAppApiMock api,
     required TwitchDebugPanelOptions debugPanelOptions,
-  }) async {
+  }) {
     return TwitchEventsMock._(appInfo, authenticator, api, debugPanelOptions);
   }
 

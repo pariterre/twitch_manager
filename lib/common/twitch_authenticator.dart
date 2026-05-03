@@ -73,7 +73,8 @@ abstract class TwitchAuthenticator {
   Future<void> _saveSessions() async {
     _logger.config('Saving key');
     const storage = FlutterSecureStorage();
-    storage.write(key: 'bearer$saveKeySuffix', value: bearerKey?.serialize());
+    await storage.write(
+        key: 'bearer$saveKeySuffix', value: bearerKey?.serialize());
   }
 
   ///

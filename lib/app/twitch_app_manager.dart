@@ -316,7 +316,7 @@ class TwitchAppManagerMock extends TwitchAppManager {
 
     // Connect to the TwitchEvents
     if (_appInfo.hasEvents) {
-      _events ??= await TwitchEventsMock.factory(
+      _events ??= TwitchEventsMock.factory(
           appInfo: _appInfo,
           authenticator: _authenticator,
           api: _api as TwitchAppApiMock,

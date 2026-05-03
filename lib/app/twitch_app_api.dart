@@ -832,38 +832,37 @@ class TwitchAppApiMock extends TwitchAppApi {
     required TwitchAppInfo appInfo,
     required TwitchAuthenticator authenticator,
     required TwitchDebugPanelOptions debugPanelOptions,
-  }) async {
+  }) {
     // Create a temporary TwitchAppApi with [streamerId] empty so we
     // can fetch it
     final api = TwitchAppApiMock._(appInfo, authenticator, debugPanelOptions);
     api.streamerId = '1234567890';
-    return api;
+    return Future.value(api);
   }
 
   ////// CONNEXION RELATED API //////
 
   @override
-  Future<TwitchUser?> user({String? userId, String? login}) async {
-    return TwitchUser(
+  Future<TwitchUser?> user({String? userId, String? login}) {
+    return Future.value(TwitchUser(
         userId: userId ?? '1234567890',
         login: login ?? 'login_$userId',
-        displayName: 'display_name_${userId ?? login}');
+        displayName: 'display_name_${userId ?? login}'));
   }
 
   @override
-  Future<bool?> isUserLive({required String userId}) async {
-    return true;
+  Future<bool?> isUserLive({required String userId}) {
+    return Future.value(true);
   }
 
   ////// CHAT RELATED API //////
   @override
-  Future<Iterable<TwitchUser>?> fetchChatters(
-      {Iterable<String>? blacklist}) async {
+  Future<Iterable<TwitchUser>?> fetchChatters({Iterable<String>? blacklist}) {
     final out = debugPanelOptions.chatters.map((e) => TwitchUser(
         userId: e.displayName,
         login: e.displayName,
         displayName: e.displayName));
-    return _removeBlacklisted(out, blacklist);
+    return Future.value(_removeBlacklisted(out, blacklist));
   }
 
   ////// CHANNEL RELATED API //////
@@ -885,14 +884,14 @@ class TwitchAppApiMock extends TwitchAppApi {
 
   @override
   Future<Iterable<TwitchUser>?> fetchFollowers(
-      {bool includeStreamer = false, Iterable<String>? blacklist}) async {
+      {bool includeStreamer = false, Iterable<String>? blacklist}) {
     final out = debugPanelOptions.chatters
         .where((e) => e.isFollower && (includeStreamer ? true : !e.isStreamer))
         .map((e) => TwitchUser(
             userId: e.displayName,
             login: e.displayName,
             displayName: e.displayName));
-    return _removeBlacklisted(out, blacklist);
+    return Future.value(_removeBlacklisted(out, blacklist));
   }
 
   ////// REWARD REDEMPTION RELATED API //////
@@ -909,12 +908,12 @@ class TwitchAppApiMock extends TwitchAppApi {
 
   @override
   Future<String?> createRewardRedemption(
-      {required TwitchRewardRedemption reward}) async {
-    if (reward.cost < 1) return null;
-    if (reward.rewardRedemption.isEmpty) return null;
+      {required TwitchRewardRedemption reward}) {
+    if (reward.cost < 1) return Future.value(null);
+    if (reward.rewardRedemption.isEmpty) return Future.value(null);
     if (_rewardRedemptions
         .any((e) => e.rewardRedemption == reward.rewardRedemption)) {
-      return null;
+      return Future.value(null);
     }
 
     final id = 'reward_id_${reward.hashCode}';
@@ -922,22 +921,22 @@ class TwitchAppApiMock extends TwitchAppApi {
 
     onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: false));
-    return id;
+    return Future.value(id);
   }
 
   @override
   Future<bool> updateRewardRedemption(
-      {required TwitchRewardRedemption reward}) async {
+      {required TwitchRewardRedemption reward}) {
     if (!_rewardRedemptions
         .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
-      return false;
+      return Future.value(false);
     }
-    if (reward.cost < 1) return false;
-    if (reward.rewardRedemption.isEmpty) return false;
+    if (reward.cost < 1) return Future.value(false);
+    if (reward.rewardRedemption.isEmpty) return Future.value(false);
     if (_rewardRedemptions.any((e) =>
         e.rewardRedemptionId != reward.rewardRedemptionId &&
         e.rewardRedemption == reward.rewardRedemption)) {
-      return false;
+      return Future.value(false);
     }
 
     _rewardRedemptions
@@ -947,15 +946,15 @@ class TwitchAppApiMock extends TwitchAppApi {
 
     onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: false));
-    return true;
+    return Future.value(true);
   }
 
   @override
   Future<bool> deleteRewardRedemption(
-      {required TwitchRewardRedemption reward}) async {
+      {required TwitchRewardRedemption reward}) {
     if (!_rewardRedemptions
         .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
-      return false;
+      return Future.value(false);
     }
 
     _rewardRedemptions
@@ -963,20 +962,20 @@ class TwitchAppApiMock extends TwitchAppApi {
 
     onRewardRedemptionsChanged.notifyListeners(
         (listener) => listener(reward: reward, wasDeleted: true));
-    return true;
+    return Future.value(true);
   }
 
   @override
   Future<bool> updateRewardRedemptionStatus({
     required TwitchRewardRedemption reward,
     required TwitchRewardRedemptionStatus status,
-  }) async {
+  }) {
     if (!_rewardRedemptions
         .any((e) => e.rewardRedemptionId == reward.rewardRedemptionId)) {
-      return false;
+      return Future.value(false);
     }
 
-    return true;
+    return Future.value(true);
   }
 
   ////// INTERNAL //////

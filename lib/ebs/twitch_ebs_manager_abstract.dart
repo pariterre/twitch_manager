@@ -272,8 +272,7 @@ class Communicator {
   final _receivePort = ReceivePort();
   final SendPort _sendPort;
   final completers = Completers<MessageProtocol>();
-  Future<void> complete(
-      {required int? completerId, required dynamic data}) async {
+  void complete({required int? completerId, required dynamic data}) {
     if (completerId == null) return;
     completers.get(completerId)?.complete(data);
   }
@@ -303,19 +302,17 @@ class Communicator {
   ///
   /// Helper method to send a response via the main. The [message] is the message
   /// to respond with the fields [to], [isSuccess] and [data] filled.
-  Future<void> sendResponse(MessageProtocol message) async {
-    sendMessage(message.copyWith(
-        from: MessageFrom.ebs,
-        to: message.to == MessageTo.pubsub ? MessageTo.ebsMain : message.to,
-        type: MessageTypes.response));
-  }
+  Future<void> sendResponse(MessageProtocol message) =>
+      sendMessage(message.copyWith(
+          from: MessageFrom.ebs,
+          to: message.to == MessageTo.pubsub ? MessageTo.ebsMain : message.to,
+          type: MessageTypes.response));
 
   ///
   /// Helper method to send an error response via the main. The [message] is the message
   /// to respond with the fields [to] and [data] filled. The error message is added
   /// to the data field with the key 'error_message' and the [isSuccess] field is set to false.
-  Future<void> sendErrorReponse(
-          MessageProtocol message, String errorMessage) async =>
+  Future<void> sendErrorReponse(MessageProtocol message, String errorMessage) =>
       sendMessage(message.copyWith(
           from: MessageFrom.ebs,
           to: message.to,

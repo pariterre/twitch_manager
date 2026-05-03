@@ -56,23 +56,25 @@ class TwitchAppEbsManager extends TwitchAppEbsManagerAbstract {
   /// This method must be overridden to handle the messages received from the
   /// EBS server.
   @override
-  Future<void> handleGetRequest(MessageProtocol message) async {
-    return _handleAllRequests(message);
+  Future<void> handleGetRequest(MessageProtocol message) {
+    _handleAllRequests(message);
+    return Future.value();
   }
 
   ///
   /// This method must be overridden to handle the messages received from the
   /// EBS server.
   @override
-  Future<void> handlePutRequest(MessageProtocol message) async {
-    return _handleAllRequests(message);
+  Future<void> handlePutRequest(MessageProtocol message) {
+    _handleAllRequests(message);
+    return Future.value();
   }
 
   ///
   /// For simplicity sake, we handle all requests in the same way.
   /// In a real case, you may want to separate the requests to handle them
   /// differently.
-  Future<void> _handleAllRequests(MessageProtocol message) async {
+  void _handleAllRequests(MessageProtocol message) {
     try {
       final messageType = ToAppMessages.values.byName(message.data!['type']);
 

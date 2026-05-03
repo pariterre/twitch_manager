@@ -40,11 +40,11 @@ abstract class TwitchAppEbsManagerAbstract {
   ///
   /// Connect to the EBS server.
   /// To get the [broadcasterId] one should use [TwitchAppManager.api.streamerId].
-  Future<void> connect(String broadcasterId) async {
+  Future<void> connect(String broadcasterId) {
     _logger.info('Connecting to EBS server');
     _broadcasterId = broadcasterId;
 
-    if (appInfo.ebsUri == null) return;
+    if (appInfo.ebsUri == null) return Future.value();
 
     // Connect to EBS server
     _socket = WebSocket(
@@ -69,19 +69,21 @@ abstract class TwitchAppEbsManagerAbstract {
     _socket!.messages.listen((message) async {
       try {
         await _handleMessageFromEbs(MessageProtocol.decode(message));
-      } catch (e) {
+      } catch (e, st) {
         // Do nothing, this is to prevent the program from crashing
         // When ill-formatted messages are received
-        _logger.severe('Error while handling message from EBS: $e');
+        _logger.severe('Error while handling message from EBS', e, st);
       }
     });
+    return Future.value();
   }
 
   ///
   /// Disconnect from the EBS server
-  Future<void> disconnect() async {
+  Future<void> disconnect() {
     _logger.info('Disconnecting from EBS server');
     _socket?.close();
+    return Future.value();
   }
 
   ///
@@ -99,8 +101,8 @@ abstract class TwitchAppEbsManagerAbstract {
       _socket!.send(augmentedMessage.encode());
 
       return _completers.get(completerId)!.future;
-    } catch (e) {
-      _logger.severe('Error while sending message to EBS: $e');
+    } catch (e, st) {
+      _logger.severe('Error while sending message to EBS', e, st);
       rethrow;
     }
   }
@@ -116,8 +118,8 @@ abstract class TwitchAppEbsManagerAbstract {
           data: (message.data ?? {})
             ..addAll({'broadcaster_id': broadcasterId}));
       _socket!.send(augmentedMessage.encode());
-    } catch (e) {
-      _logger.severe('Error while sending message to EBS: $e');
+    } catch (e, st) {
+      _logger.severe('Error while sending message to EBS', e, st);
     }
   }
 

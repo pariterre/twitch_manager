@@ -47,8 +47,7 @@ class TwitchEbsApi {
 
   ///
   /// Connect a WebSocket to the EBS server
-  Future<void> connect(
-      {required Function(MessageProtocol) onResponseFromEbs}) async {
+  Future<void> connect({required Function(MessageProtocol) onResponseFromEbs}) {
     _logger.info('Connecting to EBS server');
 
     _onMessageReceivedCallback = onResponseFromEbs;
@@ -108,6 +107,8 @@ class TwitchEbsApi {
         _logger.severe('Error while handling message from EBS: $e');
       }
     });
+
+    return Future.value();
   }
 
   ///

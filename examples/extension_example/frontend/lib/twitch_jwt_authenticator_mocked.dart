@@ -59,18 +59,21 @@ class TwitchJwtAuthenticatorMocked extends TwitchJwtAuthenticator {
   Future<void> connect({
     required TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
-  }) async {
+  }) {
     // Do nothing, as this is a mock
     _isConnected = true;
     // But still notify the listeners that connection to Twitch is done
     onHasConnected.notifyListeners((callback) => callback());
+
+    return Future.value();
   }
 
   @override
   Future<void> listenToPubSub(
     String target,
     Function(MessageProtocol message) callback,
-  ) async {
+  ) {
     // Do nothing, as this is a mock
+    return Future.value();
   }
 }

@@ -147,9 +147,9 @@ Future<void> _guardedHandleRequest(
 
 ///
 /// Handle OPTIONS request for CORS preflight
-Future<void> _handleOptionsRequest(HttpRequest request,
+void _handleOptionsRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo,
-    required TwitchEbsCredentialsStorage credentialsStorage}) async {
+    required TwitchEbsCredentialsStorage credentialsStorage}) {
   request.response
     ..statusCode = HttpStatus.ok
     ..headers.add('Access-Control-Allow-Origin', '*')

@@ -66,7 +66,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   Future<void> connect({
     required covariant TwitchFrontendInfo appInfo,
     bool isTwitchUserIdRequired = false,
-  }) async {
+  }) {
     // Register the onAuthorized callback
     TwitchJsExtension.onAuthorized((OnAuthorizedResponse response) {
       // Request the authorization of the real user id, if the app needs it
@@ -85,6 +85,8 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
       }
       _onAuthorizedCallback(response);
     });
+
+    return Future.value();
   }
 
   ///
@@ -92,7 +94,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   /// to a way to communicate with the Twitch API that will automatically
   /// sends a message to all connected frontends.
   Future<void> listenToPubSub(
-      String target, Function(MessageProtocol message) callback) async {
+      String target, Function(MessageProtocol message) callback) {
     TwitchJsExtension.listen(target,
         (String target, String contentType, String raw) {
       _logger.fine('Message from Pubsub: $raw');
@@ -102,6 +104,7 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
         _logger.info('Message from PubSub: $raw');
       }
     });
+    return Future.value();
   }
 
   ///
@@ -133,12 +136,12 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   }
 
   @override
-  Future<void> loadSession() async {
+  Future<void> loadSession() {
     throw 'JWT Authenticator does not support loading sessions';
   }
 
   @override
-  Future<void> _saveSessions() async {
+  Future<void> _saveSessions() {
     throw 'JWT Authenticator does not support saving sessions';
   }
 }
