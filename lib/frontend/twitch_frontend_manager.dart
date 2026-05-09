@@ -164,9 +164,9 @@ class TwitchFrontendManager implements TwitchManager {
   final onMessageReceived = TwitchListener<Function(MessageProtocol)>();
 
   ///
-  /// Intercept internal messages from the PubSub and behave accordingly
+  /// Intercept internal messages from the EBS and behave accordingly
   Future<void> _onMessageReceived(MessageProtocol message) {
-    _logger.fine('Received PubSub message: ${message.type.toString()}');
+    _logger.fine('Received EBS message: ${message.type.toString()}');
 
     try {
       switch (message.type) {
