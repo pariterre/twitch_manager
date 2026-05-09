@@ -68,10 +68,12 @@ class TwitchEbsApi {
         _logger.info('Connected to the EBS server');
         try {
           // This handshake completes only when the EBS server connects with the streamer
-          await send(MessageProtocol(
-              to: MessageTo.ebs,
-              from: MessageFrom.frontend,
-              type: MessageTypes.handShake));
+          await send(
+              MessageProtocol(
+                  to: MessageTo.ebs,
+                  from: MessageFrom.frontend,
+                  type: MessageTypes.handShake),
+              timeout: null);
 
           _isStreamerConnected = true;
           onStreamerHasConnected.notifyListeners((callback) => callback());
@@ -93,13 +95,13 @@ class TwitchEbsApi {
     // Listen for messages from the EBS server
     _socket!.messages.listen((raw) async {
       try {
-        final message = MessageProtocol.decode(raw);
+        final decoded = MessageProtocol.decode(raw);
         final completer = _completers
-            .get(message.internalFrontend?['completer_id'] as int? ?? -1);
-        if (message.type == MessageTypes.response && completer != null) {
-          completer.complete(message);
+            .get(decoded.internalFrontend?['completer_id'] as int? ?? -1);
+        if (decoded.type == MessageTypes.response && completer != null) {
+          completer.complete(decoded);
         } else {
-          _onMessageReceivedCallback!(message);
+          _onMessageReceivedCallback!(decoded);
         }
       } catch (e) {
         // Do nothing, this is to prevent the program from crashing
@@ -113,10 +115,10 @@ class TwitchEbsApi {
 
   ///
   /// This method sends request to the EBS server via the websocket.
-  /// The method returns a `Map<String, dynamic>` with the response from the EBS server.
+  /// The method returns a `MessageProtocol` with the response from the EBS server.
   /// If the socket is not connected, an exception is thrown.
   Future<MessageProtocol> send(MessageProtocol message,
-      {Duration timeout = const Duration(seconds: 10)}) async {
+      {Duration? timeout = const Duration(seconds: 10)}) async {
     if (_socket == null) {
       throw Exception('Socket is not connected');
     }
@@ -127,9 +129,13 @@ class TwitchEbsApi {
         to: message.to,
         type: message.type,
         internalFrontend: {'completer_id': completerId}).encode());
-    return await _completers.get(completerId)!.future.timeout(timeout,
-        onTimeout: () {
-      throw TimeoutException('Request to EBS timed out');
-    });
+
+    final toWait = _completers.get(completerId)!.future;
+    if (timeout != null) {
+      toWait.timeout(timeout, onTimeout: () {
+        throw TimeoutException('Request to EBS timed out');
+      });
+    }
+    return await toWait;
   }
 }

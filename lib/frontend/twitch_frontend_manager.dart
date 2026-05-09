@@ -124,7 +124,7 @@ class TwitchFrontendManager implements TwitchManager {
           type: message.type,
           transaction: transaction));
     } catch (e) {
-      _logger.severe('Failed to send message to EBS: $e');
+      _logger.severe('Failed to send message to App: $e');
       return MessageProtocol(
           to: MessageTo.frontend,
           from: MessageFrom.app,
@@ -139,15 +139,8 @@ class TwitchFrontendManager implements TwitchManager {
   /// to the App instead using [sendMessageToApp].
   Future<MessageProtocol> sendMessageToEbs(MessageProtocol message,
       {BitsTransactionObject? transaction}) async {
-    if (message.type == MessageTypes.get || message.type == MessageTypes.put) {
-      _logger
-          .severe('Cannot send a message of type ${message.type} to the EBS');
-      throw Exception(
-          'Cannot send a message of type ${message.type} to the EBS');
-    }
-
     try {
-      return await apiToEbs.send(MessageProtocol(
+      return await apiToEbs.send(message.copyWith(
           to: MessageTo.ebs,
           from: MessageFrom.frontend,
           type: message.type,
