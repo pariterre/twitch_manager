@@ -41,7 +41,7 @@ void startEbsServer({
   await for (final request in httpServer) {
     final ipAddress = request.connectionInfo?.remoteAddress.address;
     if (ipAddress == null) {
-      _sendErrorResponse(
+      await _sendErrorResponse(
           request,
           HttpStatus.forbidden,
           MessageProtocol(
@@ -57,7 +57,7 @@ void startEbsServer({
         'New request received from $ipAddress (${parameters.rateLimiter.requestCount(ipAddress) + 1} / ${parameters.rateLimiter.maxRequests})');
 
     if (parameters.rateLimiter.isRateLimited(ipAddress)) {
-      _sendErrorResponse(
+      await _sendErrorResponse(
           request,
           HttpStatus.tooManyRequests,
           MessageProtocol(
@@ -76,7 +76,7 @@ void startEbsServer({
       _guardedHandleRequest(request, _handleGetHttpRequest,
           ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
     } else {
-      _sendErrorResponse(
+      await _sendErrorResponse(
           request,
           HttpStatus.methodNotAllowed,
           MessageProtocol(
@@ -103,7 +103,7 @@ Future<void> _guardedHandleRequest(
     await handler(request,
         ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } on InvalidEndpointException {
-    _sendErrorResponse(
+    await _sendErrorResponse(
         request,
         HttpStatus.notFound,
         MessageProtocol(
@@ -113,7 +113,7 @@ Future<void> _guardedHandleRequest(
             isSuccess: false,
             data: {'error_message': 'Invalid endpoint'}));
   } on UnauthorizedException {
-    _sendErrorResponse(
+    await _sendErrorResponse(
         request,
         HttpStatus.unauthorized,
         MessageProtocol(
@@ -123,7 +123,7 @@ Future<void> _guardedHandleRequest(
             isSuccess: false,
             data: {'error_message': 'Unauthorized'}));
   } on ConnexionToWebSocketdRefusedException {
-    _sendErrorResponse(
+    await _sendErrorResponse(
         request,
         HttpStatus.serviceUnavailable,
         MessageProtocol(
@@ -133,7 +133,7 @@ Future<void> _guardedHandleRequest(
             isSuccess: false,
             data: {'error_message': 'Connexion to WebSocket refused'}));
   } catch (e) {
-    _sendErrorResponse(
+    await _sendErrorResponse(
         request,
         HttpStatus.internalServerError,
         MessageProtocol(
@@ -173,8 +173,8 @@ Future<void> _handleGetHttpRequest(
   }
 }
 
-void _sendErrorResponse(
-    HttpRequest request, int statusCode, MessageProtocol message) {
+Future<void> _sendErrorResponse(
+    HttpRequest request, int statusCode, MessageProtocol message) async {
   _logger.severe('Sending error response: ${message.data}');
   try {
     request.response
@@ -184,7 +184,12 @@ void _sendErrorResponse(
   } catch (e) {
     _logger.severe('Error while sending error response: $e');
   }
-  request.response.close();
+
+  try {
+    await request.response.close();
+  } catch (e) {
+    _logger.severe('Error while closing error response: $e');
+  }
 }
 
 Future<HttpServer> _startServer(NetworkParameters parameters) async {

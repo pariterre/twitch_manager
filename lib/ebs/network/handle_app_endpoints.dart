@@ -161,7 +161,7 @@ Future<void> _handleReloadAppTokenRequest({
     headers: {'Authorization': 'Bearer ${credentials.accessToken}'},
   );
   if (responseIsValid.statusCode != 200) {
-    _handleRefreshTwitchToken(
+    await _handleRefreshTwitchToken(
         request: request,
         ebsInfo: ebsInfo,
         clientId: clientId,
