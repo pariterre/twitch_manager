@@ -38,46 +38,61 @@ class _IsolatedClientInterface {
     _logger.info('IsolatedInterface created');
 
     // Listen to the socket
-    socket.listen(
-        (message) => MainIsolatedManager.instance
-            .messageFromAppToIsolated(MessageProtocol.decode(message), socket),
+    socket.listen(_handleMessageFromAppToIsolated,
         onDone: () => _handleClientConnexionTerminated(),
         onError: ((handleError) => _handleClientConnexionTerminated()));
   }
 
-  void _handleClientConnexionTerminated() {
-    // This will ultimately call the clear method, same as if the client was
-    // asking to disconnect themselves
-    MainIsolatedManager.instance.messageFromAppToIsolated(
-        MessageProtocol(
-            to: MessageTo.ebs,
-            from: MessageFrom.ebsMain,
-            type: MessageTypes.disconnect,
-            data: {'broadcaster_id': broadcasterId}),
-        socket);
+  Future<void> _handleMessageFromAppToIsolated(dynamic message) async {
+    try {
+      final decodedMessage = MessageProtocol.decode(message);
+
+      await MainIsolatedManager.instance
+          ._messageFromAppToIsolated(decodedMessage, socket);
+    } catch (e) {
+      _logger.severe('Error while handling message from app to isolated', e);
+    }
   }
 
-  void addFrontendUser(_FrontendUser frontendUser) {
+  Future<void> _handleClientConnexionTerminated() async {
+    // This will ultimately call the clear method, same as if the client was
+    // asking to disconnect themselves
+    try {
+      await MainIsolatedManager.instance._messageFromAppToIsolated(
+          MessageProtocol(
+              to: MessageTo.ebs,
+              from: MessageFrom.ebsMain,
+              type: MessageTypes.disconnect,
+              data: {'broadcaster_id': broadcasterId}),
+          socket);
+    } catch (e) {
+      _logger.severe('Error while handling client disconnection', e);
+    }
+  }
+
+  void _addFrontendUser(_FrontendUser frontendUser) {
     frontendUsers.add(frontendUser);
 
     frontendUser.socket.listen(
-        (message) => _handleMessageFromFrontend(
-            MessageProtocol.decode(message), frontendUser),
-        onDone: () => _handleFrontendUserConnexionTerminated(frontendUser),
-        onError: ((handleError) =>
-            _handleFrontendUserConnexionTerminated(frontendUser)));
+      (message) => _handleMessageFromFrontend(message, frontendUser),
+      onDone: () => _handleFrontendUserConnexionTerminated(frontendUser),
+      onError: ((handleError) =>
+          _handleFrontendUserConnexionTerminated(frontendUser)),
+    );
   }
 
-  void _handleMessageFromFrontend(
-      MessageProtocol message, _FrontendUser frontendUser) async {
+  Future<void> _handleMessageFromFrontend(
+      dynamic message, _FrontendUser frontendUser) async {
     try {
+      final decodedMessage = MessageProtocol.decode(message);
+
       final response =
-          await MainIsolatedManager.instance.messageFromFrontendToIsolated(
-              message: message.copyWith(
-                  from: message.from,
-                  to: message.to,
-                  type: message.type,
-                  data: message.data ?? {}
+          await MainIsolatedManager.instance._messageFromFrontendToIsolated(
+              message: decodedMessage.copyWith(
+                  from: decodedMessage.from,
+                  to: decodedMessage.to,
+                  type: decodedMessage.type,
+                  data: decodedMessage.data ?? {}
                     ..addAll({
                       'broadcaster_id': broadcasterId,
                       'user_id': frontendUser.userId,
@@ -87,25 +102,26 @@ class _IsolatedClientInterface {
       frontendUser.socket.add(response.encode());
     } catch (e) {
       _logger.severe('Error while handling message from frontend: $e');
-      _handleFrontendUserConnexionTerminated(frontendUser);
+      await _handleFrontendUserConnexionTerminated(frontendUser);
     }
   }
 
-  void _handleFrontendUserConnexionTerminated(_FrontendUser user) {
+  Future<void> _handleFrontendUserConnexionTerminated(
+      _FrontendUser user) async {
     try {
       frontendUsers.remove(user);
-      user.socket.close();
+      await user.socket.close();
     } catch (e) {
       _logger.severe('Error while handling frontend user disconnection: $e');
     }
   }
 
-  void clear() {
+  Future<void> _clear() async {
     try {
       isolate.kill(priority: Isolate.immediate);
-      socket.close();
+      await socket.close();
       for (var user in frontendUsers) {
-        user.socket.close();
+        await user.socket.close();
       }
       frontendUsers.clear();
       sendPort = null;
@@ -168,8 +184,8 @@ class MainIsolatedManager {
     final mainReceivePort = ReceivePort();
 
     // Establish communication with the worker isolate
-    mainReceivePort.listen((message) => _handleMessageFromIsolated(
-        MessageProtocol.fromJson(message), broadcasterId));
+    mainReceivePort.listen(
+        (message) => _handleMessageFromIsolated(message, broadcasterId));
 
     // Create a new isolated client interface if it does not exist
     if (!_isolates.containsKey(broadcasterId)) {
@@ -202,38 +218,42 @@ class MainIsolatedManager {
         await Future.delayed(const Duration(seconds: 10));
       }
 
-      _isolates[broadcasterId]!.addFrontendUser(
+      _isolates[broadcasterId]!._addFrontendUser(
           _FrontendUser(opaqueId: opaqueId, userId: userId, socket: socket));
     } catch (e) {
-      socket.close();
+      await socket.close();
       return;
     }
   }
 
   ///
   /// Stop all clients
-  void killAllIsolates() {
+  Future<void> killAllIsolates() async {
     for (var interface in _isolates.values) {
-      interface.clear();
+      await interface._clear();
     }
     _isolates.clear();
   }
 
   Future<void> _handleMessageFromIsolated(
-      MessageProtocol message, String broadcasterId) async {
+      dynamic message, String broadcasterId) async {
+    final decodedMessage = MessageProtocol.fromJson(message);
+
     try {
-      switch (message.to) {
+      switch (decodedMessage.to) {
         case MessageTo.ebsMain:
-          await _handleMessageFromIsolatedToMain(message, broadcasterId);
+          await _handleMessageFromIsolatedToMain(decodedMessage, broadcasterId);
           break;
         case MessageTo.app:
-          await _handleMessageFromIsolatedToApp(message, broadcasterId);
+          await _handleMessageFromIsolatedToApp(decodedMessage, broadcasterId);
           break;
         case MessageTo.frontend:
-          await _handleMessageFromIsolatedToFrontends(message, broadcasterId);
+          await _handleMessageFromIsolatedToFrontends(
+              decodedMessage, broadcasterId);
           break;
         case MessageTo.pubsub:
-          await _handleMessageFromIsolatedToPubsub(message, broadcasterId);
+          await _handleMessageFromIsolatedToPubsub(
+              decodedMessage, broadcasterId);
           break;
         case MessageTo.ebs:
         case MessageTo.generic:
@@ -247,7 +267,7 @@ class MainIsolatedManager {
   Future<void> _handleMessageFromIsolatedToMain(
     MessageProtocol message,
     String broadcasterId,
-  ) {
+  ) async {
     switch (message.type) {
       case MessageTypes.handShake:
         _logger.info('Isolated client with id: $broadcasterId has connected');
@@ -263,7 +283,7 @@ class MainIsolatedManager {
 
       case MessageTypes.disconnect:
         _logger.info('Disconnecting client with id: $broadcasterId');
-        _isolates.remove(broadcasterId)?.clear();
+        await _isolates.remove(broadcasterId)?._clear();
         break;
 
       case MessageTypes.ping:
@@ -312,7 +332,7 @@ class MainIsolatedManager {
     return Future.value();
   }
 
-  Future<void> messageFromAppToIsolated(
+  Future<void> _messageFromAppToIsolated(
       MessageProtocol message, WebSocket socket) {
     try {
       late final String? broadcasterId;
@@ -342,7 +362,7 @@ class MainIsolatedManager {
     return Future.value();
   }
 
-  Future<MessageProtocol> messageFromFrontendToIsolated(
+  Future<MessageProtocol> _messageFromFrontendToIsolated(
       {required MessageProtocol message}) async {
     late final String? broadcasterId;
     try {
@@ -392,7 +412,7 @@ class MainIsolatedManager {
     }
   }
 
-  Future<void> messageFromMainToIsolated({
+  Future<void> _messageFromMainToIsolated({
     required String broadcasterId,
     required MessageProtocol message,
   }) {
