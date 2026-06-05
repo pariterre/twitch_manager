@@ -30,8 +30,8 @@ class InvalidEndpointException implements Exception {
   }
 }
 
-class ConnexionToWebSocketdRefusedException implements Exception {
-  ConnexionToWebSocketdRefusedException();
+class ConnexionToWebSocketRefusedException implements Exception {
+  ConnexionToWebSocketRefusedException();
 
   @override
   String toString() {

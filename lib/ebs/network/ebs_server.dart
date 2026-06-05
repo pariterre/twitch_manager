@@ -122,7 +122,7 @@ Future<void> _guardedHandleRequest(
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'Unauthorized'}));
-  } on ConnexionToWebSocketdRefusedException {
+  } on ConnexionToWebSocketRefusedException {
     await _sendErrorResponse(
         request,
         HttpStatus.serviceUnavailable,

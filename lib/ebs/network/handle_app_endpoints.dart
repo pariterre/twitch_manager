@@ -38,7 +38,7 @@ Future<void> _handleAppConnectToWebSocketRequest(HttpRequest request,
         broadcasterId: broadcasterId, socket: socket, ebsInfo: ebsInfo);
     _logger.info('New App connexion (broadcasterId: $broadcasterId)');
   } catch (e) {
-    throw ConnexionToWebSocketdRefusedException();
+    throw ConnexionToWebSocketRefusedException();
   }
 }
 

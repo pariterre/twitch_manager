@@ -41,14 +41,14 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
       for (final protocol in protocols) {
         if (protocol.startsWith('Bearer-')) return protocol;
       }
-      throw ConnexionToWebSocketdRefusedException();
+      throw ConnexionToWebSocketRefusedException();
     });
   } catch (e) {
-    throw ConnexionToWebSocketdRefusedException();
+    throw ConnexionToWebSocketRefusedException();
   }
 
   _logger.info('New frontend connexion (broadcasterId: $broadcasterId)');
-  MainIsolatedManager.instance.registerNewFrontendUser(
+  await MainIsolatedManager.instance.registerNewFrontendUser(
       broadcasterId: broadcasterId,
       socket: socket,
       opaqueId: opaqueId,
