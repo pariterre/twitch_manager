@@ -38,56 +38,78 @@ void startEbsServer({
   // Initialize the isolated manager so it can create new isolates
   MainIsolatedManager.initialize(twitchEbsManagerFactory);
 
-  await for (final request in httpServer) {
-    final ipAddress = request.connectionInfo?.remoteAddress.address;
-    if (ipAddress == null) {
-      await _sendErrorResponse(
-          request,
-          HttpStatus.forbidden,
-          MessageProtocol(
-              to: MessageTo.generic,
-              from: MessageFrom.generic,
-              type: MessageTypes.response,
-              isSuccess: false,
-              data: {'error_message': 'Connexion refused'}));
-      continue;
+  httpServer.listen((request) {
+    unawaited(_handleIncomingRequest(
+      request,
+      parameters: parameters,
+      ebsInfo: ebsInfo,
+      credentialsStorage: credentialsStorage,
+    ));
+  }, onError: (error, stackTrace) {
+    if (error is SocketException) {
+      _logger.warning('HTTP server stream socket error: $error');
+      return;
     }
+    _logger.severe('HTTP server stream error: $error', error, stackTrace);
+  }, onDone: () {
+    _logger.warning('HTTP server stream closed unexpectedly');
+  }, cancelOnError: false);
+}
 
-    _logger.info(
-        'New request received from $ipAddress (${parameters.rateLimiter.requestCount(ipAddress) + 1} / ${parameters.rateLimiter.maxRequests})');
+Future<void> _handleIncomingRequest(
+  HttpRequest request, {
+  required NetworkParameters parameters,
+  required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
+}) async {
+  final ipAddress = request.connectionInfo?.remoteAddress.address;
+  if (ipAddress == null) {
+    await _sendErrorResponse(
+        request,
+        HttpStatus.forbidden,
+        MessageProtocol(
+            to: MessageTo.generic,
+            from: MessageFrom.generic,
+            type: MessageTypes.response,
+            isSuccess: false,
+            data: {'error_message': 'Connexion refused'}));
+    return;
+  }
 
-    if (parameters.rateLimiter.isRateLimited(ipAddress)) {
-      await _sendErrorResponse(
-          request,
-          HttpStatus.tooManyRequests,
-          MessageProtocol(
-              to: MessageTo.generic,
-              from: MessageFrom.generic,
-              type: MessageTypes.response,
-              isSuccess: false,
-              data: {'error_message': 'Rate limited'}));
-      continue;
-    }
+  _logger.info(
+      'New request received from $ipAddress (${parameters.rateLimiter.requestCount(ipAddress) + 1} / ${parameters.rateLimiter.maxRequests})');
 
-    if (request.method == 'OPTIONS') {
-      _guardedHandleRequest(request, _handleOptionsRequest,
-          ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
-    } else if (request.method == 'GET') {
-      _guardedHandleRequest(request, _handleGetHttpRequest,
-          ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
-    } else {
-      await _sendErrorResponse(
-          request,
-          HttpStatus.methodNotAllowed,
-          MessageProtocol(
-              to: MessageTo.generic,
-              from: MessageFrom.generic,
-              type: MessageTypes.response,
-              isSuccess: false,
-              data: {
-                'error_message': 'Invalid request method: ${request.method}'
-              }));
-    }
+  if (parameters.rateLimiter.isRateLimited(ipAddress)) {
+    await _sendErrorResponse(
+        request,
+        HttpStatus.tooManyRequests,
+        MessageProtocol(
+            to: MessageTo.generic,
+            from: MessageFrom.generic,
+            type: MessageTypes.response,
+            isSuccess: false,
+            data: {'error_message': 'Rate limited'}));
+    return;
+  }
+
+  if (request.method == 'OPTIONS') {
+    await _guardedHandleRequest(request, _handleOptionsRequest,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
+  } else if (request.method == 'GET') {
+    await _guardedHandleRequest(request, _handleGetHttpRequest,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
+  } else {
+    await _sendErrorResponse(
+        request,
+        HttpStatus.methodNotAllowed,
+        MessageProtocol(
+            to: MessageTo.generic,
+            from: MessageFrom.generic,
+            type: MessageTypes.response,
+            isSuccess: false,
+            data: {
+              'error_message': 'Invalid request method: ${request.method}'
+            }));
   }
 }
 
@@ -132,6 +154,19 @@ Future<void> _guardedHandleRequest(
             type: MessageTypes.response,
             isSuccess: false,
             data: {'error_message': 'Connexion to WebSocket refused'}));
+  } on SocketException catch (e, st) {
+    _logger.warning(
+        'Socket exception while handling ${request.method} ${request.uri}: $e');
+    _logger.fine('$st');
+    await _sendErrorResponse(
+        request,
+        HttpStatus.serviceUnavailable,
+        MessageProtocol(
+            to: MessageTo.generic,
+            from: MessageFrom.generic,
+            type: MessageTypes.response,
+            isSuccess: false,
+            data: {'error_message': 'Socket error'}));
   } catch (e) {
     await _sendErrorResponse(
         request,

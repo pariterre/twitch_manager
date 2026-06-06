@@ -8,6 +8,7 @@ import 'package:twitch_manager/ebs/ebs_exceptions.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
 import 'package:twitch_manager/utils/completers.dart';
+import 'package:twitch_manager/utils/websocket_extension.dart';
 
 final _logger = Logger('IsolatedMainManager');
 
@@ -99,7 +100,8 @@ class _IsolatedClientInterface {
                       'opaque_id': frontendUser.opaqueId
                     })));
 
-      frontendUser.socket.add(response.encode());
+      frontendUser.socket.safeAdd(response.encode(),
+          target: 'frontend user ${frontendUser.opaqueId}');
     } catch (e) {
       _logger.severe('Error while handling message from frontend: $e');
       await _handleFrontendUserConnexionTerminated(frontendUser);
@@ -302,7 +304,9 @@ class MainIsolatedManager {
     MessageProtocol message,
     String broadcasterId,
   ) {
-    _isolates[broadcasterId]?.socket.add(message.encode());
+    _isolates[broadcasterId]
+        ?.socket
+        .safeAdd(message.encode(), target: 'app broadcaster $broadcasterId');
     return Future.value();
   }
 
@@ -319,9 +323,10 @@ class MainIsolatedManager {
     }
 
     final encodedMessage = message.encode();
-    _isolates[broadcasterId]
-        ?.frontendUsers
-        .forEach((user) => user.socket.add(encodedMessage));
+    for (final user in _isolates[broadcasterId]?.frontendUsers ?? const []) {
+      user.socket
+          .safeAdd(encodedMessage, target: 'frontend user ${user.opaqueId}');
+    }
     return Future.value();
   }
 
@@ -410,20 +415,6 @@ class MainIsolatedManager {
           isSuccess: false,
           data: {'error_message': 'Error processing message: $e'});
     }
-  }
-
-  Future<void> _messageFromMainToIsolated({
-    required String broadcasterId,
-    required MessageProtocol message,
-  }) {
-    final sendPort = _isolates[broadcasterId]?.sendPort;
-    if (sendPort == null) {
-      _logger.info('No active client with id: $broadcasterId');
-      return Future.value();
-    }
-
-    sendPort.send(message.encode());
-    return Future.value();
   }
 }
 
