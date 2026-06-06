@@ -4,14 +4,15 @@ import 'package:logging/logging.dart';
 
 final _logger = Logger('WebSocketExtension');
 
-extension WebSocketExtension on WebSocket {
-  void safeAdd(Object data, {String? target}) {
-    if (closeCode != null) {
+class WebSocketUtils {
+  static void safeWebsocketAdd(WebSocket socket, Object data,
+      {String? target}) {
+    if (socket.closeCode != null) {
       _logger.fine('Socket for $target already closed, skipping message');
       return;
     }
     try {
-      add(data);
+      socket.add(data);
     } on SocketException catch (e) {
       _logger.warning('Socket error while sending message to $target: $e');
     } catch (e, st) {

@@ -8,7 +8,7 @@ import 'package:twitch_manager/ebs/ebs_exceptions.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_info.dart';
 import 'package:twitch_manager/ebs/twitch_ebs_manager_abstract.dart';
 import 'package:twitch_manager/utils/completers.dart';
-import 'package:twitch_manager/utils/websocket_extension.dart';
+import 'package:twitch_manager/utils/websocket_utils.dart';
 
 final _logger = Logger('IsolatedMainManager');
 
@@ -100,7 +100,7 @@ class _IsolatedClientInterface {
                       'opaque_id': frontendUser.opaqueId
                     })));
 
-      frontendUser.socket.safeAdd(response.encode(),
+      WebSocketUtils.safeWebsocketAdd(frontendUser.socket, response.encode(),
           target: 'frontend user ${frontendUser.opaqueId}');
     } catch (e) {
       _logger.severe('Error while handling message from frontend: $e');
@@ -304,9 +304,14 @@ class MainIsolatedManager {
     MessageProtocol message,
     String broadcasterId,
   ) {
-    _isolates[broadcasterId]
-        ?.socket
-        .safeAdd(message.encode(), target: 'app broadcaster $broadcasterId');
+    final socket = _isolates[broadcasterId]?.socket;
+    if (socket == null) {
+      _logger.info('No active client with id: $broadcasterId');
+      return Future.value();
+    }
+
+    WebSocketUtils.safeWebsocketAdd(socket, message.encode(),
+        target: 'app broadcaster $broadcasterId');
     return Future.value();
   }
 
@@ -323,9 +328,10 @@ class MainIsolatedManager {
     }
 
     final encodedMessage = message.encode();
-    for (final user in _isolates[broadcasterId]?.frontendUsers ?? const []) {
-      user.socket
-          .safeAdd(encodedMessage, target: 'frontend user ${user.opaqueId}');
+    for (final user
+        in _isolates[broadcasterId]?.frontendUsers ?? const <_FrontendUser>[]) {
+      WebSocketUtils.safeWebsocketAdd(user.socket, encodedMessage,
+          target: 'frontend user ${user.opaqueId}');
     }
     return Future.value();
   }
