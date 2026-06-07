@@ -47,7 +47,8 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
     throw ConnexionToWebSocketRefusedException();
   }
 
-  _logger.info('New frontend connexion (broadcasterId: $broadcasterId)');
+  _logger.info(
+      'New frontend connexion (userId: $userId, broadcasterId: $broadcasterId)');
   await MainIsolatedManager.instance.registerNewFrontendUser(
       broadcasterId: broadcasterId,
       socket: socket,
