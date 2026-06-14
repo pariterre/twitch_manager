@@ -1,5 +1,6 @@
 import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_enum.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 ///
@@ -46,3 +47,13 @@ abstract class TwitchJsExtensionViewerBase {
 TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer =>
     throw UnsupportedError(
         'Cannot create an instance of TwitchJsExtenionsViewerBase');
+
+abstract class TwitchJsExtensionQueryParametersBase {
+  TwitchAnchor get anchor;
+  TwitchPlatform get platform;
+  TwitchMode get mode;
+}
+
+TwitchJsExtensionQueryParametersBase get getTwitchJsExtensionQueryParameters =>
+    throw UnsupportedError(
+        'Cannot create an instance of TwitchJsExtenionsQueryParametersBase');

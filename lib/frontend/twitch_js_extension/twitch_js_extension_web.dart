@@ -2,6 +2,7 @@ import 'dart:js_interop';
 
 import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_enum.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
@@ -221,6 +222,28 @@ class TwitchJsExtensionViewerWeb implements TwitchJsExtensionViewerBase {
   String? get id => _twitchViewer.id;
 }
 
+class TwitchJsExtensionQueryParametersWeb
+    implements TwitchJsExtensionQueryParametersBase {
+  @override
+  late final TwitchAnchor anchor;
+  @override
+  late final TwitchPlatform platform;
+  @override
+  late final TwitchMode mode;
+
+  TwitchJsExtensionQueryParametersWeb() {
+    final queryParams = Uri.base.queryParameters;
+    anchor = TwitchAnchor.values.firstWhere(
+        (e) => e.name == queryParams['anchor'],
+        orElse: () => TwitchAnchor.unknown);
+    platform = TwitchPlatform.values.firstWhere(
+        (e) => e.name == queryParams['platform'],
+        orElse: () => TwitchPlatform.unknown);
+    mode = TwitchMode.values.firstWhere((e) => e.name == queryParams['mode'],
+        orElse: () => TwitchMode.unknown);
+  }
+}
+
 final TwitchJsExtensionWeb _instance = TwitchJsExtensionWeb();
 TwitchJsExtensionBase get getTwitchJsExtension => _instance;
 
@@ -235,3 +258,8 @@ TwitchJsExtensionBitsBase get getTwitchJsExtensionBits => _bitsInstance;
 final TwitchJsExtensionViewerBase _viewerInstance =
     TwitchJsExtensionViewerWeb();
 TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer => _viewerInstance;
+
+final TwitchJsExtensionQueryParametersBase _queryParametersInstance =
+    TwitchJsExtensionQueryParametersWeb();
+TwitchJsExtensionQueryParametersBase get getTwitchJsExtensionQueryParameters =>
+    _queryParametersInstance;

@@ -1,6 +1,6 @@
-import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart';
+import 'package:twitch_manager/twitch_frontend.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
 
 ///
@@ -67,3 +67,20 @@ class TwitchJsExtensionViewerDesktop implements TwitchJsExtensionViewerBase {
 final TwitchJsExtensionViewerBase _viewerInstance =
     TwitchJsExtensionViewerDesktop();
 TwitchJsExtensionViewerBase get getTwitchJsExtensionViewer => _viewerInstance;
+
+class TwitchJsExtensionQueryParametersDesktop
+    implements TwitchJsExtensionQueryParametersBase {
+  @override
+  TwitchAnchor get anchor => TwitchAnchor.unknown;
+
+  @override
+  TwitchPlatform get platform => TwitchPlatform.unknown;
+
+  @override
+  TwitchMode get mode => TwitchMode.unknown;
+}
+
+final TwitchJsExtensionQueryParametersBase _queryParametersInstance =
+    TwitchJsExtensionQueryParametersDesktop();
+TwitchJsExtensionQueryParametersBase get getTwitchJsExtensionQueryParameters =>
+    _queryParametersInstance;

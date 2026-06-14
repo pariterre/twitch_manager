@@ -38,6 +38,12 @@ class TwitchFrontendManager implements TwitchManager {
   TwitchJsExtensionBits get bits => TwitchJsExtension.bits;
 
   ///
+  /// This is a convenient accessor to the Query Parameters of the Twitch Extension.
+  /// This provides information about the context in which the extension is running, such as the anchor, platform, and mode.
+  TwitchJsExtensionQueryParameters get queryParameters =>
+      TwitchJsExtension.queryParameters;
+
+  ///
   /// Internal constructor of the Twitch Manager
   TwitchFrontendManager._(this._appInfo, this._authenticator, this._apiToEbs);
 

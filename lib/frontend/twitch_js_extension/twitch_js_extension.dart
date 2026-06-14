@@ -1,4 +1,5 @@
 import 'package:twitch_manager/common/twitch_js_extension_public_objects.dart';
+import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_enum.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_interface.dart'
     if (dart.library.js) 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_web.dart'
     if (dart.library.io) 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension_desktop.dart';
@@ -36,25 +37,29 @@ class TwitchJsExtension {
 
   ///
   /// This is an object to call the TwitchJsExtensionActionsBase
-  static final TwtichJsExtensionActions _twitchJsExtensionActionsInstance =
-      TwtichJsExtensionActions();
-  static TwtichJsExtensionActions get actions =>
+  static final _twitchJsExtensionActionsInstance = TwitchJsExtensionActions();
+  static TwitchJsExtensionActions get actions =>
       _twitchJsExtensionActionsInstance;
 
   ///
   /// This is an object to call the TwitchJsExtensionBitsBase
-  static final TwitchJsExtensionBits _twitchJsExtensionBitsInstance =
-      TwitchJsExtensionBits();
+  static final _twitchJsExtensionBitsInstance = TwitchJsExtensionBits();
   static TwitchJsExtensionBits get bits => _twitchJsExtensionBitsInstance;
 
   ///
   /// This is an object to call the TwitchJsExtensionViewerBase
-  static final TwtichJsExtensionViewer _twitchJsExtensionViewerInstance =
-      TwtichJsExtensionViewer();
-  static TwtichJsExtensionViewer get viewer => _twitchJsExtensionViewerInstance;
+  static final _twitchJsExtensionViewerInstance = TwitchJsExtensionViewer();
+  static TwitchJsExtensionViewer get viewer => _twitchJsExtensionViewerInstance;
+
+  ///
+  /// This is an object to call the TwitchJsExtensionQueryParametersBase
+  static final _twitchJsExtensionQueryParametersInstance =
+      TwitchJsExtensionQueryParameters();
+  static TwitchJsExtensionQueryParameters get queryParameters =>
+      _twitchJsExtensionQueryParametersInstance;
 }
 
-class TwtichJsExtensionActions {
+class TwitchJsExtensionActions {
   ///
   /// This method requests the ID share from the Twitch Extension. If this is
   /// called, it will pop up a dialog in the Twitch Extension asking the user
@@ -100,7 +105,7 @@ class TwitchJsExtensionBits {
   void useBits(String sku) => getTwitchJsExtensionBits.useBits(sku);
 }
 
-class TwtichJsExtensionViewer {
+class TwitchJsExtensionViewer {
   ///
   /// The opaque id of the viewer
   String get opaqueId => getTwitchJsExtensionViewer.opaqueId;
@@ -108,4 +113,18 @@ class TwtichJsExtensionViewer {
   ///
   /// The id of the viewer (null if the access was not granted)
   String? get id => getTwitchJsExtensionViewer.id;
+}
+
+class TwitchJsExtensionQueryParameters {
+  ///
+  /// The anchor of the Twitch Extension (panel, video_overlay, component, unknown)
+  TwitchAnchor get anchor => getTwitchJsExtensionQueryParameters.anchor;
+
+  ///
+  /// The platform of the Twitch Extension (web, mobile, unknown)
+  TwitchPlatform get platform => getTwitchJsExtensionQueryParameters.platform;
+
+  ///
+  /// The mode of the Twitch Extension (viewer, dashboard, config, unknown)
+  TwitchMode get mode => getTwitchJsExtensionQueryParameters.mode;
 }
