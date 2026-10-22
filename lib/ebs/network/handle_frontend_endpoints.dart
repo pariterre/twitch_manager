@@ -9,6 +9,15 @@ Future<void> _handleFrontendGetRequest(HttpRequest request,
   }
 }
 
+Future<void> _handleFrontendPostRequest(HttpRequest request,
+    {required TwitchEbsInfo ebsInfo}) async {
+  if (request.uri.path.contains('/sign-connect-info')) {
+    await _handleFrontendSignConnectInfoRequest(request, ebsInfo: ebsInfo);
+  } else {
+    throw InvalidEndpointException();
+  }
+}
+
 Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
     {required TwitchEbsInfo ebsInfo}) async {
   _logger.info('Answering GET request to ${request.uri.path}');
@@ -20,6 +29,7 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   final broadcasterId = payload?['channel_id'] as String?;
   final opaqueId = payload?['opaque_user_id'] as String?;
   final userId = payload?['user_id'] as String?;
+  final canAccessTwitchResources = payload?['self_signed'] != true;
   if (broadcasterId == null) {
     _logger.severe('No broadcasterId found');
     throw UnauthorizedException();
@@ -50,10 +60,37 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   _logger.info(
       'New frontend connexion (userId: $userId, broadcasterId: $broadcasterId)');
   await MainIsolatedManager.instance.registerNewFrontendUser(
-      broadcasterId: broadcasterId,
-      socket: socket,
-      opaqueId: opaqueId,
-      userId: userId);
+    broadcasterId: broadcasterId,
+    socket: socket,
+    opaqueId: opaqueId,
+    userId: userId,
+    canAccessTwitchResources: canAccessTwitchResources,
+  );
+}
+
+Future<void> _handleFrontendSignConnectInfoRequest(HttpRequest request,
+    {required TwitchEbsInfo ebsInfo}) async {
+  _logger.info('Answering POST request to ${request.uri.path}');
+
+  // Get the map (as json) to sign. Is expected to be in the request body.
+  final requestBody = await utf8.decoder.bind(request).join();
+  final jsonBody = jsonDecode(requestBody) as Map<String, dynamic>;
+
+  // Add an additional tag to the json that will prevent to use this self-signed JWT to authenticate to twitch
+  jsonBody['self_signed'] = true;
+
+  final jwt = JWT(jsonBody)
+      .sign(SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true));
+
+  // Here you would handle the sign-connect-info request, e.g., by returning
+  // some information to the frontend
+  final response = request.response
+    ..statusCode = HttpStatus.ok
+    ..headers.contentType = ContentType.json
+    ..headers.add('Access-Control-Allow-Origin', '*')
+    ..write(jsonEncode({'jwt': jwt}));
+
+  await response.close();
 }
 
 Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
@@ -68,9 +105,14 @@ Map<String, dynamic>? _extractJwtPayload(HttpRequest request,
   // Extract the Bearer token by removing 'Bearer ' from the start
   final bearer = authHeader.substring(7);
   try {
-    final decodedJwt = JWT.verify(bearer,
+    final decodedJwt = JWT.decode(bearer);
+    if (decodedJwt.payload['self_signed'] == true) {
+      return decodedJwt.payload;
+    }
+
+    final validatedJwt = JWT.verify(bearer,
         SecretKey(ebsInfo.extensionSharedSecret!, isBase64Encoded: true));
-    return decodedJwt.payload;
+    return validatedJwt.payload;
   } on JWTExpiredException {
     // If the problem is only that JWT is expired, we log it, but we still accept
     _logger.warning('JWT token is expired, but we still accept it...');

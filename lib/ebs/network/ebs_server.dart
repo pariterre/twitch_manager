@@ -98,6 +98,9 @@ Future<void> _handleIncomingRequest(
   } else if (request.method == 'GET') {
     await _guardedHandleRequest(request, _handleGetHttpRequest,
         ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
+  } else if (request.method == 'POST') {
+    await _guardedHandleRequest(request, _handlePostHttpRequest,
+        ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } else {
     await _sendErrorResponse(
         request,
@@ -188,7 +191,7 @@ void _handleOptionsRequest(HttpRequest request,
   request.response
     ..statusCode = HttpStatus.ok
     ..headers.add('Access-Control-Allow-Origin', '*')
-    ..headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    ..headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     ..headers.add('Access-Control-Allow-Headers', 'Authorization, Content-Type')
     ..close();
 }
@@ -203,6 +206,18 @@ Future<void> _handleGetHttpRequest(
         ebsInfo: ebsInfo, credentialsStorage: credentialsStorage);
   } else if (request.uri.path.contains('/frontend')) {
     await _handleFrontendGetRequest(request, ebsInfo: ebsInfo);
+  } else {
+    throw InvalidEndpointException();
+  }
+}
+
+Future<void> _handlePostHttpRequest(
+  HttpRequest request, {
+  required TwitchEbsInfo ebsInfo,
+  required TwitchEbsCredentialsStorage credentialsStorage,
+}) async {
+  if (request.uri.path.contains('/frontend')) {
+    await _handleFrontendPostRequest(request, ebsInfo: ebsInfo);
   } else {
     throw InvalidEndpointException();
   }

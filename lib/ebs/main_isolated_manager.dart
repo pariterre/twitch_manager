@@ -16,11 +16,14 @@ class _FrontendUser {
   final String opaqueId;
   final String? userId;
   final WebSocket socket;
+  // TODO Do something with this flag to control access to Twitch resources
+  final bool canAccessTwitchResources;
 
   _FrontendUser({
     required this.opaqueId,
     required this.userId,
     required this.socket,
+    required this.canAccessTwitchResources,
   });
 }
 
@@ -208,6 +211,7 @@ class MainIsolatedManager {
     required String opaqueId,
     required String? userId,
     required WebSocket socket,
+    required bool canAccessTwitchResources,
   }) async {
     try {
       // Wait for the main client to be created
@@ -220,8 +224,12 @@ class MainIsolatedManager {
         await Future.delayed(const Duration(seconds: 10));
       }
 
-      _isolates[broadcasterId]!._addFrontendUser(
-          _FrontendUser(opaqueId: opaqueId, userId: userId, socket: socket));
+      _isolates[broadcasterId]!._addFrontendUser(_FrontendUser(
+        opaqueId: opaqueId,
+        userId: userId,
+        socket: socket,
+        canAccessTwitchResources: canAccessTwitchResources,
+      ));
     } catch (e) {
       await socket.close();
       return;
