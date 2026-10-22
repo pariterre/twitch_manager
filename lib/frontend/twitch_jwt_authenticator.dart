@@ -136,6 +136,17 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
   }
 
   @override
+  Future<void> dispose() async {
+    onHasConnected.cancelAll();
+
+    _ebsToken = null;
+    _bearerKey = null;
+    _channelId = null;
+    _opaqueUserId = null;
+    _isConnected = false;
+  }
+
+  @override
   Future<void> loadSession() {
     throw 'JWT Authenticator does not support loading sessions';
   }

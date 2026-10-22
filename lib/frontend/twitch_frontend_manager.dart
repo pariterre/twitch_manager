@@ -83,6 +83,11 @@ class TwitchFrontendManager implements TwitchManager {
     return Future.value(manager);
   }
 
+  Future<void> dispose() async {
+    await authenticator.dispose();
+    await apiToEbs.dispose();
+  }
+
   Future<void> _connectToEbs() async {
     await apiToEbs.connect(onResponseFromEbs: _onMessageReceived);
     authenticator.onHasConnected.cancel(_connectToEbs);

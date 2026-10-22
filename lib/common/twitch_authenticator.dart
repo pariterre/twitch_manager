@@ -66,6 +66,8 @@ abstract class TwitchAuthenticator {
     await clearSession();
   }
 
+  Future<void> dispose();
+
   ///
   /// Save a session for further reloading.
   /// It is saved with the specified [saveKeySuffix] suffix which can be used to

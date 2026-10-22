@@ -151,6 +151,13 @@ class TwitchAppAuthenticator extends TwitchAuthenticator {
   }
 
   @override
+  Future<void> dispose() async {
+    _bearerKey = null;
+    _isConnected = false;
+    await disconnect();
+  }
+
+  @override
   Future<void> _saveSessions() async {
     await super._saveSessions();
     const storage = FlutterSecureStorage();

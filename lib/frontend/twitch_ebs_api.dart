@@ -113,6 +113,16 @@ class TwitchEbsApi {
     return Future.value();
   }
 
+  Future<void> dispose() async {
+    if (_socket != null) {
+      _socket!.close();
+      _socket = null;
+    }
+    onStreamerHasConnected.cancelAll();
+    onStreamerHasDisconnected.cancelAll();
+    _onMessageReceivedCallback = null;
+  }
+
   ///
   /// This method sends request to the EBS server via the websocket.
   /// The method returns a `MessageProtocol` with the response from the EBS server.
