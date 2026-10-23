@@ -12,16 +12,20 @@ import 'package:twitch_manager/utils/websocket_utils.dart';
 
 final _logger = Logger('IsolatedMainManager');
 
+/// Login is only expected to be provided if "ebsInfo.isTwitchUserIdRequired" is
+/// set to "true" AND canAccessTwitchResources is false (i.e., the connexion from
+/// the frontend is not made the Twitch extension
 class _FrontendUser {
   final String opaqueId;
   final String? userId;
+  final String? login;
   final WebSocket socket;
-  // TODO Do something with this flag to control access to Twitch resources
   final bool canAccessTwitchResources;
 
   _FrontendUser({
     required this.opaqueId,
     required this.userId,
+    required this.login,
     required this.socket,
     required this.canAccessTwitchResources,
   });
@@ -100,7 +104,10 @@ class _IsolatedClientInterface {
                     ..addAll({
                       'broadcaster_id': broadcasterId,
                       'user_id': frontendUser.userId,
-                      'opaque_id': frontendUser.opaqueId
+                      'opaque_id': frontendUser.opaqueId,
+                      'login': frontendUser.login,
+                      'can_access_twitch_resources':
+                          frontendUser.canAccessTwitchResources
                     })));
 
       WebSocketUtils.safeWebsocketAdd(frontendUser.socket, response.encode(),
@@ -210,6 +217,7 @@ class MainIsolatedManager {
     required String broadcasterId,
     required String opaqueId,
     required String? userId,
+    required String? login,
     required WebSocket socket,
     required bool canAccessTwitchResources,
   }) async {
@@ -227,6 +235,7 @@ class MainIsolatedManager {
       _isolates[broadcasterId]!._addFrontendUser(_FrontendUser(
         opaqueId: opaqueId,
         userId: userId,
+        login: login,
         socket: socket,
         canAccessTwitchResources: canAccessTwitchResources,
       ));

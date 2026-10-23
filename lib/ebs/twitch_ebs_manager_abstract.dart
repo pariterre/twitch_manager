@@ -82,7 +82,10 @@ abstract class TwitchEbsManagerAbstract {
           case MessageFrom.frontend:
             final isSuccess = await _frontendHasRegistered(
                 userId: message.data!['user_id'],
-                opaqueId: message.data!['opaque_id']);
+                login: message.data!['login'],
+                opaqueId: message.data!['opaque_id'],
+                canAccessTwitchResources:
+                    message.data!['can_access_twitch_resources']);
             communicator.sendResponse(message.copyWith(
                 to: MessageTo.ebsMain,
                 from: MessageFrom.ebs,
@@ -193,8 +196,12 @@ abstract class TwitchEbsManagerAbstract {
   /// Handle a message from the frontend to register to the client
   /// [userId] the twitch id of the user
   /// [opaqueId] the opaque id of the user (provided by the frontend)
-  Future<bool> _frontendHasRegistered(
-      {required String? userId, required String opaqueId}) async {
+  Future<bool> _frontendHasRegistered({
+    required String? userId,
+    required String? login,
+    required String opaqueId,
+    required bool canAccessTwitchResources,
+  }) async {
     _logger.info('Registering to client');
 
     // Do not lose time if the user is already registered
@@ -215,11 +222,28 @@ abstract class TwitchEbsManagerAbstract {
     }
 
     // Get the login of the user
-    final user = await TwitchEbsApi.instance.user(userId: userId);
-    if (user == null) {
-      _logger.severe('Could not get user $userId or the app does not have the '
-          'required permission to fetch the user');
-      return false;
+    late final TwitchUser? user;
+    if (canAccessTwitchResources) {
+      user = await TwitchEbsApi.instance.user(userId: userId);
+      if (user == null) {
+        _logger
+            .severe('Could not get user $userId or the app does not have the '
+                'required permission to fetch the user');
+        return false;
+      }
+    } else {
+      if (login == null) {
+        _logger.severe(
+            'Could not get infer user from the login as it was not provided even though "canAccessTwitchResources" is set to False');
+        return false;
+      }
+      if (_registeredFrontendUsers
+          .any((user) => user.login == login && user.userId != userId)) {
+        _logger.severe('The login provided is not unique.');
+        return false;
+      }
+
+      user = TwitchUser(displayName: login, login: login, userId: userId);
     }
 
     // Register the user

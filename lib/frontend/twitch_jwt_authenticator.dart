@@ -156,3 +156,109 @@ class TwitchJwtAuthenticator extends TwitchAuthenticator {
     throw 'JWT Authenticator does not support saving sessions';
   }
 }
+
+///
+/// This NoIntegration allows for using the TwitchManager in a non-Twitch settings
+class NoIntegrationJwtAuthenticator extends TwitchJwtAuthenticator {
+  static Future<NoIntegrationJwtAuthenticator> factory({
+    required String login,
+    required String channelId,
+    required TwitchFrontendInfo appInfo,
+  }) async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    String? userId = sharedPreferences.getString('userId');
+    if (userId == null) {
+      userId = const Uuid().v4();
+      await sharedPreferences.setString('userId', userId);
+      _logger.info('Generated new userId: $userId');
+    }
+
+    return NoIntegrationJwtAuthenticator._(
+      userId: userId,
+      login: login,
+      channelId: channelId,
+      appInfo: appInfo,
+    );
+  }
+
+  NoIntegrationJwtAuthenticator._({
+    required String userId,
+    required this.login,
+    required String channelId,
+    required this.appInfo,
+  }) : _userId = userId {
+    _channelId = channelId;
+  }
+
+  final TwitchFrontendInfo appInfo;
+
+  Future<void> initialize() async {
+    final signedInnerToken =
+        await TwitchFrontendHelpers.getSelfSignedJwt(appInfo: appInfo, data: {
+      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'exp': (DateTime.now().millisecondsSinceEpoch ~/ 1000) + 3600,
+      'channel_id': channelId,
+      'user_id': userId,
+      'login': login,
+      'opaque_user_id': opaqueUserId,
+      'role': 'external',
+      'is_unlinked': false,
+    });
+    final signedOuterToken =
+        await TwitchFrontendHelpers.getSelfSignedJwt(appInfo: appInfo, data: {
+      'twitch_access_token': signedInnerToken,
+      'channel_id': channelId,
+      'opaque_user_id': opaqueUserId,
+      'user_id': userId
+    });
+    _ebsTokenString = signedOuterToken;
+  }
+
+  ///
+  /// The login and displayName
+  final String login;
+
+  ///
+  /// ebsToken is the token that is used to authenticate the EBS to the Twitch API
+  String? _ebsTokenString;
+  @override
+  AppToken? get ebsToken {
+    return AppToken.fromSerialized(_ebsTokenString!);
+  }
+
+  @override
+  String get channelId => _channelId!;
+
+  ///
+  /// The obfuscted user id of the frontend
+  @override
+  String get opaqueUserId => userId;
+
+  ///
+  /// The non-obfuscated user id of the frontend. This required [isTwitchUserIdRequired]
+  /// to be true when calling the [connect] method
+  final String _userId;
+  @override
+  String get userId => _userId;
+
+  @override
+  void requestIdShare() {
+    // Do nothing
+  }
+
+  @override
+  Future<void> connect({
+    required TwitchFrontendInfo appInfo,
+    bool isTwitchUserIdRequired = false,
+  }) async {
+    // Do nothing as there is no third party to connect to
+    _isConnected = true;
+    onHasConnected.notifyListeners((callback) => callback());
+  }
+
+  @override
+  Future<void> listenToPubSub(
+      String target, Function(MessageProtocol message) callback) async {
+    // There is no PubSub
+  }
+}

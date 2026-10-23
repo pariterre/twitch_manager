@@ -29,6 +29,8 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
   final broadcasterId = payload?['channel_id'] as String?;
   final opaqueId = payload?['opaque_user_id'] as String?;
   final userId = payload?['user_id'] as String?;
+  // Login is only expected to be provided if payload?['self_signed'] is true.
+  final login = payload?['login'] as String?;
   final canAccessTwitchResources = payload?['self_signed'] != true;
   if (broadcasterId == null) {
     _logger.severe('No broadcasterId found');
@@ -64,6 +66,7 @@ Future<void> _handleFrontendConnectToWebSocketRequest(HttpRequest request,
     socket: socket,
     opaqueId: opaqueId,
     userId: userId,
+    login: login,
     canAccessTwitchResources: canAccessTwitchResources,
   );
 }

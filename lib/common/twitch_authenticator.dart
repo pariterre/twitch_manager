@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twitch_manager/app/twitch_app_api.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/common/communication_protocols.dart';
 import 'package:twitch_manager/common/twitch_info.dart';
+import 'package:twitch_manager/frontend/twitch_frontend_helpers.dart';
 import 'package:twitch_manager/frontend/twitch_frontend_info.dart';
 import 'package:twitch_manager/frontend/twitch_js_extension/twitch_js_extension.dart';
 import 'package:twitch_manager/utils/twitch_listener.dart';
+import 'package:uuid/uuid.dart';
 
 part 'package:twitch_manager/app/twitch_app_authenticator.dart';
 part 'package:twitch_manager/frontend/twitch_jwt_authenticator.dart';
@@ -51,6 +54,7 @@ abstract class TwitchAuthenticator {
   /// If the user is connected
   bool _isConnected = false;
   bool get isConnected => _isConnected;
+  bool get isNotConnected => !isConnected;
 
   ///
   /// Connect user to Twitch
