@@ -12,8 +12,13 @@ class TwitchFrontendHelpers {
   static Future<String> getSelfSignedJwt(
       {required TwitchFrontendInfo appInfo,
       required Map<String, dynamic> data}) async {
-    // final uri = Uri.parse('${appInfo.ebsUri}/frontend/sign-connect-info');
-    final uri = Uri.parse('http://localhost:3011/frontend/sign-connect-info');
+    Uri uri = Uri.parse('${appInfo.ebsUri}/frontend/sign-connect-info');
+    if (uri.scheme == 'ws' || uri.scheme == 'wss') {
+      uri = uri.replace(
+        scheme: uri.scheme == 'wss' ? 'https' : 'http',
+      );
+    }
+
     final response = await http.post(uri,
         body: jsonEncode(data), headers: {'Content-Type': 'application/json'});
     if (response.statusCode == 200) {
