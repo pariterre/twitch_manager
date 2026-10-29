@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:twitch_manager/app/twitch_app_api.dart';
 import 'package:twitch_manager/app/twitch_app_info.dart';
 import 'package:twitch_manager/common/communication_protocols.dart';
