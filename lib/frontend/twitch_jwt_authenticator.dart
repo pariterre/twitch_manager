@@ -164,12 +164,13 @@ class NoIntegrationJwtAuthenticator extends TwitchJwtAuthenticator {
     required String login,
     required String channelId,
     required TwitchFrontendInfo appInfo,
+    Future<String?> Function()? getCachedUserId,
+    Future<void> Function(String userId)? setCachedUserId,
   }) async {
-    final sharedPreferences = await SharedPreferences.getInstance();
-    String? userId = sharedPreferences.getString('userId');
+    String? userId = getCachedUserId == null ? null : await getCachedUserId();
     if (userId == null) {
       userId = const Uuid().v4();
-      await sharedPreferences.setString('userId', userId);
+      if (setCachedUserId != null) setCachedUserId(userId);
       _logger.info('Generated new userId: $userId');
     }
 
