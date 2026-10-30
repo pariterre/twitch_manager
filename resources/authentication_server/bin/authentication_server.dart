@@ -12,9 +12,9 @@ final _logger = Logger('AuthenticationServer');
 /// and in the example of the [twitch_manager] package.
 ///
 /// The arguments are:
-/// - --host=<host>: the host to bind the server to. Default is 'localhost'.
-/// - --port=<port>: the port to bind the server to. Default is 3000.
-/// - --ssl=<cert.pem>,<key.pem>: the certificate and key to use for SSL. If
+/// - --host=\<host>: the host to bind the server to. Default is 'localhost'.
+/// - --port=\<port>: the port to bind the server to. Default is 3000.
+/// - --ssl=\<cert.pem>,\<key.pem>: the certificate and key to use for SSL. If
 ///  empty, SSL (http) is not used (default).
 void main(List<String> arguments) async {
   if (arguments.contains('--help')) {
@@ -222,7 +222,7 @@ void _handlePostTokenRequest(HttpRequest request) async {
   }
 }
 
-_sendSuccessResponse(HttpRequest request, Map<String, dynamic> data) {
+void _sendSuccessResponse(HttpRequest request, Map<String, dynamic> data) {
   _logger.info('Sending success response: $data');
   request.response
     ..statusCode = HttpStatus.ok
@@ -231,7 +231,7 @@ _sendSuccessResponse(HttpRequest request, Map<String, dynamic> data) {
     ..close();
 }
 
-_sendErrorResponse(HttpRequest request, int statusCode, String message) {
+void _sendErrorResponse(HttpRequest request, int statusCode, String message) {
   _logger.severe('Sending error response: $message');
   request.response
     ..statusCode = statusCode

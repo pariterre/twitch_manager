@@ -176,7 +176,7 @@ class TwitchAppChat {
     final match = re.firstMatch(fullMessage);
     // If this is an unrecognized format, log and call fallback
     if (match == null || match.groupCount != 2) {
-      _logger.warning('Unrecognized message format');
+      _logger.warning('Unrecognized message format from chat');
       onInternalMessageReceived
           .notifyListeners((callback) => callback(fullMessage));
       return;

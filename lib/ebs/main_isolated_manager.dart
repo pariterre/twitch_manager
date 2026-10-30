@@ -200,6 +200,8 @@ class MainIsolatedManager {
         (message) => _handleMessageFromIsolated(message, broadcasterId));
 
     // Create a new isolated client interface if it does not exist
+    _logger
+        .info('Registering a new broadcaster (broadcasterId: $broadcasterId)');
     if (!_isolates.containsKey(broadcasterId)) {
       _isolates[broadcasterId] = _IsolatedClientInterface(
           broadcasterId: broadcasterId,
