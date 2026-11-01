@@ -85,12 +85,14 @@ extension TwitchUserStringListExtension on Iterable<String> {
 
 class TwitchFrontendUser extends TwitchUser {
   String opaqueId;
+  final bool canAccessTwitchResources;
 
   TwitchFrontendUser({
     required super.userId,
     required this.opaqueId,
     required super.login,
     required super.displayName,
+    required this.canAccessTwitchResources,
   });
 }
 

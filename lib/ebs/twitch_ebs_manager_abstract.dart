@@ -251,7 +251,8 @@ abstract class TwitchEbsManagerAbstract {
         userId: user.userId,
         opaqueId: opaqueId,
         login: user.login,
-        displayName: user.displayName));
+        displayName: user.displayName,
+        canAccessTwitchResources: canAccessTwitchResources));
     return true;
   }
 
